@@ -7,29 +7,129 @@ module Demo
       {
         key: "delivery-automation",
         title: "Delivery Automation",
-        description: "Automate issue intake, route planning, test runs, and Change Requests for interplanetary delivery software.",
+        description: <<~MARKDOWN,
+          **Mission:** turn delivery exceptions, customer-impacting incidents, and operator requests into reviewed software changes.
+
+          **Automation policy:** every code-changing run starts from an objective, produces a plan, pauses for approval when risk is unclear, runs checks, and opens a Change Request.
+        MARKDOWN
         repository_url: "https://github.com/planet-express/delivery-automation.git"
       },
       {
         key: "ship-reliability",
         title: "Ship Reliability",
-        description: "Keep the Planet Express ship deployable with scheduled dependency updates, CI incident handling, and approval gates.",
+        description: <<~MARKDOWN,
+          **Mission:** keep ship services deployable across recurring maintenance, dependency updates, and route safety changes.
+
+          **Operating constraint:** scheduled work can run automatically, but any runtime or dependency change still needs branch isolation and a Change Request.
+        MARKDOWN
         repository_url: "https://github.com/planet-express/ship-reliability.git"
       },
       {
         key: "route-optimization",
         title: "Route Optimization",
-        description: "Convert delivery exceptions and telemetry events into prioritized engineering work for safer routes.",
+        description: <<~MARKDOWN,
+          **Mission:** convert route telemetry and failed-delivery patterns into safer dispatch behavior.
+
+          **Review policy:** model and routing changes require an explicit rollback note, focused tests, and operator approval before merge.
+        MARKDOWN
         repository_url: "https://github.com/planet-express/route-optimization.git"
       }
     ].freeze
 
     ISSUES = [
-      [ "OPS-1", "Wire failed delivery events into the Event Inbox", "Build a webhook rule that turns failed delivery events into actionable issues.", "high", "Delivery Automation", "In Progress", "automation" ],
-      [ "OPS-2", "Add approval gate before route recalculation deploys", "Pause the Implement Issue pipeline for an operations review before code is shipped.", "urgent", "Route Optimization", "Todo", "feature" ],
-      [ "OPS-3", "Schedule weekly dependency updates for ship services", "Attach the Update Dependencies pipeline to the ship reliability project on a recurring cadence.", "medium", "Ship Reliability", "Backlog", "maintenance" ],
-      [ "OPS-4", "Open a Change Request for test-runner cleanup", "Use xmode to prove every code-changing run creates a new branch and Change Request.", "high", "Delivery Automation", "Todo", "automation" ],
-      [ "OPS-5", "Document rollback steps for route optimizer", "Add a concise operator runbook for reverting a bad route model release.", "low", "Route Optimization", "Done", "feature" ]
+      [
+        "OPS-1",
+        "Wire failed delivery events into the Event Inbox",
+        <<~MARKDOWN,
+          ## Objective
+
+          Convert critical `delivery.failed` webhook events into actionable engineering work without requiring operators to manually copy payloads.
+
+          ## Acceptance checks
+
+          - Normalize severity, route, package, and repository fields.
+          - Match the `Critical delivery exceptions` rule.
+          - Create an issue linked to the original event.
+          - Preserve the raw payload for incident review.
+        MARKDOWN
+        "high",
+        "Delivery Automation",
+        "In Progress",
+        "automation"
+      ],
+      [
+        "OPS-2",
+        "Add approval gate before route recalculation deploys",
+        <<~MARKDOWN,
+          ## Objective
+
+          Require operations approval before an agent-generated route recalculation change can proceed from plan to code.
+
+          ## Risk
+
+          Route changes can affect active deliveries. The run must show the proposed plan, expected blast radius, and rollback note before approval.
+        MARKDOWN
+        "urgent",
+        "Route Optimization",
+        "Todo",
+        "feature"
+      ],
+      [
+        "OPS-3",
+        "Schedule weekly dependency updates for ship services",
+        <<~MARKDOWN,
+          ## Objective
+
+          Attach the **Update Dependencies** pipeline to Ship Reliability on a weekly cadence.
+
+          ## Done when
+
+          - The recurring schedule targets the ship services repository.
+          - The run opens a new branch and Change Request.
+          - Test evidence is attached to the run timeline.
+        MARKDOWN
+        "medium",
+        "Ship Reliability",
+        "Backlog",
+        "maintenance"
+      ],
+      [
+        "OPS-4",
+        "Open a Change Request for test-runner cleanup",
+        <<~MARKDOWN,
+          ## Objective
+
+          Prove that every code-changing automation run produces a branch-backed Change Request.
+
+          ## Scope
+
+          Use the test-runner cleanup as a controlled change: plan, code, run checks, review diff, and open a draft Change Request.
+        MARKDOWN
+        "high",
+        "Delivery Automation",
+        "Todo",
+        "automation"
+      ],
+      [
+        "OPS-5",
+        "Document rollback steps for route optimizer",
+        <<~MARKDOWN,
+          ## Objective
+
+          Add an operator-facing rollback note for route model releases.
+
+          ## Required sections
+
+          - Trigger conditions
+          - Rollback command
+          - Verification checks
+          - Owner and escalation path
+        MARKDOWN
+        "low",
+        "Route Optimization",
+        "Done",
+        "feature"
+      ]
     ].freeze
 
     def self.call
@@ -143,7 +243,17 @@ module Demo
     def seed_objectives!
       delivery = workspace.projects.find_by!(key: "delivery-automation")
       delivery.objectives.find_or_create_by!(workspace: workspace, title: "Superpower the delivery engineering loop") do |objective|
-        objective.body = "Use objectives, plans, goals, actions, and Change Requests to move Planet Express work from idea to reviewed code."
+        objective.body = <<~MARKDOWN
+          Use objectives, plans, goals, skills, actions, and Change Requests to move Planet Express work from intake to reviewed code.
+
+          The team should be able to answer:
+
+          - What outcome was accepted?
+          - Which plan was approved?
+          - Which automation steps ran?
+          - What evidence was produced?
+          - Which Change Request contains the code?
+        MARKDOWN
       end
       delivery.goals.find_or_create_by!(workspace: workspace, title: "Reduce manual handoffs") do |goal|
         goal.metric = "manual handoffs per delivery automation change"
@@ -152,7 +262,14 @@ module Demo
       end
       delivery.plan_records.find_or_create_by!(workspace: workspace, title: "Implement Issue rollout plan") do |plan|
         plan.status = "verified"
-        plan.body = "Plan Story, Verify Plan, Code, Run Tests, Review Diff, and Open Change Request with approval pauses."
+        plan.body = <<~MARKDOWN
+          1. Plan Story from an issue objective.
+          2. Verify Plan with a manual approval gate when risk is unclear.
+          3. Code in an isolated branch.
+          4. Run targeted checks and capture artifacts.
+          5. Review Diff before packaging.
+          6. Open a Change Request for every code-changing run.
+        MARKDOWN
       end
     end
 

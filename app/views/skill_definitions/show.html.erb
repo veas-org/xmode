@@ -9,15 +9,21 @@
     <div><dt class="app-eyebrow">Category</dt><dd class="mt-1 text-foreground"><%= @skill.category %></dd></div>
     <div><dt class="app-eyebrow">Actions</dt><dd class="mt-1 text-foreground"><%= @actions.count %></dd></div>
   </dl>
-  <p class="mt-5 text-sm leading-6 text-muted-foreground"><%= @skill.description %></p>
+  <div class="rich-markdown mt-5">
+    <%= render_markdown(@skill.description, empty: "No description.") %>
+  </div>
   <div class="mt-5 grid gap-4 md:grid-cols-2">
     <div>
       <p class="app-eyebrow">Instructions</p>
-      <p class="mt-2 rounded-md bg-background p-3 text-sm text-muted-foreground"><%= @skill.instructions %></p>
+      <div class="rich-markdown mt-2 rounded-md bg-background/70 p-3">
+        <%= render_markdown(@skill.instructions, empty: "No instructions.") %>
+      </div>
     </div>
     <div>
       <p class="app-eyebrow">Plan fallback</p>
-      <p class="mt-2 rounded-md bg-background p-3 text-sm text-muted-foreground"><%= @skill.plan_template %></p>
+      <div class="rich-markdown mt-2 rounded-md bg-background/70 p-3">
+        <%= render_markdown(@skill.plan_template, empty: "No plan template.") %>
+      </div>
     </div>
   </div>
   <% if @skill.best_practices.present? %>

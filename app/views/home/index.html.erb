@@ -11,11 +11,13 @@
             method: :post,
             form: { class: "inline-block" },
             class: "app-btn app-btn-muted" %>
-      <%= link_to "Read docs", docs_path, class: "app-btn app-btn-muted" %>
-      <% if landing_url.present? %>
-        <%= link_to "Commercial site", landing_url, class: "app-btn app-btn-muted" %>
-      <% end %>
     </div>
+    <p class="mt-4 text-sm text-muted-foreground">
+      <%= link_to "Read docs", docs_path, class: "hover:text-foreground" %>
+      <% if landing_url.present? %>
+        <span class="px-2 text-muted-foreground">/</span><%= link_to "Commercial site", landing_url, class: "hover:text-foreground" %>
+      <% end %>
+    </p>
   </div>
   <div class="app-card p-4">
     <div class="rounded-md border border-border bg-background p-4">

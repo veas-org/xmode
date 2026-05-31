@@ -1,4 +1,9 @@
 module ApplicationHelper
+  MARKDOWN_TAGS = %w[
+    a blockquote br code del em h1 h2 h3 h4 h5 h6 hr li ol p pre strong table tbody td th thead tr ul
+  ].freeze
+  MARKDOWN_ATTRIBUTES = %w[href title class id rel target].freeze
+
   def lucide_icon(name, class_name: "app-icon", title: nil)
     svg_children = []
     svg_children << tag.title(title) if title.present?
@@ -18,6 +23,28 @@ module ApplicationHelper
     )
   end
 
+  def render_markdown(markdown, empty: nil)
+    content = markdown.to_s
+    return tag.p(empty, class: "text-muted-foreground") if content.blank? && empty.present?
+    return "" if content.blank?
+
+    sanitize(
+      MarkdownRenderer.call(content),
+      tags: MARKDOWN_TAGS,
+      attributes: MARKDOWN_ATTRIBUTES
+    )
+  end
+
+  def artifact_text_preview(artifact, max_bytes: 16_000)
+    path = Pathname.new(artifact.path.to_s)
+    storage_root = Rails.root.join("storage", "runs").to_s
+    return unless path.file? && path.to_s.start_with?(storage_root)
+
+    path.open("rb") { |file| file.read(max_bytes) }
+  rescue Errno::ENOENT, Errno::EACCES
+    nil
+  end
+
   private
 
   def lucide_icon_nodes(name)
@@ -26,6 +53,15 @@ module ApplicationHelper
       [
         tag.path(d: "M10.268 21a2 2 0 0 0 3.464 0"),
         tag.path(d: "M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8a6 6 0 0 0-12 0c0 4.499-1.411 5.956-2.738 7.326")
+      ]
+    when "bold"
+      [
+        tag.path(d: "M6 12h9a4 4 0 0 0 0-8H6v16h10a4 4 0 0 0 0-8Z")
+      ]
+    when "code"
+      [
+        tag.polyline(points: "16 18 22 12 16 6"),
+        tag.polyline(points: "8 6 2 12 8 18")
       ]
     when "calendar"
       [
@@ -65,11 +101,26 @@ module ApplicationHelper
         tag.polyline(points: "22 12 16 12 14 15 10 15 8 12 2 12"),
         tag.path(d: "M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z")
       ]
+    when "italic"
+      [
+        tag.line(x1: 19, x2: 10, y1: 4, y2: 4),
+        tag.line(x1: 14, x2: 5, y1: 20, y2: 20),
+        tag.line(x1: 15, x2: 9, y1: 4, y2: 20)
+      ]
     when "list-filter"
       [
         tag.path(d: "M3 6h18"),
         tag.path(d: "M7 12h10"),
         tag.path(d: "M10 18h4")
+      ]
+    when "list"
+      [
+        tag.line(x1: 8, x2: 21, y1: 6, y2: 6),
+        tag.line(x1: 8, x2: 21, y1: 12, y2: 12),
+        tag.line(x1: 8, x2: 21, y1: 18, y2: 18),
+        tag.line(x1: 3, x2: 3.01, y1: 6, y2: 6),
+        tag.line(x1: 3, x2: 3.01, y1: 12, y2: 12),
+        tag.line(x1: 3, x2: 3.01, y1: 18, y2: 18)
       ]
     when "log-out"
       [
@@ -93,6 +144,11 @@ module ApplicationHelper
         tag.path(d: "M5 12h14"),
         tag.path(d: "M12 5v14")
       ]
+    when "quote"
+      [
+        tag.path(d: "M3 21c3 0 7-1 7-8V5c0-1.25-.75-2-2-2H4c-1.25 0-2 .75-2 2v6c0 1.25.75 2 2 2h3c0 2-1 4-4 4v4Z"),
+        tag.path(d: "M15 21c3 0 7-1 7-8V5c0-1.25-.75-2-2-2h-4c-1.25 0-2 .75-2 2v6c0 1.25.75 2 2 2h3c0 2-1 4-4 4v4Z")
+      ]
     when "search"
       [
         tag.circle(cx: 11, cy: 11, r: 8),
@@ -101,6 +157,11 @@ module ApplicationHelper
     when "settings"
       [
         tag.path(d: "M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"),
+        tag.circle(cx: 12, cy: 12, r: 3)
+      ]
+    when "eye"
+      [
+        tag.path(d: "M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"),
         tag.circle(cx: 12, cy: 12, r: 3)
       ]
     when "sparkles"

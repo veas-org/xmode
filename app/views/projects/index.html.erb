@@ -1,14 +1,23 @@
 <% content_for :page_title, "Projects" %>
-<div class="mb-5 flex justify-end"><%= link_to "New project", new_project_path, class: "app-btn app-btn-primary" %></div>
-<div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+<div class="app-page-actions">
+  <p class="text-sm text-muted-foreground">Track delivery work, repositories, and automation defaults.</p>
+  <%= link_to new_project_path, class: "app-btn app-btn-primary" do %>
+    <%= lucide_icon("plus", class_name: "app-icon") %>
+    <span>Project</span>
+  <% end %>
+</div>
+<div class="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
   <% @projects.each do |project| %>
-    <%= link_to project_path(project), class: "app-card block p-5 hover:bg-muted/50" do %>
-      <div class="flex items-center justify-between">
+    <%= link_to project_path(project), class: "linear-surface block p-5 transition-colors hover:bg-muted/50" do %>
+      <div class="flex items-center justify-between gap-3">
         <h2 class="font-semibold text-foreground"><%= project.title %></h2>
         <span class="status-pill"><%= project.status %></span>
       </div>
-      <p class="mt-3 line-clamp-3 text-sm text-muted-foreground"><%= project.description.presence || "No description." %></p>
-      <p class="mt-4 text-xs text-muted-foreground"><%= project.issues.count %> issues · <%= project.repository_url.presence || "No repository" %></p>
+      <p class="mt-3 line-clamp-3 text-sm text-muted-foreground"><%= strip_tags(render_markdown(project.description)).presence || "No description." %></p>
+      <div class="mt-5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+        <span class="status-pill"><%= pluralize(project.issues.count, "issue") %></span>
+        <span><%= project.repository_url.presence || "No repository" %></span>
+      </div>
     <% end %>
   <% end %>
 </div>

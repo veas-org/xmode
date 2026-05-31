@@ -21,7 +21,7 @@ RSpec.describe "Demo agent operations", type: :request do
     expect(run.trigger).to eq("demo_agent")
     expect(run.issue.title).to eq("Implement automatic retry handling for failed moon deliveries")
     expect(run.reload.status).to eq("waiting_for_approval")
-    expect(run.run_logs.pluck(:message).join("\n")).to include("Bender agent booted")
+    expect(run.run_logs.pluck(:message).join("\n")).to include("Planet Express agent simulator started")
     expect(run.run_artifacts.pluck(:name)).to include("agent-report.md")
   end
 end

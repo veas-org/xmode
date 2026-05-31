@@ -89,8 +89,8 @@ end %>
         </div>
 
         <div class="space-y-4 p-4">
-          <div class="rounded-lg bg-muted/50 p-3 text-sm leading-6 text-muted-foreground">
-            <%= @selected_issue.description.presence || "No description has been added yet." %>
+          <div class="rich-markdown rounded-lg bg-muted/45 p-3">
+            <%= render_markdown(@selected_issue.description, empty: "No description has been added yet.") %>
           </div>
 
           <div class="grid gap-2 text-sm">

@@ -5,20 +5,30 @@
     <div><%= form.label :key, class: "app-label" %><%= form.text_field :key, class: "app-input", required: true %></div>
   </div>
   <div><%= form.label :category, class: "app-label" %><%= form.select :category, SkillDefinition::CATEGORIES, {}, class: "app-input" %></div>
-  <div><%= form.label :description, class: "app-label" %><%= form.text_area :description, rows: 3, class: "app-input" %></div>
-  <div><%= form.label :instructions, class: "app-label" %><%= form.text_area :instructions, rows: 5, class: "app-input" %></div>
+  <%= render "shared/markdown_editor",
+        form: form,
+        field: :description,
+        label: "Description",
+        rows: 5,
+        placeholder: "What this skill does, when to use it, and what evidence it returns." %>
+  <%= render "shared/markdown_editor",
+        form: form,
+        field: :instructions,
+        label: "Instructions",
+        rows: 8,
+        placeholder: "Objective handling, planning behavior, guardrails, and output rules." %>
   <div class="grid gap-4 md:grid-cols-2">
-    <div><%= form.label :objective_template, class: "app-label" %><%= form.text_area :objective_template, rows: 4, class: "app-input" %></div>
-    <div><%= form.label :plan_template, class: "app-label" %><%= form.text_area :plan_template, rows: 4, class: "app-input" %></div>
+    <%= render "shared/markdown_editor", form: form, field: :objective_template, label: "Objective template", rows: 5 %>
+    <%= render "shared/markdown_editor", form: form, field: :plan_template, label: "Plan template", rows: 5 %>
   </div>
   <div>
     <%= label_tag "skill_definition_best_practices_text", "Best practices", class: "app-label" %>
-    <%= text_area_tag "skill_definition[best_practices_text]", skill_definition.best_practices.to_a.join("\n"), rows: 5, class: "app-input" %>
+    <%= text_area_tag "skill_definition[best_practices_text]", skill_definition.best_practices.to_a.join("\n"), rows: 5, class: "app-textarea" %>
   </div>
   <div class="grid gap-4 md:grid-cols-2">
-    <div><%= label_tag "skill_definition_input_schema_json", "Input schema JSON", class: "app-label" %><%= text_area_tag "skill_definition[input_schema_json]", JSON.pretty_generate(skill_definition.input_schema.presence || {}), rows: 8, class: "app-input font-mono text-xs" %></div>
-    <div><%= label_tag "skill_definition_output_schema_json", "Output schema JSON", class: "app-label" %><%= text_area_tag "skill_definition[output_schema_json]", JSON.pretty_generate(skill_definition.output_schema.presence || {}), rows: 8, class: "app-input font-mono text-xs" %></div>
+    <div><%= label_tag "skill_definition_input_schema_json", "Input schema JSON", class: "app-label" %><%= text_area_tag "skill_definition[input_schema_json]", JSON.pretty_generate(skill_definition.input_schema.presence || {}), rows: 8, class: "app-textarea font-mono text-xs" %></div>
+    <div><%= label_tag "skill_definition_output_schema_json", "Output schema JSON", class: "app-label" %><%= text_area_tag "skill_definition[output_schema_json]", JSON.pretty_generate(skill_definition.output_schema.presence || {}), rows: 8, class: "app-textarea font-mono text-xs" %></div>
   </div>
-  <div><%= label_tag "skill_definition_metadata_json", "Metadata JSON", class: "app-label" %><%= text_area_tag "skill_definition[metadata_json]", JSON.pretty_generate(skill_definition.metadata.presence || {}), rows: 5, class: "app-input font-mono text-xs" %></div>
+  <div><%= label_tag "skill_definition_metadata_json", "Metadata JSON", class: "app-label" %><%= text_area_tag "skill_definition[metadata_json]", JSON.pretty_generate(skill_definition.metadata.presence || {}), rows: 5, class: "app-textarea font-mono text-xs" %></div>
   <%= form.submit class: "app-btn app-btn-primary" %>
 <% end %>

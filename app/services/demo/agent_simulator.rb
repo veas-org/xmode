@@ -12,7 +12,7 @@ module Demo
 
     def call
       artifact_dir.mkpath
-      log("Bender agent booted for #{project_name}.")
+      log("Planet Express agent simulator started for #{project_name}.")
       log("Objective: #{objective}")
       log("Loaded skill: #{skill_name}") if skill_name.present?
       log(message_for_action)
@@ -56,15 +56,15 @@ module Demo
     def message_for_action
       case action_key
       when "plan-story"
-        "Drafting a scoped plan with risks, checks, and the next manual approval decision."
+        "Drafting a scoped implementation plan with assumptions, risks, acceptance checks, and the next approval decision."
       when "code"
-        "Mock editing delivery services, route policies, and regression coverage in an isolated branch."
+        "Simulating isolated branch edits for delivery services, route policies, and regression coverage."
       when "run-tests"
-        "Running fake CI: unit checks, route policy specs, and smoke validation."
+        "Simulating CI evidence: unit checks, route policy specs, and smoke validation."
       when "review-diff"
-        "Summarizing the simulated diff for review."
+        "Preparing review notes that connect the simulated diff back to the approved objective."
       when "open-change-request"
-        "Packaging fake agent output into a Change Request record."
+        "Packaging the simulated output into a branch-backed Change Request record."
       when "update-dependencies"
         "Simulating dependency patch updates and lockfile review."
       else
@@ -91,12 +91,12 @@ module Demo
 
     def planned_output
       {
-        "summary" => "Demo agent planned #{issue_name}.",
+        "summary" => "Planned #{issue_name} with risks, checks, and approval points.",
         "status" => "planned",
         "plan" => [
-          "Inspect #{project_name} project context.",
-          "Implement the smallest change that satisfies the objective.",
-          "Run targeted verification and package a Change Request."
+          "Inspect #{project_name} project context, repository policy, and linked issue state.",
+          "Implement the smallest branch-isolated change that satisfies the objective.",
+          "Run targeted verification and package a Change Request with review evidence."
         ],
         "changed_files_count" => 0
       }
@@ -166,15 +166,24 @@ module Demo
 
     def write_artifacts(output)
       report = <<~MARKDOWN
-        # Fake Agent Report
+        # Agent run report
 
-        Project: #{project_name}
-        Step: #{@step.name}
-        Skill: #{skill_name.presence || "none"}
-        Objective: #{objective}
-        Status: #{output.fetch("status")}
+        ## Context
+
+        - **Project:** #{project_name}
+        - **Issue:** #{issue_name}
+        - **Step:** #{@step.name}
+        - **Skill:** #{skill_name.presence || "None"}
+        - **Objective:** #{objective}
+        - **Status:** #{output.fetch("status")}
+
+        ## Summary
 
         #{output.fetch("summary")}
+
+        ## Evidence
+
+        #{evidence_markdown(output)}
       MARKDOWN
       write_artifact("agent-report.md", report, "text/markdown")
 
@@ -195,6 +204,18 @@ module Demo
         +  end
         +end
       PATCH
+    end
+
+    def evidence_markdown(output)
+      if output["plan"].present?
+        output.fetch("plan").map { |item| "- #{item}" }.join("\n")
+      elsif output["changed_files"].present?
+        output.fetch("changed_files").map { |file| "- `#{file}`" }.join("\n")
+      elsif output["checks"].present?
+        output.fetch("checks").map { |check| "- `#{check}` passed" }.join("\n")
+      else
+        "- Structured output was recorded on the run step.\n- Logs and artifacts are available in the run timeline."
+      end
     end
 
     def write_artifact(name, contents, content_type)

@@ -14,9 +14,9 @@
       <button type="button" class="app-btn app-btn-danger" data-action="pipeline-graph#clear">Clear</button>
     </div>
     <div class="graph-canvas relative overflow-hidden" data-pipeline-graph-target="graph"></div>
-    <%= text_area_tag "pipeline_definition[graph_json]", JSON.pretty_generate(pipeline_definition.graph.presence || { nodes: [], edges: [] }), rows: 10, class: "app-input mt-4 font-mono text-xs", data: { pipeline_graph_target: "field" } %>
+    <%= text_area_tag "pipeline_definition[graph_json]", JSON.pretty_generate(pipeline_definition.graph.presence || { nodes: [], edges: [] }), rows: 10, class: "app-textarea mt-4 font-mono text-xs", data: { pipeline_graph_target: "field" } %>
   </div>
 
-  <div><%= label_tag "pipeline_definition_required_context_json", "Required context JSON", class: "app-label" %><%= text_area_tag "pipeline_definition[required_context_json]", JSON.pretty_generate(pipeline_definition.required_context.presence || {}), rows: 5, class: "app-input font-mono text-xs" %></div>
+  <div><%= label_tag "pipeline_definition_required_context_json", "Required context JSON", class: "app-label" %><%= text_area_tag "pipeline_definition[required_context_json]", JSON.pretty_generate(pipeline_definition.required_context.presence || {}), rows: 5, class: "app-textarea font-mono text-xs" %></div>
   <%= form.submit class: "app-btn app-btn-primary" %>
 <% end %>

@@ -42,7 +42,7 @@ RSpec.describe Demo::AgentSimulator do
     expect(run.reload.status).to eq("completed")
     expect(step.output_json).to include("status" => "completed")
     expect(step.output_json["changed_files_count"]).to eq(3)
-    expect(run.run_logs.pluck(:message).join("\n")).to include("Bender agent booted")
+    expect(run.run_logs.pluck(:message).join("\n")).to include("Planet Express agent simulator started")
     expect(run.run_artifacts.pluck(:name)).to include("agent-report.md", "fake-diff.patch")
   end
 end

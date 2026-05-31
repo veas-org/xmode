@@ -12,11 +12,6 @@
       <% end %>
     </div>
     <div class="flex items-center gap-2">
-      <%= button_to "Demo",
-            demo_login_path(workspace: "planet-express"),
-            method: :post,
-            form: { class: "hidden sm:block" },
-            class: "app-btn app-btn-muted" %>
       <%= link_to "Sign in", login_path, class: "app-btn app-btn-muted" %>
       <%= link_to "Start", signup_path, class: "app-btn app-btn-primary" %>
     </div>

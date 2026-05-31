@@ -1,6 +1,6 @@
 <section class="mx-auto max-w-4xl px-5 py-12">
   <%= link_to "Docs", docs_path, class: "text-sm text-muted-foreground hover:text-foreground" %>
-  <article class="prose prose-invert mt-6 max-w-none prose-headings:text-foreground prose-a:text-foreground prose-code:text-foreground">
-    <%= sanitize @html, tags: %w[h1 h2 h3 h4 p ul ol li strong em code pre a blockquote table thead tbody tr th td hr br], attributes: %w[href title class] %>
+  <article class="rich-markdown mt-6 max-w-none">
+    <%= render_markdown(@markdown) %>
   </article>
 </section>

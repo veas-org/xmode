@@ -1,0 +1,27 @@
+<% rows = local_assigns.fetch(:rows, 10) %>
+<% label = local_assigns.fetch(:label, field.to_s.humanize) %>
+<% placeholder = local_assigns.fetch(:placeholder, nil) %>
+<% classes = local_assigns.fetch(:class, "") %>
+
+<div class="markdown-editor <%= classes %>" data-controller="markdown-editor">
+  <div class="flex flex-wrap items-center justify-between gap-2">
+    <%= form.label field, label, class: "app-label mb-0" %>
+    <div class="markdown-toolbar" aria-label="<%= label %> formatting">
+      <button type="button" class="markdown-tool-btn" data-action="markdown-editor#bold" title="Bold" aria-label="Bold"><%= lucide_icon("bold", class_name: "app-icon") %></button>
+      <button type="button" class="markdown-tool-btn" data-action="markdown-editor#italic" title="Italic" aria-label="Italic"><%= lucide_icon("italic", class_name: "app-icon") %></button>
+      <button type="button" class="markdown-tool-btn" data-action="markdown-editor#list" title="List" aria-label="List"><%= lucide_icon("list", class_name: "app-icon") %></button>
+      <button type="button" class="markdown-tool-btn" data-action="markdown-editor#quote" title="Quote" aria-label="Quote"><%= lucide_icon("quote", class_name: "app-icon") %></button>
+      <button type="button" class="markdown-tool-btn" data-action="markdown-editor#code" title="Code" aria-label="Code"><%= lucide_icon("code", class_name: "app-icon") %></button>
+      <button type="button" class="markdown-tool-btn" data-action="markdown-editor#togglePreview" title="Preview" aria-label="Preview"><%= lucide_icon("eye", class_name: "app-icon") %></button>
+    </div>
+  </div>
+  <%= form.text_area field,
+        rows: rows,
+        class: "app-textarea mt-2",
+        placeholder: placeholder,
+        data: {
+          markdown_editor_target: "input",
+          action: "input->markdown-editor#refresh"
+        } %>
+  <div class="markdown-preview rich-markdown mt-3 hidden" data-markdown-editor-target="preview"></div>
+</div>

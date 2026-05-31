@@ -20,18 +20,18 @@
     </div>
   </div>
   <div class="grid gap-4 md:grid-cols-2">
-    <div><%= form.label :objective_template, class: "app-label" %><%= form.text_area :objective_template, rows: 4, class: "app-input" %></div>
-    <div><%= form.label :plan_template, class: "app-label" %><%= form.text_area :plan_template, rows: 4, class: "app-input" %></div>
+    <%= render "shared/markdown_editor", form: form, field: :objective_template, label: "Objective template", rows: 5 %>
+    <%= render "shared/markdown_editor", form: form, field: :plan_template, label: "Plan template", rows: 5 %>
   </div>
-  <div><%= form.label :execution_guidance, class: "app-label" %><%= form.text_area :execution_guidance, rows: 3, class: "app-input" %></div>
+  <%= render "shared/markdown_editor", form: form, field: :execution_guidance, label: "Execution guidance", rows: 6 %>
   <div>
     <%= label_tag "action_definition_best_practices_text", "Best practices", class: "app-label" %>
-    <%= text_area_tag "action_definition[best_practices_text]", action_definition.best_practices.to_a.join("\n"), rows: 4, class: "app-input" %>
+    <%= text_area_tag "action_definition[best_practices_text]", action_definition.best_practices.to_a.join("\n"), rows: 4, class: "app-textarea" %>
   </div>
   <div class="grid gap-4 md:grid-cols-2">
-    <div><%= label_tag "action_definition_input_schema_json", "Input schema JSON", class: "app-label" %><%= text_area_tag "action_definition[input_schema_json]", JSON.pretty_generate(action_definition.input_schema.presence || {}), rows: 8, class: "app-input font-mono text-xs" %></div>
-    <div><%= label_tag "action_definition_output_schema_json", "Output schema JSON", class: "app-label" %><%= text_area_tag "action_definition[output_schema_json]", JSON.pretty_generate(action_definition.output_schema.presence || {}), rows: 8, class: "app-input font-mono text-xs" %></div>
+    <div><%= label_tag "action_definition_input_schema_json", "Input schema JSON", class: "app-label" %><%= text_area_tag "action_definition[input_schema_json]", JSON.pretty_generate(action_definition.input_schema.presence || {}), rows: 8, class: "app-textarea font-mono text-xs" %></div>
+    <div><%= label_tag "action_definition_output_schema_json", "Output schema JSON", class: "app-label" %><%= text_area_tag "action_definition[output_schema_json]", JSON.pretty_generate(action_definition.output_schema.presence || {}), rows: 8, class: "app-textarea font-mono text-xs" %></div>
   </div>
-  <div><%= label_tag "action_definition_defaults_json", "Defaults JSON", class: "app-label" %><%= text_area_tag "action_definition[defaults_json]", JSON.pretty_generate(action_definition.defaults.presence || {}), rows: 5, class: "app-input font-mono text-xs" %></div>
+  <div><%= label_tag "action_definition_defaults_json", "Defaults JSON", class: "app-label" %><%= text_area_tag "action_definition[defaults_json]", JSON.pretty_generate(action_definition.defaults.presence || {}), rows: 5, class: "app-textarea font-mono text-xs" %></div>
   <%= form.submit class: "app-btn app-btn-primary" %>
 <% end %>

@@ -2,7 +2,9 @@
 <div class="mb-5 flex items-center justify-between">
   <div>
     <p class="app-eyebrow"><%= @project.key %> · <%= @project.status %></p>
-    <p class="mt-2 text-muted-foreground"><%= @project.description %></p>
+    <div class="rich-markdown mt-2 max-w-3xl">
+      <%= render_markdown(@project.description, empty: "No description.") %>
+    </div>
   </div>
   <div class="flex gap-2">
     <%= link_to "Edit", edit_project_path(@project), class: "app-btn app-btn-muted" %>

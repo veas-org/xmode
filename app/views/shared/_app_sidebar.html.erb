@@ -37,7 +37,7 @@ end %>
 
 <aside class="app-sidebar">
   <%= link_to app_path, class: "mb-4 flex items-center gap-2.5 rounded-md px-2 py-1.5 text-foreground hover:bg-sidebar-accent" do %>
-    <span class="grid h-7 w-7 place-items-center rounded-md bg-sidebar-primary text-xs font-black text-sidebar-primary-foreground">x</span>
+    <span class="app-sidebar-logo">x</span>
     <span class="min-w-0">
       <span class="block truncate text-sm font-semibold">xmode</span>
       <span class="block truncate text-xs text-muted-foreground"><%= current_workspace&.name %></span>

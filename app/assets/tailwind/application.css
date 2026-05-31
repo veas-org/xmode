@@ -194,8 +194,9 @@
   .app-shell {
     @apply grid min-h-screen grid-cols-1 bg-background text-foreground lg:grid-cols-[256px_minmax(0,1fr)];
     background:
-      radial-gradient(circle at 16% -8%, rgba(14, 165, 233, 0.14), transparent 29rem),
-      radial-gradient(circle at 86% 2%, rgba(20, 184, 166, 0.11), transparent 27rem),
+      radial-gradient(circle at 16% -8%, rgba(14, 165, 233, 0.18), transparent 30rem),
+      radial-gradient(circle at 86% 2%, rgba(20, 184, 166, 0.14), transparent 28rem),
+      radial-gradient(circle at 60% 42%, rgba(56, 189, 248, 0.055), transparent 42rem),
       linear-gradient(180deg, rgba(12, 16, 24, 0.98), rgba(8, 10, 15, 1));
     isolation: isolate;
     overflow: hidden;
@@ -204,15 +205,15 @@
 
   .app-shell::before {
     background-image:
-      radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.16) 1px, transparent 0),
-      radial-gradient(circle at 1px 1px, rgba(125, 211, 252, 0.18) 1px, transparent 0),
+      radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.18) 1px, transparent 0),
+      radial-gradient(circle at 1px 1px, rgba(125, 211, 252, 0.2) 1px, transparent 0),
       linear-gradient(128deg, transparent 8%, rgba(14, 165, 233, 0.08) 28%, transparent 45%, rgba(20, 184, 166, 0.06) 72%, transparent 90%);
     background-position: 0 0, 24px 18px, 0 0;
     background-size: 56px 56px, 116px 116px, 100% 100%;
     content: "";
     inset: 0;
     mask-image: linear-gradient(180deg, black 0%, rgba(0, 0, 0, 0.82) 58%, transparent 100%);
-    opacity: 0.4;
+    opacity: 0.46;
     pointer-events: none;
     position: fixed;
     z-index: -1;
@@ -262,6 +263,12 @@
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
   }
 
+  .app-sidebar-logo {
+    @apply grid h-7 w-7 place-items-center rounded-md text-xs font-black text-sidebar-primary-foreground;
+    background: linear-gradient(135deg, rgba(186, 230, 253, 0.95), rgba(94, 234, 212, 0.86));
+    box-shadow: 0 0 22px rgba(125, 211, 252, 0.22);
+  }
+
   .app-sidebar-demo {
     @apply mb-1.5 flex h-8 items-center justify-between rounded-md bg-muted/55 px-2 text-xs font-medium text-muted-foreground;
   }
@@ -307,8 +314,8 @@
   }
 
   .app-topbar {
-    @apply sticky top-0 z-30 flex h-12 items-center justify-between gap-4 px-4 backdrop-blur md:px-5;
-    background: rgba(9, 11, 17, 0.72);
+    @apply sticky top-0 z-30 flex h-12 items-center justify-between gap-4 px-4 backdrop-blur md:px-6;
+    background: rgba(9, 11, 17, 0.68);
     box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.055);
   }
 
@@ -325,7 +332,7 @@
   }
 
   .app-content {
-    @apply mx-auto w-full max-w-[1500px] px-3 py-4 md:px-5 md:py-5;
+    @apply mx-auto w-full max-w-[1440px] px-4 py-5 md:px-6 md:py-6;
   }
 
   .app-card {
@@ -369,8 +376,126 @@
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.035);
   }
 
+  .app-textarea {
+    @apply min-h-32 w-full resize-y rounded-md border border-transparent bg-muted/70 px-3 py-2.5 text-sm leading-6 text-foreground shadow-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring/50;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.035);
+  }
+
   .app-label {
     @apply mb-1.5 block text-sm font-medium text-foreground;
+  }
+
+  .markdown-editor {
+    @apply rounded-lg bg-muted/20 p-3;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.035);
+  }
+
+  .markdown-toolbar {
+    @apply inline-flex items-center gap-0.5 rounded-md bg-background/70 p-0.5;
+  }
+
+  .markdown-tool-btn {
+    @apply grid h-7 w-7 place-items-center rounded-[5px] text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground;
+  }
+
+  .markdown-preview {
+    @apply rounded-md bg-background/70 p-3;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.035);
+  }
+
+  .rich-markdown {
+    @apply text-sm leading-6 text-muted-foreground;
+  }
+
+  .rich-markdown > * + * {
+    margin-top: 0.85rem;
+  }
+
+  .rich-markdown h1,
+  .rich-markdown h2,
+  .rich-markdown h3,
+  .rich-markdown h4 {
+    @apply font-semibold text-foreground;
+  }
+
+  .rich-markdown h1 {
+    @apply text-2xl;
+  }
+
+  .rich-markdown h2 {
+    @apply text-lg;
+  }
+
+  .rich-markdown h3,
+  .rich-markdown h4 {
+    @apply text-base;
+  }
+
+  .rich-markdown ul,
+  .rich-markdown ol {
+    @apply pl-5;
+  }
+
+  .rich-markdown ul {
+    @apply list-disc;
+  }
+
+  .rich-markdown ol {
+    list-style: decimal;
+  }
+
+  .rich-markdown li + li {
+    margin-top: 0.3rem;
+  }
+
+  .rich-markdown blockquote {
+    @apply rounded-md bg-muted/35 px-3 py-2 text-muted-foreground;
+    box-shadow: inset 2px 0 0 rgba(125, 211, 252, 0.45);
+  }
+
+  .rich-markdown code {
+    @apply rounded bg-muted/60 px-1.5 py-0.5 font-mono text-xs text-foreground;
+  }
+
+  .rich-markdown pre {
+    @apply overflow-auto rounded-md bg-background/80 p-3;
+  }
+
+  .rich-markdown pre code {
+    @apply bg-transparent p-0 text-xs text-muted-foreground;
+  }
+
+  .rich-markdown a {
+    @apply text-sky-300 hover:text-foreground;
+  }
+
+  .rich-markdown table {
+    @apply w-full text-left text-sm;
+  }
+
+  .rich-markdown th {
+    @apply bg-muted/40 px-3 py-2 text-xs font-medium text-muted-foreground;
+  }
+
+  .rich-markdown td {
+    @apply px-3 py-2 text-muted-foreground;
+  }
+
+  .operating-map {
+    @apply mb-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px];
+  }
+
+  .operating-map-steps {
+    @apply grid gap-2 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5;
+  }
+
+  .operating-map-step {
+    @apply rounded-md bg-muted/30 p-3.5;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.035);
+  }
+
+  .operating-map-index {
+    @apply text-[11px] font-medium text-sky-300;
   }
 
   .app-table {
@@ -394,7 +519,7 @@
   }
 
   .linear-page {
-    @apply grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px];
+    @apply grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px];
   }
 
   .linear-surface {
@@ -404,7 +529,7 @@
   }
 
   .linear-toolbar {
-    @apply flex min-h-11 flex-wrap items-center justify-between gap-3 bg-muted/20 px-3.5;
+    @apply flex min-h-11 min-w-0 flex-wrap items-center justify-between gap-3 bg-muted/20 px-3.5;
     box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.035);
   }
 
@@ -413,11 +538,11 @@
   }
 
   .linear-tabs {
-    @apply inline-flex min-h-8 flex-wrap items-center justify-center gap-0.5 rounded-md bg-muted/55 p-0.5 text-muted-foreground;
+    @apply inline-flex min-h-8 min-w-0 max-w-full flex-wrap items-center justify-center gap-0.5 rounded-md bg-muted/55 p-0.5 text-muted-foreground;
   }
 
   .linear-tab {
-    @apply inline-flex h-7 items-center rounded-[5px] px-2 text-sm font-medium transition-colors hover:text-foreground;
+    @apply inline-flex h-7 shrink-0 items-center rounded-[5px] px-2 text-sm font-medium transition-colors hover:text-foreground;
   }
 
   .linear-tab.is-active {
@@ -425,11 +550,11 @@
   }
 
   .linear-list {
-    @apply space-y-0 p-1.5;
+    @apply space-y-0 p-2;
   }
 
   .linear-row {
-    @apply flex min-w-0 items-center gap-3 rounded-md px-3 py-2.5 transition-colors hover:bg-muted/45;
+    @apply flex min-w-0 items-center gap-3 rounded-md px-3.5 py-3 transition-colors hover:bg-muted/45;
   }
 
   .linear-row-main {
@@ -445,7 +570,7 @@
   }
 
   .linear-side {
-    @apply space-y-3;
+    @apply space-y-4;
   }
 
   .linear-command {
@@ -466,7 +591,7 @@
   }
 
   .inbox-shell {
-    @apply grid gap-4 xl:grid-cols-[minmax(0,1fr)_400px];
+    @apply grid gap-5 xl:grid-cols-[minmax(0,1fr)_400px];
   }
 
   .inbox-list-panel {
@@ -493,11 +618,11 @@
   }
 
   .inbox-list {
-    @apply space-y-0 p-1.5;
+    @apply space-y-0 p-2;
   }
 
   .inbox-row {
-    @apply flex min-w-0 items-center gap-3 rounded-md px-3 py-2.5 transition-colors hover:bg-muted/45;
+    @apply flex min-w-0 items-center gap-3 rounded-md px-3.5 py-3 transition-colors hover:bg-muted/45;
   }
 
   .inbox-row.is-selected {
@@ -534,5 +659,74 @@
 
   .app-icon {
     @apply h-4 w-4 shrink-0;
+  }
+
+  .app-card,
+  .app-panel,
+  .linear-surface,
+  .inbox-list-panel,
+  .inbox-preview {
+    backdrop-filter: blur(18px);
+    background:
+      radial-gradient(circle at 1px 1px, rgba(125, 211, 252, 0.045) 1px, transparent 0) 0 0 / 42px 42px,
+      radial-gradient(circle at 12% 0%, rgba(56, 189, 248, 0.08), transparent 19rem),
+      radial-gradient(circle at 92% 14%, rgba(45, 212, 191, 0.055), transparent 18rem),
+      linear-gradient(180deg, rgba(18, 23, 33, 0.76), rgba(11, 15, 23, 0.84));
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.045), 0 20px 56px rgba(0, 0, 0, 0.18);
+    overflow: hidden;
+    position: relative;
+  }
+
+  .app-card::before,
+  .app-panel::before,
+  .linear-surface::before,
+  .inbox-list-panel::before,
+  .inbox-preview::before {
+    background: linear-gradient(90deg, transparent, rgba(125, 211, 252, 0.34), rgba(45, 212, 191, 0.18), transparent);
+    content: "";
+    height: 1px;
+    inset: 0 0 auto;
+    opacity: 0.72;
+    pointer-events: none;
+    position: absolute;
+  }
+
+  .app-card > *,
+  .app-panel > *,
+  .linear-surface > *,
+  .inbox-list-panel > *,
+  .inbox-preview > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .linear-toolbar,
+  .inbox-header {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.014));
+  }
+
+  .app-page-actions {
+    @apply mb-5 flex flex-wrap items-center justify-between gap-3;
+  }
+
+  .app-detail-grid {
+    @apply grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px];
+  }
+
+  .app-run-grid {
+    @apply grid gap-5 lg:grid-cols-[minmax(0,1fr)_380px];
+  }
+
+  .app-run-step {
+    @apply rounded-md bg-muted/30 p-3.5;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.035);
+  }
+
+  .operating-map > *,
+  .linear-page > *,
+  .inbox-shell > *,
+  .app-detail-grid > *,
+  .app-run-grid > * {
+    min-width: 0;
   }
 }

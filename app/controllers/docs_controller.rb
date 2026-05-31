@@ -11,6 +11,6 @@ class DocsController < ApplicationController
     raise ActionController::RoutingError, "Not Found" unless path.file?
 
     @title = path.basename(".md").to_s.tr("-", " ").titleize
-    @html = Redcarpet::Markdown.new(Redcarpet::Render::HTML.new(filter_html: true), fenced_code_blocks: true, tables: true).render(path.read)
+    @markdown = path.read
   end
 end

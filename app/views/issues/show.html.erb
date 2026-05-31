@@ -1,31 +1,46 @@
 <% content_for :page_title, @issue.identifier %>
-<div class="grid gap-6 lg:grid-cols-[1fr_340px]">
-  <article class="app-card p-6">
-    <p class="app-eyebrow"><%= @issue.display_status %> · <%= @issue.priority %></p>
-    <h2 class="mt-2 text-3xl font-semibold text-foreground"><%= @issue.title %></h2>
-    <p class="mt-5 whitespace-pre-wrap text-muted-foreground"><%= @issue.description.presence || "No description." %></p>
-    <div class="mt-6 flex gap-2">
-      <%= link_to "Edit", edit_issue_path(@issue), class: "app-btn app-btn-muted" %>
-      <% current_workspace.pipeline_definitions.limit(3).each do |pipeline| %>
-        <%= button_to "Run #{pipeline.name}", run_pipeline_path(pipeline, issue_id: @issue.id), method: :post, class: "app-btn app-btn-primary" %>
+<div class="app-detail-grid">
+  <article class="linear-surface p-5 md:p-6">
+    <div class="flex flex-wrap items-center gap-2">
+      <span class="status-pill"><%= @issue.display_status %></span>
+      <span class="status-pill"><%= @issue.priority %></span>
+      <span class="app-eyebrow"><%= @issue.project&.title || "No project" %></span>
+    </div>
+    <h2 class="mt-3 text-2xl font-semibold tracking-normal text-foreground"><%= @issue.title %></h2>
+    <div class="rich-markdown mt-5">
+      <%= render_markdown(@issue.description, empty: "No description.") %>
+    </div>
+    <div class="mt-6 flex flex-wrap items-center gap-2">
+      <%= link_to edit_issue_path(@issue), class: "app-btn app-btn-muted" do %>
+        <%= lucide_icon("pencil", class_name: "app-icon") %>
+        <span>Edit</span>
+      <% end %>
+      <% current_workspace.pipeline_definitions.order(:name).limit(2).each do |pipeline| %>
+        <%= button_to run_pipeline_path(pipeline, issue_id: @issue.id), method: :post, class: "app-btn app-btn-primary" do %>
+          <%= lucide_icon("play", class_name: "app-icon") %>
+          <span>Run <%= pipeline.name %></span>
+        <% end %>
       <% end %>
     </div>
   </article>
   <aside class="space-y-4">
-    <section class="app-card p-4">
+    <section class="linear-surface p-4">
       <h3 class="font-medium text-foreground">Details</h3>
-      <dl class="mt-3 space-y-2 text-sm text-muted-foreground">
-        <div class="flex justify-between"><dt>Project</dt><dd><%= @issue.project&.title || "-" %></dd></div>
-        <div class="flex justify-between"><dt>Cycle</dt><dd><%= @issue.cycle&.name || "-" %></dd></div>
-        <div class="flex justify-between"><dt>Assignee</dt><dd><%= @issue.assignee&.display_name || "-" %></dd></div>
-        <div class="flex justify-between"><dt>Estimate</dt><dd><%= @issue.estimate || "-" %></dd></div>
+      <dl class="mt-3 grid gap-2 text-sm">
+        <div class="inbox-property"><dt>Project</dt><dd><strong><%= @issue.project&.title || "-" %></strong></dd></div>
+        <div class="inbox-property"><dt>Cycle</dt><dd><strong><%= @issue.cycle&.name || "-" %></strong></dd></div>
+        <div class="inbox-property"><dt>Assignee</dt><dd><strong><%= @issue.assignee&.display_name || "-" %></strong></dd></div>
+        <div class="inbox-property"><dt>Estimate</dt><dd><strong><%= @issue.estimate || "-" %></strong></dd></div>
       </dl>
     </section>
-    <section class="app-card p-4">
+    <section class="linear-surface p-4">
       <h3 class="font-medium text-foreground">Change Requests</h3>
-      <div class="mt-3 space-y-2">
+      <div class="mt-3 space-y-1">
         <% @change_requests.each do |cr| %>
-          <%= link_to cr.title, change_request_path(cr), class: "block text-sm text-foreground" %>
+          <%= link_to change_request_path(cr), class: "linear-row" do %>
+            <%= lucide_icon("git-pull-request", class_name: "app-icon text-muted-foreground") %>
+            <span class="linear-row-title"><%= cr.title %></span>
+          <% end %>
         <% end %>
         <% if @change_requests.empty? %><p class="text-sm text-muted-foreground">None yet.</p><% end %>
       </div>

@@ -1,28 +1,43 @@
 <% content_for :page_title, "Run ##{@run.id}" %>
-<div class="mb-5 flex items-center justify-between">
-  <span class="status-pill"><%= @run.status %></span>
+<div class="app-page-actions">
+  <div class="flex flex-wrap items-center gap-2">
+    <span class="status-pill"><%= @run.status %></span>
+    <span class="app-eyebrow"><%= @run.pipeline_definition&.name || "Pipeline run" %></span>
+  </div>
   <div class="flex gap-2">
     <% if @run.status == "waiting_for_approval" %>
-      <%= button_to "Approve", approve_pipeline_run_path(@run), method: :post, class: "app-btn app-btn-primary" %>
-      <%= button_to "Reject", reject_pipeline_run_path(@run), method: :post, class: "app-btn app-btn-danger" %>
+      <%= button_to approve_pipeline_run_path(@run), method: :post, class: "app-btn app-btn-primary" do %>
+        <%= lucide_icon("check", class_name: "app-icon") %>
+        <span>Approve</span>
+      <% end %>
+      <%= button_to reject_pipeline_run_path(@run), method: :post, class: "app-btn app-btn-danger" do %>
+        <%= lucide_icon("x", class_name: "app-icon") %>
+        <span>Reject</span>
+      <% end %>
     <% end %>
-    <%= button_to "Resume", resume_pipeline_run_path(@run), method: :post, class: "app-btn app-btn-muted" %>
-    <%= button_to "Cancel", cancel_pipeline_run_path(@run), method: :post, class: "app-btn app-btn-danger" %>
+    <%= button_to resume_pipeline_run_path(@run), method: :post, class: "app-btn app-btn-muted" do %>
+      <%= lucide_icon("rotate-cw", class_name: "app-icon") %>
+      <span>Resume</span>
+    <% end %>
+    <%= button_to cancel_pipeline_run_path(@run), method: :post, class: "app-btn app-btn-danger" do %>
+      <%= lucide_icon("ban", class_name: "app-icon") %>
+      <span>Cancel</span>
+    <% end %>
   </div>
 </div>
-<div class="grid gap-6 lg:grid-cols-[1fr_380px]">
-  <section class="app-card p-5">
+<div class="app-run-grid">
+  <section class="linear-surface p-5">
     <h2 class="font-semibold text-foreground">Steps</h2>
     <div class="mt-4 space-y-3">
       <% @steps.each do |step| %>
-        <article class="rounded-md border border-border p-3">
+        <article class="app-run-step">
           <div class="flex items-center justify-between">
             <p class="font-medium text-foreground"><%= step.position + 1 %>. <%= step.name %></p>
             <span class="status-pill"><%= step.status %></span>
           </div>
           <% input = step.input_json || {} %>
           <% if input["skill"].present? || input["objective"].present? || input["plan"].present? %>
-            <div class="mt-3 space-y-2 rounded-md bg-background p-3 text-sm text-muted-foreground">
+            <div class="mt-3 space-y-2 rounded-md bg-background/55 p-3 text-sm text-muted-foreground">
               <% if input.dig("skill", "name").present? %>
                 <p><span class="app-eyebrow">Skill</span> <%= input.dig("skill", "name") %></p>
               <% end %>
@@ -40,16 +55,31 @@
     </div>
   </section>
   <aside class="space-y-4">
-    <section class="app-card p-4">
+    <section class="linear-surface p-4">
       <h3 class="font-medium text-foreground">Logs</h3>
       <div class="mt-3 max-h-80 space-y-2 overflow-auto text-xs text-muted-foreground">
         <% @logs.each do |log| %><p><span class="text-muted-foreground"><%= log.level %></span> <%= log.message %></p><% end %>
       </div>
     </section>
-    <section class="app-card p-4">
+    <section class="linear-surface p-4">
       <h3 class="font-medium text-foreground">Artifacts</h3>
-      <div class="mt-3 space-y-2 text-sm text-muted-foreground">
-        <% @artifacts.each do |artifact| %><p><%= artifact.name %> <span class="text-muted-foreground"><%= artifact.byte_size %> bytes</span></p><% end %>
+      <div class="mt-3 space-y-3 text-sm text-muted-foreground">
+        <% @artifacts.each do |artifact| %>
+          <% preview = artifact_text_preview(artifact) %>
+          <article class="rounded-md bg-background/70 p-3">
+            <div class="flex items-center justify-between gap-3">
+              <p class="font-medium text-foreground"><%= artifact.name %></p>
+              <span class="status-pill"><%= artifact.byte_size %> bytes</span>
+            </div>
+            <% if preview.present? && artifact.content_type == "text/markdown" %>
+              <div class="rich-markdown mt-3">
+                <%= render_markdown(preview) %>
+              </div>
+            <% elsif preview.present? && artifact.content_type&.start_with?("text/") %>
+              <pre class="mt-3 max-h-80 overflow-auto rounded-md bg-muted/35 p-3 text-xs text-muted-foreground"><%= preview %></pre>
+            <% end %>
+          </article>
+        <% end %>
         <% if @artifacts.empty? %><p>No artifacts.</p><% end %>
       </div>
     </section>
