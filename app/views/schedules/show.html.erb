@@ -1,10 +1,10 @@
 <% content_for :page_title, "Schedule ##{@schedule.id}" %>
 <section class="app-card p-5">
   <dl class="grid gap-4 md:grid-cols-4">
-    <div><dt class="app-eyebrow">Pipeline</dt><dd class="mt-1 text-white"><%= @schedule.pipeline_definition.name %></dd></div>
-    <div><dt class="app-eyebrow">Kind</dt><dd class="mt-1 text-white"><%= @schedule.kind %></dd></div>
-    <div><dt class="app-eyebrow">When</dt><dd class="mt-1 text-white"><%= @schedule.run_at || @schedule.cron %></dd></div>
-    <div><dt class="app-eyebrow">Status</dt><dd class="mt-1 text-white"><%= @schedule.status %></dd></div>
+    <div><dt class="app-eyebrow">Pipeline</dt><dd class="mt-1 text-foreground"><%= @schedule.pipeline_definition.name %></dd></div>
+    <div><dt class="app-eyebrow">Kind</dt><dd class="mt-1 text-foreground"><%= @schedule.kind %></dd></div>
+    <div><dt class="app-eyebrow">When</dt><dd class="mt-1 text-foreground"><%= @schedule.run_at || @schedule.cron %></dd></div>
+    <div><dt class="app-eyebrow">Status</dt><dd class="mt-1 text-foreground"><%= @schedule.status %></dd></div>
   </dl>
   <%= link_to "Edit", edit_schedule_path(@schedule), class: "app-btn app-btn-muted mt-5" %>
 </section>

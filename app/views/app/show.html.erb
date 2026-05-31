@@ -1,35 +1,154 @@
-<% content_for :page_title, "Dashboard" %>
-<div class="grid gap-4 md:grid-cols-4">
-  <%= render Components::MetricCard.new(label: "Issues", value: current_workspace.issues.count, hint: "Across all teams") %>
-  <%= render Components::MetricCard.new(label: "Projects", value: current_workspace.projects.count, hint: "Active bodies of work") %>
-  <%= render Components::MetricCard.new(label: "Runs", value: current_workspace.pipeline_runs.count, hint: "Automation history") %>
-  <%= render Components::MetricCard.new(label: "Events", value: current_workspace.events.count, hint: "Signals in inbox") %>
-</div>
+<% content_for :page_title, "Home" %>
 
-<div class="mt-6 grid gap-6 lg:grid-cols-2">
-  <section class="app-card p-5">
-    <div class="mb-4 flex items-center justify-between">
-      <h2 class="font-semibold text-white">Recent Issues</h2>
-      <%= link_to "New issue", new_issue_path, class: "app-btn app-btn-primary" %>
-    </div>
-    <%= render "issues/table", issues: @issues %>
-  </section>
+<div class="linear-page">
+  <div class="space-y-5">
+    <section class="linear-surface">
+      <div class="linear-toolbar">
+        <div class="flex min-w-0 items-center gap-3">
+          <h2 class="linear-title">Your work</h2>
+          <span class="linear-count"><%= @issues.size %></span>
+        </div>
+        <div class="linear-tabs">
+          <%= link_to "Inbox", issues_path(view: "inbox"), class: "linear-tab" %>
+          <%= link_to "My Issues", issues_path(view: "my"), class: "linear-tab is-active" %>
+          <%= link_to "Backlog", issues_path, class: "linear-tab" %>
+        </div>
+      </div>
 
-  <section class="app-card p-5">
-    <div class="mb-4 flex items-center justify-between">
-      <h2 class="font-semibold text-white">Automation Queue</h2>
-      <%= link_to "Pipelines", pipelines_path, class: "app-btn app-btn-muted" %>
-    </div>
-    <div class="space-y-3">
-      <% @runs.each do |run| %>
-        <%= link_to pipeline_run_path(run), class: "block rounded-md border border-white/10 p-3 hover:border-sky-400/40" do %>
-          <div class="flex items-center justify-between">
-            <span class="text-sm text-white"><%= run.pipeline_definition&.name || "Pipeline run" %></span>
-            <span class="status-pill"><%= run.status %></span>
-          </div>
+      <div class="linear-list">
+        <% @issues.each do |issue| %>
+          <%= link_to issue_path(issue), class: "linear-row" do %>
+            <span class="status-pill shrink-0"><%= issue.display_status %></span>
+            <div class="linear-row-main">
+              <p class="linear-row-title"><%= issue.identifier %> <%= issue.title %></p>
+              <div class="linear-row-meta">
+                <span><%= issue.project&.title || "No project" %></span>
+                <span><%= issue.priority %></span>
+                <span><%= issue.assignee&.display_name || "Unassigned" %></span>
+              </div>
+            </div>
+            <span class="hidden text-xs text-muted-foreground sm:block"><%= time_ago_in_words(issue.updated_at) %> ago</span>
+          <% end %>
         <% end %>
-      <% end %>
-      <% if @runs.empty? %><p class="text-sm text-zinc-500">No runs yet.</p><% end %>
-    </div>
-  </section>
+        <% if @issues.empty? %>
+          <p class="linear-empty">No issues yet.</p>
+        <% end %>
+      </div>
+    </section>
+
+    <section class="linear-surface">
+      <div class="linear-toolbar">
+        <div class="flex items-center gap-3">
+          <h2 class="linear-title">Projects</h2>
+          <span class="linear-count"><%= @projects.size %></span>
+        </div>
+        <%= link_to "New project", new_project_path, class: "app-btn app-btn-muted" %>
+      </div>
+
+      <div class="linear-list">
+        <% @projects.each do |project| %>
+          <%= link_to project_path(project), class: "linear-row" do %>
+            <span class="status-pill shrink-0"><%= project.status %></span>
+            <div class="linear-row-main">
+              <p class="linear-row-title"><%= project.title %></p>
+              <div class="linear-row-meta">
+                <span><%= project.key %></span>
+                <span><%= pluralize(project.issues.count, "issue") %></span>
+                <span><%= project.team.name %></span>
+              </div>
+            </div>
+          <% end %>
+        <% end %>
+        <% if @projects.empty? %>
+          <p class="linear-empty">No projects yet.</p>
+        <% end %>
+      </div>
+    </section>
+  </div>
+
+  <aside class="linear-side">
+    <% if current_workspace.demo? && @demo_agent_pipeline %>
+      <section class="linear-surface">
+        <div class="linear-toolbar">
+          <div>
+            <p class="app-eyebrow">Planet Express</p>
+            <h2 class="linear-title mt-1">Fake agent</h2>
+          </div>
+        </div>
+        <%= form_with url: run_pipeline_path(@demo_agent_pipeline), method: :post, class: "space-y-3 p-4" do %>
+          <div>
+            <%= label_tag "input_context_objective", "Objective", class: "app-label" %>
+            <%= text_field_tag "input_context[objective]",
+                  "Implement automatic retry handling for failed moon deliveries",
+                  id: "input_context_objective",
+                  class: "app-input",
+                  required: true %>
+          </div>
+          <div>
+            <%= label_tag :project_id, "Project", class: "app-label" %>
+            <%= select_tag :project_id,
+                  options_from_collection_for_select(@demo_agent_projects || [], :id, :title, (@demo_agent_projects || []).first&.id),
+                  class: "app-input" %>
+          </div>
+          <%= submit_tag "Run fake agent", class: "app-btn app-btn-primary w-full" %>
+        <% end %>
+      </section>
+    <% end %>
+
+    <section class="linear-surface">
+      <div class="linear-toolbar">
+        <div class="flex items-center gap-3">
+          <h2 class="linear-title">Automation queue</h2>
+          <span class="linear-count"><%= @runs.size %></span>
+        </div>
+        <%= link_to "Pipelines", pipelines_path, class: "linear-tab" %>
+      </div>
+
+      <div class="linear-list">
+        <% @runs.each do |run| %>
+          <%= link_to pipeline_run_path(run), class: "linear-row" do %>
+            <div class="linear-row-main">
+              <p class="linear-row-title"><%= run.pipeline_definition&.name || "Pipeline run" %></p>
+              <div class="linear-row-meta">
+                <span><%= run.trigger %></span>
+                <span><%= time_ago_in_words(run.created_at) %> ago</span>
+              </div>
+            </div>
+            <span class="status-pill shrink-0"><%= run.status %></span>
+          <% end %>
+        <% end %>
+        <% if @runs.empty? %>
+          <p class="linear-empty">No runs yet.</p>
+        <% end %>
+      </div>
+    </section>
+
+    <section class="linear-surface">
+      <div class="linear-toolbar">
+        <div class="flex items-center gap-3">
+          <h2 class="linear-title">Event inbox</h2>
+          <span class="linear-count"><%= @events.size %></span>
+        </div>
+        <%= link_to "Events", events_path, class: "linear-tab" %>
+      </div>
+
+      <div class="linear-list">
+        <% @events.each do |event| %>
+          <%= link_to event_path(event), class: "linear-row" do %>
+            <div class="linear-row-main">
+              <p class="linear-row-title"><%= event.title %></p>
+              <div class="linear-row-meta">
+                <span><%= event.source %></span>
+                <span><%= event.status %></span>
+              </div>
+            </div>
+            <span class="status-pill shrink-0"><%= event.severity %></span>
+          <% end %>
+        <% end %>
+        <% if @events.empty? %>
+          <p class="linear-empty">No events yet.</p>
+        <% end %>
+      </div>
+    </section>
+  </aside>
 </div>

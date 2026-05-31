@@ -1,7 +1,7 @@
 <section class="mx-auto flex min-h-[calc(100vh-73px)] max-w-md items-center px-5 py-12">
   <div class="app-card w-full p-6">
     <p class="app-eyebrow">Password reset</p>
-    <h1 class="mt-2 text-2xl font-semibold text-white">Reset your password</h1>
+    <h1 class="mt-2 text-2xl font-semibold text-foreground">Reset your password</h1>
     <%= form_with url: password_resets_path, class: "mt-6 space-y-4" do %>
       <div><%= label_tag :email, "Email", class: "app-label" %><%= email_field_tag :email, nil, class: "app-input", required: true %></div>
       <%= submit_tag "Create reset link", class: "app-btn app-btn-primary w-full" %>

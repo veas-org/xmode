@@ -3,14 +3,14 @@
   <tbody>
     <% issues.each do |issue| %>
       <tr>
-        <td><%= link_to "#{issue.identifier} #{issue.title}", issue_path(issue), class: "text-white hover:text-sky-300" %></td>
+        <td><%= link_to "#{issue.identifier} #{issue.title}", issue_path(issue), class: "text-foreground hover:text-foreground" %></td>
         <td><span class="status-pill"><%= issue.display_status %></span></td>
         <td><%= issue.project&.title || "-" %></td>
         <td><%= issue.assignee&.display_name || "-" %></td>
       </tr>
     <% end %>
     <% if issues.empty? %>
-      <tr><td colspan="4" class="text-zinc-500">No issues yet.</td></tr>
+      <tr><td colspan="4" class="text-muted-foreground">No issues yet.</td></tr>
     <% end %>
   </tbody>
 </table>

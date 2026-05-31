@@ -5,14 +5,14 @@
     <tbody>
       <% @events.each do |event| %>
         <tr>
-          <td><%= link_to event.title, event_path(event), class: "text-white hover:text-sky-300" %></td>
+          <td><%= link_to event.title, event_path(event), class: "text-foreground hover:text-foreground" %></td>
           <td><%= event.source %></td>
           <td><span class="status-pill"><%= event.severity %></span></td>
           <td><%= event.status %></td>
           <td><%= time_ago_in_words(event.created_at) %> ago</td>
         </tr>
       <% end %>
-      <% if @events.empty? %><tr><td colspan="5" class="text-zinc-500">No events yet.</td></tr><% end %>
+      <% if @events.empty? %><tr><td colspan="5" class="text-muted-foreground">No events yet.</td></tr><% end %>
     </tbody>
   </table>
 </section>

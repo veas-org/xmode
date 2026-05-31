@@ -37,7 +37,7 @@ module Pipelines
         action_definition: action,
         name: node["label"].presence || action&.name || "Action",
         position: index,
-        input_json: @pipeline_run.input_context,
+        input_json: action&.input_context_for(@pipeline_run) || @pipeline_run.input_context,
         status: "running"
       )
 

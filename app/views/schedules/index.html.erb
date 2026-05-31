@@ -6,13 +6,13 @@
     <tbody>
       <% @schedules.each do |schedule| %>
         <tr>
-          <td><%= link_to schedule.pipeline_definition.name, schedule_path(schedule), class: "text-white hover:text-sky-300" %></td>
+          <td><%= link_to schedule.pipeline_definition.name, schedule_path(schedule), class: "text-foreground hover:text-foreground" %></td>
           <td><%= schedule.kind %></td>
           <td><%= schedule.run_at || schedule.cron %></td>
           <td><span class="status-pill"><%= schedule.status %></span></td>
         </tr>
       <% end %>
-      <% if @schedules.empty? %><tr><td colspan="4" class="text-zinc-500">No schedules yet.</td></tr><% end %>
+      <% if @schedules.empty? %><tr><td colspan="4" class="text-muted-foreground">No schedules yet.</td></tr><% end %>
     </tbody>
   </table>
 </section>

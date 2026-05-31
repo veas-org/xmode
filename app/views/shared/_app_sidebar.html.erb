@@ -1,30 +1,88 @@
+<% active_path = ->(path) do
+  target = path.to_s
+  target.include?("?") ? request.fullpath == target : request.path == target
+end %>
+<% nav_sections = [
+  [
+    "Workspace",
+    [
+      [ "Inbox", issues_path(view: "inbox"), "inbox" ],
+      [ "My Issues", issues_path(view: "my"), "user-circle" ],
+      [ "Projects", projects_path, "folder" ],
+      [ "Cycles", cycles_path, "calendar" ],
+      [ "Views", views_path, "list-filter" ]
+    ]
+  ],
+  [
+    "Automation",
+    [
+      [ "Events", events_path, "bell" ],
+      [ "Skills", skills_path, "sparkles" ],
+      [ "Pipelines", pipelines_path, "workflow" ],
+      [ "Actions", actions_path, "play" ],
+      [ "Schedules", schedules_path, "clock" ],
+      [ "Change Requests", change_requests_path, "git-pull-request" ]
+    ]
+  ],
+  [
+    "Settings",
+    [
+      [ "Integrations", integrations_path, "plug" ],
+      [ "Billing", billing_path, "credit-card" ]
+    ]
+  ]
+] %>
+<% user_name = current_user&.display_name.presence || "User" %>
+<% user_initials = user_name.split.map { |part| part.first }.join.first(2).upcase %>
+
 <aside class="app-sidebar">
-  <%= link_to app_path, class: "mb-6 flex items-center gap-3 px-2 text-white" do %>
-    <span class="grid h-9 w-9 place-items-center rounded-md bg-sky-400 text-sm font-black text-zinc-950">x</span>
-    <span class="text-lg font-semibold">xmode</span>
+  <%= link_to app_path, class: "mb-4 flex items-center gap-2.5 rounded-md px-2 py-1.5 text-foreground hover:bg-sidebar-accent" do %>
+    <span class="grid h-7 w-7 place-items-center rounded-md bg-sidebar-primary text-xs font-black text-sidebar-primary-foreground">x</span>
+    <span class="min-w-0">
+      <span class="block truncate text-sm font-semibold">xmode</span>
+      <span class="block truncate text-xs text-muted-foreground"><%= current_workspace&.name %></span>
+    </span>
   <% end %>
 
-  <nav class="space-y-1">
-    <% [
-      [ "Inbox", issues_path(view: "inbox") ],
-      [ "My Issues", issues_path(view: "my") ],
-      [ "Projects", projects_path ],
-      [ "Cycles", cycles_path ],
-      [ "Views", issues_path ],
-      [ "Events", events_path ],
-      [ "Pipelines", pipelines_path ],
-      [ "Actions", actions_path ],
-      [ "Schedules", schedules_path ],
-      [ "Change Requests", change_requests_path ],
-      [ "Integrations", integrations_path ],
-      [ "Billing", billing_path ]
-    ].each do |label, path| %>
-      <%= link_to label, path, class: "app-sidebar-link #{'is-active' if request.path == path.to_s.split('?').first}" %>
+  <nav>
+    <% nav_sections.each do |section, links| %>
+      <p class="app-sidebar-section"><%= section %></p>
+      <div class="mt-1 space-y-0.5">
+        <% links.each do |label, path, icon| %>
+          <%= link_to path, class: "app-sidebar-link #{'is-active' if active_path.call(path)}" do %>
+            <%= lucide_icon(icon, class_name: "app-sidebar-icon") %>
+            <span class="truncate"><%= label %></span>
+          <% end %>
+        <% end %>
+      </div>
     <% end %>
   </nav>
 
-  <div class="mt-auto rounded-md border border-white/10 bg-white/[0.03] p-3 text-xs text-zinc-400">
-    <p class="font-medium text-zinc-200"><%= current_team&.name || "No team" %></p>
-    <p class="mt-1"><%= current_user&.display_name %></p>
-  </div>
+  <footer class="app-sidebar-footer">
+    <% if current_workspace&.demo? %>
+      <div class="app-sidebar-demo">
+        <span class="flex min-w-0 items-center gap-2">
+          <span class="app-sidebar-demo-dot"></span>
+          <span class="truncate">Demo workspace</span>
+        </span>
+        <span class="shrink-0 text-[11px] text-muted-foreground"><%= current_workspace&.name %></span>
+      </div>
+    <% end %>
+
+    <div class="app-sidebar-account">
+      <span class="app-sidebar-avatar"><%= user_initials %></span>
+      <span class="min-w-0 flex-1">
+        <span class="app-sidebar-account-name"><%= user_name %></span>
+        <span class="app-sidebar-account-meta"><%= current_team&.name || current_workspace&.name || "No team" %></span>
+      </span>
+      <%= button_to logout_path,
+            method: :delete,
+            form: { class: "shrink-0" },
+            class: "app-sidebar-icon-action",
+            title: "Sign out",
+            aria: { label: "Sign out" } do %>
+        <%= lucide_icon("log-out", class_name: "app-icon") %>
+      <% end %>
+    </div>
+  </footer>
 </aside>

@@ -1,0 +1,9 @@
+<div class="app-card mt-5 p-4">
+  <p class="app-eyebrow">Seeded demo</p>
+  <h2 class="mt-2 text-sm font-semibold text-foreground">Planet Express</h2>
+  <p class="mt-1 text-sm leading-6 text-muted-foreground">Open Bender's workspace with projects, issues, events, schedules, pipelines, and a waiting approval run.</p>
+  <%= button_to "Open demo workspace",
+        demo_login_path(workspace: "planet-express"),
+        method: :post,
+        class: "app-btn app-btn-primary mt-4 w-full" %>
+</div>

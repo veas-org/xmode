@@ -1,0 +1,42 @@
+<% content_for :page_title, "Views" %>
+
+<section class="linear-surface">
+  <div class="linear-toolbar">
+    <div class="flex min-w-0 items-center gap-2">
+      <%= lucide_icon("list-filter", class_name: "app-icon text-muted-foreground") %>
+      <h2 class="linear-title">Views</h2>
+      <span class="linear-count"><%= @view_rows.size %></span>
+    </div>
+    <button class="app-icon-btn" type="button" title="New view" aria-label="New view">
+      <%= lucide_icon("plus", class_name: "app-icon") %>
+    </button>
+  </div>
+
+  <div class="grid gap-2 p-2 md:grid-cols-2 xl:grid-cols-3">
+    <% @view_rows.each do |row| %>
+      <% view = row.fetch(:view) %>
+      <%= link_to view_path(view), class: "rounded-lg bg-muted/35 p-4 transition-colors hover:bg-muted/60" do %>
+        <div class="flex items-start justify-between gap-3">
+          <div class="flex min-w-0 items-center gap-2">
+            <span class="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-background text-muted-foreground">
+              <%= lucide_icon(row.fetch(:icon), class_name: "app-icon") %>
+            </span>
+            <div class="min-w-0">
+              <h3 class="truncate text-sm font-medium text-foreground"><%= view.name %></h3>
+              <p class="mt-1 truncate text-xs text-muted-foreground"><%= view.team&.name || current_workspace.name %></p>
+            </div>
+          </div>
+          <span class="linear-count"><%= row.fetch(:count) %></span>
+        </div>
+        <p class="mt-4 text-xs text-muted-foreground"><%= view.view_type.tr("_", " ").titleize %></p>
+      <% end %>
+    <% end %>
+
+    <% if @view_rows.empty? %>
+      <div class="linear-empty md:col-span-2 xl:col-span-3">
+        <%= lucide_icon("list-filter", class_name: "mx-auto mb-3 h-5 w-5 text-muted-foreground") %>
+        <p>No saved views yet.</p>
+      </div>
+    <% end %>
+  </div>
+</section>

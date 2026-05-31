@@ -12,18 +12,31 @@
     <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
     <%= javascript_importmap_tags %>
   </head>
-  <body class="app-body min-h-screen bg-zinc-950 text-zinc-100 antialiased" data-controller="theme">
+  <body class="app-body min-h-screen bg-background text-foreground antialiased" data-controller="theme">
     <div class="app-shell">
       <%= render "shared/app_sidebar" %>
       <section class="app-main">
         <header class="app-topbar">
-          <div>
-            <p class="app-eyebrow"><%= current_workspace&.name %></p>
-            <h1><%= content_for(:page_title) || "xmode" %></h1>
+          <div class="min-w-0">
+            <h1>
+              <%= content_for(:page_title) || "xmode" %>
+            </h1>
           </div>
           <div class="app-topbar-actions">
-            <button class="app-btn app-btn-muted" type="button" data-action="theme#toggle">Theme</button>
-            <%= button_to "Sign out", logout_path, method: :delete, class: "app-btn app-btn-muted" %>
+            <div class="linear-command app-topbar-command hidden md:flex">
+              <span class="flex min-w-0 items-center gap-2">
+                <%= lucide_icon("search", class_name: "app-icon") %>
+                <span class="truncate">Search issues, projects, runs...</span>
+              </span>
+              <span class="linear-kbd">Cmd K</span>
+            </div>
+            <%= link_to new_issue_path, class: "app-btn app-btn-primary hidden sm:inline-flex" do %>
+              <%= lucide_icon("plus", class_name: "app-icon") %>
+              <span>Issue</span>
+            <% end %>
+            <button class="app-icon-btn" type="button" data-action="theme#toggle" title="Settings" aria-label="Settings">
+              <%= lucide_icon("settings", class_name: "app-icon") %>
+            </button>
           </div>
         </header>
         <main class="app-content">

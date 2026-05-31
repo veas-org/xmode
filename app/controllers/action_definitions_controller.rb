@@ -10,6 +10,7 @@ class ActionDefinitionsController < AuthenticatedController
   end
 
   def new
+    load_skills
     @action_definition = current_workspace.action_definitions.new(provider: "manual", category: "manual")
   end
 
@@ -18,11 +19,13 @@ class ActionDefinitionsController < AuthenticatedController
     if @action_definition.save
       redirect_to action_path(@action_definition), notice: "Action created."
     else
+      load_skills
       render :new, status: :unprocessable_entity
     end
   end
 
   def edit
+    load_skills
     @action_definition = @action
   end
 
@@ -30,6 +33,7 @@ class ActionDefinitionsController < AuthenticatedController
     if @action.update(action_params)
       redirect_to action_path(@action), notice: "Action updated."
     else
+      load_skills
       @action_definition = @action
       render :edit, status: :unprocessable_entity
     end
@@ -54,7 +58,21 @@ class ActionDefinitionsController < AuthenticatedController
 
   def action_params
     raw = params.require(:action_definition)
-    attrs = raw.permit(:key, :name, :category, :provider, :timeout_seconds, :builtin, permissions: [])
+    attrs = raw.permit(
+      :key,
+      :name,
+      :category,
+      :provider,
+      :skill_definition_id,
+      :timeout_seconds,
+      :requires_objective,
+      :plan_required_when_objective_unclear,
+      :objective_template,
+      :plan_template,
+      :execution_guidance,
+      :builtin,
+      permissions: []
+    )
     {
       input_schema: "input_schema_json",
       output_schema: "output_schema_json",
@@ -65,7 +83,12 @@ class ActionDefinitionsController < AuthenticatedController
     }.each do |attribute, param_key|
       attrs[attribute] = parse_json(raw[param_key])
     end
+    attrs[:best_practices] = raw[:best_practices_text].to_s.lines.map(&:strip).reject(&:blank?)
     attrs
+  end
+
+  def load_skills
+    @skills = current_workspace.skill_definitions.order(:category, :name)
   end
 
   def parse_json(value)

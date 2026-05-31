@@ -39,3 +39,5 @@ workspace.issues.find_or_create_by!(identifier: "ENG-1") do |issue|
   issue.description = "Prove the full xmode loop from issue through plan, approval, runner, tests, review, and Change Request."
   issue.priority = "high"
 end
+
+load Rails.root.join("db/seeds/demo_planet_express.rb")

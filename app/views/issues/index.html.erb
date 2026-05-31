@@ -1,12 +1,137 @@
-<% content_for :page_title, @view == "my" ? "My Issues" : "Inbox" %>
-<div class="mb-5 flex items-center justify-between">
-  <div class="flex gap-2">
-    <%= link_to "Inbox", issues_path(view: "inbox"), class: "app-btn app-btn-muted" %>
-    <%= link_to "My Issues", issues_path(view: "my"), class: "app-btn app-btn-muted" %>
-    <%= link_to "Active Cycle", issues_path(view: "active_cycle"), class: "app-btn app-btn-muted" %>
+<% page_title = case @view
+  when "my" then "My Issues"
+  when "active_cycle" then "Active Cycle"
+  else "Inbox"
+end %>
+<% content_for :page_title, page_title %>
+
+<% if @view == "inbox" %>
+  <div class="inbox-shell">
+    <section class="inbox-list-panel">
+      <div class="inbox-header">
+        <div class="min-w-0">
+          <div class="flex items-center gap-2">
+            <%= lucide_icon("inbox", class_name: "app-icon text-muted-foreground") %>
+            <h2 class="linear-title">Inbox</h2>
+            <span class="linear-count"><%= @issue_counts.fetch(:inbox, 0) %></span>
+          </div>
+          <p class="mt-1 text-xs text-muted-foreground">Review incoming work and decide what needs action.</p>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <button class="app-icon-btn" type="button" title="Display options" aria-label="Display options">
+            <%= lucide_icon("list-filter", class_name: "app-icon") %>
+          </button>
+          <%= link_to new_issue_path, class: "app-icon-btn", title: "New issue", aria: { label: "New issue" } do %>
+            <%= lucide_icon("plus", class_name: "app-icon") %>
+          <% end %>
+        </div>
+      </div>
+
+      <div class="inbox-subbar">
+        <nav class="linear-tabs">
+          <%= link_to issues_path(view: "inbox"), class: "linear-tab is-active" do %>
+            <span>All</span>
+            <span class="linear-count"><%= @issue_counts.fetch(:inbox, 0) %></span>
+          <% end %>
+          <%= link_to issues_path(view: "my"), class: "linear-tab" do %>
+            <span>Assigned</span>
+            <span class="linear-count"><%= @issue_counts.fetch(:my, 0) %></span>
+          <% end %>
+          <%= link_to issues_path(view: "active_cycle"), class: "linear-tab" do %>
+            <span>Cycle</span>
+            <span class="linear-count"><%= @issue_counts.fetch(:active_cycle, 0) %></span>
+          <% end %>
+        </nav>
+        <%= form_with url: issues_path, method: :get, class: "inbox-search" do %>
+          <%= hidden_field_tag :view, "inbox" %>
+          <%= lucide_icon("search", class_name: "app-icon text-muted-foreground") %>
+          <%= search_field_tag :q, @query, placeholder: "Filter inbox...", class: "inbox-search-input" %>
+        <% end %>
+      </div>
+
+      <div class="inbox-list">
+        <% @issues.each do |issue| %>
+          <%= link_to issue_path(issue), class: "inbox-row #{'is-selected' if issue == @selected_issue}" do %>
+            <span class="inbox-row-indicator"></span>
+            <div class="min-w-0 flex-1">
+              <div class="flex min-w-0 items-center gap-2">
+                <span class="font-mono text-xs text-muted-foreground"><%= issue.identifier %></span>
+                <p class="truncate text-sm font-medium text-foreground"><%= issue.title %></p>
+              </div>
+              <div class="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                <span><%= issue.project&.title || "No project" %></span>
+                <span><%= issue.display_status %></span>
+                <span><%= issue.assignee&.display_name || "Unassigned" %></span>
+                <span><%= time_ago_in_words(issue.updated_at) %> ago</span>
+              </div>
+            </div>
+            <span class="status-pill shrink-0"><%= issue.priority %></span>
+          <% end %>
+        <% end %>
+
+        <% if @issues.empty? %>
+          <div class="linear-empty">
+            <%= lucide_icon("check-circle", class_name: "mx-auto mb-3 h-5 w-5 text-muted-foreground") %>
+            <p>Inbox is clear.</p>
+          </div>
+        <% end %>
+      </div>
+    </section>
+
+    <aside class="inbox-preview">
+      <% if @selected_issue %>
+        <div class="inbox-preview-header">
+          <div class="min-w-0">
+            <p class="app-eyebrow"><%= @selected_issue.identifier %></p>
+            <h2 class="mt-1 truncate text-base font-semibold text-foreground"><%= @selected_issue.title %></h2>
+          </div>
+          <span class="status-pill"><%= @selected_issue.display_status %></span>
+        </div>
+
+        <div class="space-y-4 p-4">
+          <div class="rounded-lg bg-muted/50 p-3 text-sm leading-6 text-muted-foreground">
+            <%= @selected_issue.description.presence || "No description has been added yet." %>
+          </div>
+
+          <div class="grid gap-2 text-sm">
+            <div class="inbox-property"><span>Project</span><strong><%= @selected_issue.project&.title || "-" %></strong></div>
+            <div class="inbox-property"><span>Assignee</span><strong><%= @selected_issue.assignee&.display_name || "Unassigned" %></strong></div>
+            <div class="inbox-property"><span>Priority</span><strong><%= @selected_issue.priority %></strong></div>
+            <div class="inbox-property"><span>Updated</span><strong><%= time_ago_in_words(@selected_issue.updated_at) %> ago</strong></div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2">
+            <%= link_to issue_path(@selected_issue), class: "app-btn app-btn-primary" do %>
+              <%= lucide_icon("check-circle", class_name: "app-icon") %>
+              <span>Open</span>
+            <% end %>
+            <button class="app-btn app-btn-muted" type="button">
+              <%= lucide_icon("clock", class_name: "app-icon") %>
+              <span>Snooze</span>
+            </button>
+          </div>
+        </div>
+      <% else %>
+        <div class="linear-empty">
+          <%= lucide_icon("check-circle", class_name: "mx-auto mb-3 h-5 w-5 text-muted-foreground") %>
+          <p>No issue selected.</p>
+        </div>
+      <% end %>
+    </aside>
   </div>
-  <%= link_to "New issue", new_issue_path, class: "app-btn app-btn-primary" %>
-</div>
-<section class="app-card p-5">
-  <%= render "table", issues: @issues %>
-</section>
+<% else %>
+  <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
+    <nav class="linear-tabs">
+      <%= link_to "Inbox", issues_path(view: "inbox"), class: "linear-tab" %>
+      <%= link_to "My Issues", issues_path(view: "my"), class: "linear-tab #{'is-active' if @view == 'my'}" %>
+      <%= link_to "Active Cycle", issues_path(view: "active_cycle"), class: "linear-tab #{'is-active' if @view == 'active_cycle'}" %>
+    </nav>
+    <%= link_to new_issue_path, class: "app-btn app-btn-primary" do %>
+      <%= lucide_icon("plus", class_name: "app-icon") %>
+      <span>Issue</span>
+    <% end %>
+  </div>
+  <section class="linear-surface">
+    <%= render "table", issues: @issues %>
+  </section>
+<% end %>

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_05_31_020000) do
+ActiveRecord::Schema[8.0].define(version: 2026_05_31_040000) do
   create_table "action_definitions", force: :cascade do |t|
     t.integer "workspace_id"
     t.string "key", null: false
@@ -28,6 +28,14 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_31_020000) do
     t.boolean "builtin", default: false, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "skill_definition_id"
+    t.boolean "requires_objective", default: true, null: false
+    t.boolean "plan_required_when_objective_unclear", default: true, null: false
+    t.text "objective_template"
+    t.text "plan_template"
+    t.text "execution_guidance"
+    t.json "best_practices", default: [], null: false
+    t.index ["skill_definition_id"], name: "index_action_definitions_on_skill_definition_id"
     t.index ["workspace_id", "key"], name: "index_action_definitions_on_workspace_id_and_key", unique: true
     t.index ["workspace_id"], name: "index_action_definitions_on_workspace_id"
   end
@@ -412,6 +420,26 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_31_020000) do
     t.index ["workspace_id"], name: "index_schedules_on_workspace_id"
   end
 
+  create_table "skill_definitions", force: :cascade do |t|
+    t.integer "workspace_id"
+    t.string "key", null: false
+    t.string "name", null: false
+    t.string "category", null: false
+    t.text "description"
+    t.text "instructions"
+    t.text "objective_template"
+    t.text "plan_template"
+    t.json "input_schema", default: {}, null: false
+    t.json "output_schema", default: {}, null: false
+    t.json "best_practices", default: [], null: false
+    t.json "metadata", default: {}, null: false
+    t.boolean "builtin", default: false, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["workspace_id", "key"], name: "index_skill_definitions_on_workspace_id_and_key", unique: true
+    t.index ["workspace_id"], name: "index_skill_definitions_on_workspace_id"
+  end
+
   create_table "teams", force: :cascade do |t|
     t.integer "workspace_id", null: false
     t.string "name", null: false
@@ -432,6 +460,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_31_020000) do
     t.datetime "updated_at", null: false
     t.string "password_reset_token"
     t.datetime "password_reset_sent_at"
+    t.boolean "demo", default: false, null: false
     t.index ["email"], name: "index_users_on_email", unique: true
     t.index ["password_reset_token"], name: "index_users_on_password_reset_token", unique: true
   end
@@ -443,9 +472,11 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_31_020000) do
     t.string "stripe_customer_id"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.boolean "demo", default: false, null: false
     t.index ["slug"], name: "index_workspaces_on_slug", unique: true
   end
 
+  add_foreign_key "action_definitions", "skill_definitions"
   add_foreign_key "action_definitions", "workspaces"
   add_foreign_key "action_run_steps", "action_definitions"
   add_foreign_key "action_run_steps", "pipeline_runs"
@@ -505,5 +536,6 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_31_020000) do
   add_foreign_key "saved_views", "workspaces"
   add_foreign_key "schedules", "pipeline_definitions"
   add_foreign_key "schedules", "workspaces"
+  add_foreign_key "skill_definitions", "workspaces"
   add_foreign_key "teams", "workspaces"
 end

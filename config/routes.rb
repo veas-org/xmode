@@ -13,6 +13,7 @@ Rails.application.routes.draw do
   post "signup", to: "registrations#create"
   get "login", to: "sessions#new", as: :login
   post "login", to: "sessions#create"
+  post "demo/:workspace", to: "sessions#demo", as: :demo_login
   delete "logout", to: "sessions#destroy", as: :logout
   resources :password_resets, only: %i[new create edit update], param: :token
 
@@ -22,9 +23,18 @@ Rails.application.routes.draw do
   end
   resources :projects, except: :destroy
   resources :cycles, except: :destroy
+  resources :views, controller: :saved_views, only: %i[index show]
   resources :issues, except: :destroy
   resources :events, only: %i[index show] do
     member { post :create_issue }
+  end
+  resources :skills, controller: :skill_definitions, except: :destroy do
+    collection do
+      post :import
+    end
+    member do
+      get :export
+    end
   end
   resources :actions, controller: :action_definitions, except: :destroy do
     collection do

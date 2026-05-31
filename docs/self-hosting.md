@@ -18,6 +18,10 @@ mise exec -- bin/dev
 
 The default seeded account is `admin@xmode.local` with password `password123` unless `ADMIN_EMAIL` and `ADMIN_PASSWORD` are set.
 
+Demo data is seeded by default for `bender.demo@xmode.local` with password `password123`. Set `DEMO_PLANET_EXPRESS=0` to disable it, or override `DEMO_BENDER_EMAIL` and `DEMO_BENDER_PASSWORD`.
+
+Planet Express demo workspaces use a fake agent simulator for provider and local-shell actions. The dashboard includes a demo operation form that creates an issue, runs the Implement Issue pipeline, and writes mock logs and artifacts without calling an external agent.
+
 ## Production Shape
 
 xmode is designed to run as:

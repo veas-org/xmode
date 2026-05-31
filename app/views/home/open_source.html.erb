@@ -1,5 +1,12 @@
 <section class="mx-auto max-w-4xl px-5 py-16">
   <p class="app-eyebrow">Open source</p>
-  <h1 class="mt-4 text-4xl font-semibold text-white">AGPL-3.0 with a trademark-controlled xmode brand.</h1>
-  <p class="mt-5 text-zinc-400">The community edition is designed to be useful when self-hosted. Hosted SaaS can add managed runners, support, enterprise controls, and usage-based automation capacity.</p>
+  <h1 class="mt-4 text-4xl font-semibold text-foreground">The xmode app is an AGPL-3.0 project for self-hosted software automation.</h1>
+  <p class="mt-5 text-muted-foreground">This repository contains the application: workspaces, projects, issues, skills, actions, pipelines, approvals, sandboxed runs, integrations, and Change Requests. The commercial landing site and hosted-SaaS positioning are maintained in a separate private codebase.</p>
+  <div class="mt-8 flex flex-wrap gap-3">
+    <%= link_to "Read docs", docs_path, class: "app-btn app-btn-primary" %>
+    <%= link_to "Start workspace", signup_path, class: "app-btn app-btn-muted" %>
+    <% if landing_url.present? %>
+      <%= link_to "Visit landing site", landing_url, class: "app-btn app-btn-muted" %>
+    <% end %>
+  </div>
 </section>

@@ -1,0 +1,15 @@
+# Kamal destination: Oracle Cloud A1.Flex running Oracle Linux 9 (ARM).
+# Use with:
+#   bin/kamal setup  -d oracle-linux
+#   bin/kamal deploy -d oracle-linux
+
+servers:
+  web:
+    - 129.153.38.146
+  job:
+    hosts:
+      - 129.153.38.146
+    cmd: bin/jobs
+
+ssh:
+  user: opc

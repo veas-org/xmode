@@ -8,14 +8,15 @@
 </div>
 <section class="app-card p-5">
   <table class="app-table">
-    <thead><tr><th>Name</th><th>Category</th><th>Provider</th><th>Permissions</th></tr></thead>
+    <thead><tr><th>Name</th><th>Skill</th><th>Category</th><th>Provider</th><th>Objective</th></tr></thead>
     <tbody>
       <% @actions.each do |action| %>
         <tr>
-          <td><%= link_to action.name, action_path(action), class: "text-white hover:text-sky-300" %></td>
+          <td><%= link_to action.name, action_path(action), class: "text-foreground hover:text-foreground" %></td>
+          <td><%= action.skill_definition&.name || "-" %></td>
           <td><%= action.category %></td>
           <td><%= action.provider %></td>
-          <td><%= action.permissions.join(", ") %></td>
+          <td><%= action.requires_objective? ? "required" : "optional" %></td>
         </tr>
       <% end %>
     </tbody>

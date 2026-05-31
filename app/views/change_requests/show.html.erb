@@ -1,10 +1,10 @@
 <% content_for :page_title, @change_request.title %>
 <section class="app-card p-5">
   <dl class="grid gap-4 md:grid-cols-3">
-    <div><dt class="app-eyebrow">Provider</dt><dd class="mt-1 text-white"><%= @change_request.provider %></dd></div>
-    <div><dt class="app-eyebrow">Status</dt><dd class="mt-1 text-white"><%= @change_request.status %></dd></div>
-    <div><dt class="app-eyebrow">Branch</dt><dd class="mt-1 text-white"><%= @change_request.branch_name %></dd></div>
+    <div><dt class="app-eyebrow">Provider</dt><dd class="mt-1 text-foreground"><%= @change_request.provider %></dd></div>
+    <div><dt class="app-eyebrow">Status</dt><dd class="mt-1 text-foreground"><%= @change_request.status %></dd></div>
+    <div><dt class="app-eyebrow">Branch</dt><dd class="mt-1 text-foreground"><%= @change_request.branch_name %></dd></div>
   </dl>
   <% if @change_request.url.present? %><%= link_to "Open external Change Request", @change_request.url, class: "app-btn app-btn-primary mt-5" %><% end %>
-  <pre class="mt-5 overflow-auto rounded-md bg-zinc-950 p-4 text-xs text-zinc-300"><%= JSON.pretty_generate(@change_request.checks) %></pre>
+  <pre class="mt-5 overflow-auto rounded-md bg-background p-4 text-xs text-muted-foreground"><%= JSON.pretty_generate(@change_request.checks) %></pre>
 </section>

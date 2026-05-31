@@ -2,26 +2,26 @@
 <div class="mb-5 flex justify-end"><%= link_to "New integration", new_integration_path, class: "app-btn app-btn-primary" %></div>
 <div class="grid gap-6 lg:grid-cols-2">
   <section class="app-card p-5">
-    <h2 class="font-semibold text-white">Accounts</h2>
+    <h2 class="font-semibold text-foreground">Accounts</h2>
     <div class="mt-4 space-y-3">
       <% @integrations.each do |integration| %>
-        <div class="rounded-md border border-white/10 p-3">
+        <div class="rounded-md border border-border p-3">
           <div class="flex items-center justify-between">
-            <span class="text-white"><%= integration.name %></span>
+            <span class="text-foreground"><%= integration.name %></span>
             <span class="status-pill"><%= integration.provider %></span>
           </div>
         </div>
       <% end %>
-      <% if @integrations.empty? %><p class="text-sm text-zinc-500">No integrations connected.</p><% end %>
+      <% if @integrations.empty? %><p class="text-sm text-muted-foreground">No integrations connected.</p><% end %>
     </div>
   </section>
   <section class="app-card p-5">
-    <h2 class="font-semibold text-white">Repositories</h2>
+    <h2 class="font-semibold text-foreground">Repositories</h2>
     <div class="mt-4 space-y-3">
       <% @repositories.each do |repo| %>
-        <div class="rounded-md border border-white/10 p-3 text-sm text-zinc-300"><%= repo.full_name.presence || repo.url %></div>
+        <div class="rounded-md border border-border p-3 text-sm text-muted-foreground"><%= repo.full_name.presence || repo.url %></div>
       <% end %>
-      <% if @repositories.empty? %><p class="text-sm text-zinc-500">Repository sync comes after provider credentials are added.</p><% end %>
+      <% if @repositories.empty? %><p class="text-sm text-muted-foreground">Repository sync comes after provider credentials are added.</p><% end %>
     </div>
   </section>
 </div>

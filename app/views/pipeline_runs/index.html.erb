@@ -5,7 +5,7 @@
     <tbody>
       <% @runs.each do |run| %>
         <tr>
-          <td><%= link_to run.pipeline_definition&.name || "Run ##{run.id}", pipeline_run_path(run), class: "text-white hover:text-sky-300" %></td>
+          <td><%= link_to run.pipeline_definition&.name || "Run ##{run.id}", pipeline_run_path(run), class: "text-foreground hover:text-foreground" %></td>
           <td><span class="status-pill"><%= run.status %></span></td>
           <td><%= run.trigger %></td>
           <td><%= run.issue&.identifier || run.project&.title || run.event&.title || "-" %></td>

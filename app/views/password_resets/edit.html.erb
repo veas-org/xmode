@@ -1,7 +1,7 @@
 <section class="mx-auto flex min-h-[calc(100vh-73px)] max-w-md items-center px-5 py-12">
   <div class="app-card w-full p-6">
     <p class="app-eyebrow">Password reset</p>
-    <h1 class="mt-2 text-2xl font-semibold text-white">Choose a new password</h1>
+    <h1 class="mt-2 text-2xl font-semibold text-foreground">Choose a new password</h1>
     <%= form_with model: @user, url: password_reset_path(@user.password_reset_token), method: :patch, class: "mt-6 space-y-4" do |form| %>
       <div><%= form.label :password, class: "app-label" %><%= form.password_field :password, class: "app-input", required: true %></div>
       <div><%= form.label :password_confirmation, class: "app-label" %><%= form.password_field :password_confirmation, class: "app-input", required: true %></div>

@@ -6,14 +6,14 @@
   <%= button_to "Run pipeline", run_pipeline_path(@pipeline), method: :post, class: "app-btn app-btn-primary" %>
 </div>
 <section class="app-card p-5">
-  <h2 class="font-semibold text-white">Graph</h2>
+  <h2 class="font-semibold text-foreground">Graph</h2>
   <div class="graph-canvas relative mt-4 overflow-auto p-4">
     <% @pipeline.graph.fetch("nodes", []).each do |node| %>
-      <div class="mb-3 inline-block rounded-md border border-sky-300/25 bg-zinc-950 px-4 py-3">
-        <p class="text-sm font-medium text-white"><%= node["label"] %></p>
-        <p class="text-xs text-zinc-500"><%= node["action_key"] %></p>
+      <div class="mb-3 inline-block rounded-md border border-border bg-background px-4 py-3">
+        <p class="text-sm font-medium text-foreground"><%= node["label"] %></p>
+        <p class="text-xs text-muted-foreground"><%= node["action_key"] %></p>
       </div>
     <% end %>
   </div>
-  <pre class="mt-5 overflow-auto rounded-md bg-zinc-950 p-4 text-xs text-zinc-300"><%= JSON.pretty_generate(@pipeline.graph) %></pre>
+  <pre class="mt-5 overflow-auto rounded-md bg-background p-4 text-xs text-muted-foreground"><%= JSON.pretty_generate(@pipeline.graph) %></pre>
 </section>

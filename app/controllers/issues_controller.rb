@@ -3,9 +3,15 @@ class IssuesController < AuthenticatedController
 
   def index
     @view = params[:view].presence || "inbox"
-    @issues = current_workspace.issues.includes(:team, :project, :cycle, :issue_status, :assignee).order(updated_at: :desc)
+    @query = params[:q].to_s.strip
+    base_scope = current_workspace.issues.includes(:team, :project, :cycle, :issue_status, :assignee).order(updated_at: :desc)
+    @issue_counts = issue_counts(base_scope)
+    @issues = base_scope
     @issues = @issues.where(assignee: current_user) if @view == "my"
     @issues = @issues.where(cycle: current_team.cycles.where(status: "active")) if @view == "active_cycle" && current_team
+    @issues = @issues.joins(:issue_status).where(issue_statuses: { category: "backlog" }) if @view == "backlog"
+    @issues = @issues.where("issues.title LIKE :query OR issues.identifier LIKE :query", query: "%#{@query}%") if @query.present?
+    @selected_issue = @issues.first
   end
 
   def show
@@ -46,5 +52,13 @@ class IssuesController < AuthenticatedController
 
   def issue_params
     params.require(:issue).permit(:title, :description, :team_id, :project_id, :cycle_id, :issue_status_id, :assignee_id, :parent_id, :priority, :estimate, :due_on)
+  end
+
+  def issue_counts(base_scope)
+    {
+      inbox: base_scope.count,
+      my: base_scope.where(assignee: current_user).count,
+      active_cycle: current_team ? base_scope.where(cycle: current_team.cycles.where(status: "active")).count : 0
+    }
   end
 end

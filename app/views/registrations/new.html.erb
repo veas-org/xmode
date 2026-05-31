@@ -1,7 +1,7 @@
 <section class="mx-auto flex min-h-[calc(100vh-73px)] max-w-md items-center px-5 py-12">
   <div class="app-card w-full p-6">
     <p class="app-eyebrow">Create workspace</p>
-    <h1 class="mt-2 text-2xl font-semibold text-white">Start xmode</h1>
+    <h1 class="mt-2 text-2xl font-semibold text-foreground">Start xmode</h1>
     <%= render "shared/form_errors", object: @user %>
     <%= form_with model: @user, url: signup_path, class: "mt-6 space-y-4" do |form| %>
       <div><%= form.label :name, class: "app-label" %><%= form.text_field :name, class: "app-input" %></div>

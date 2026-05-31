@@ -5,9 +5,32 @@
 </div>
 <section class="app-card p-5">
   <dl class="grid gap-4 md:grid-cols-3">
-    <div><dt class="app-eyebrow">Key</dt><dd class="mt-1 text-white"><%= @action.key %></dd></div>
-    <div><dt class="app-eyebrow">Category</dt><dd class="mt-1 text-white"><%= @action.category %></dd></div>
-    <div><dt class="app-eyebrow">Provider</dt><dd class="mt-1 text-white"><%= @action.provider %></dd></div>
+    <div><dt class="app-eyebrow">Key</dt><dd class="mt-1 text-foreground"><%= @action.key %></dd></div>
+    <div><dt class="app-eyebrow">Category</dt><dd class="mt-1 text-foreground"><%= @action.category %></dd></div>
+    <div><dt class="app-eyebrow">Provider</dt><dd class="mt-1 text-foreground"><%= @action.provider %></dd></div>
+    <div><dt class="app-eyebrow">Skill</dt><dd class="mt-1 text-foreground"><%= @action.skill_definition&.name || "-" %></dd></div>
+    <div><dt class="app-eyebrow">Objective</dt><dd class="mt-1 text-foreground"><%= @action.requires_objective? ? "required" : "optional" %></dd></div>
+    <div><dt class="app-eyebrow">Plan fallback</dt><dd class="mt-1 text-foreground"><%= @action.plan_required_when_objective_unclear? ? "when objective is unclear" : "disabled" %></dd></div>
   </dl>
-  <pre class="mt-5 overflow-auto rounded-md bg-zinc-950 p-4 text-xs text-zinc-300"><%= JSON.pretty_generate(@action.snapshot) %></pre>
+  <div class="mt-5 grid gap-4 md:grid-cols-2">
+    <div>
+      <p class="app-eyebrow">Objective template</p>
+      <p class="mt-2 rounded-md bg-background p-3 text-sm text-muted-foreground"><%= @action.objective_template %></p>
+    </div>
+    <div>
+      <p class="app-eyebrow">Plan template</p>
+      <p class="mt-2 rounded-md bg-background p-3 text-sm text-muted-foreground"><%= @action.plan_template.presence || @action.skill_definition&.plan_template || "-" %></p>
+    </div>
+  </div>
+  <% if @action.best_practices.present? %>
+    <div class="mt-5">
+      <p class="app-eyebrow">Best practices</p>
+      <ul class="mt-2 space-y-2 text-sm text-muted-foreground">
+        <% @action.best_practices.each do |practice| %>
+          <li class="rounded-md border border-border px-3 py-2"><%= practice %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+  <pre class="mt-5 overflow-auto rounded-md bg-background p-4 text-xs text-muted-foreground"><%= JSON.pretty_generate(@action.snapshot) %></pre>
 </section>

@@ -1,16 +1,22 @@
-<header class="border-b border-white/10 bg-zinc-950/85 backdrop-blur">
+<header class="border-b border-border bg-background/85 backdrop-blur">
   <nav class="mx-auto flex max-w-7xl items-center justify-between px-5 py-4">
-    <%= link_to root_path, class: "flex items-center gap-2 font-semibold text-white" do %>
-      <span class="grid h-8 w-8 place-items-center rounded-md bg-sky-400 text-sm font-black text-zinc-950">x</span>
+    <%= link_to root_path, class: "flex items-center gap-2 font-semibold text-foreground" do %>
+      <span class="grid h-8 w-8 place-items-center rounded-md bg-primary text-sm font-black text-primary-foreground">x</span>
       <span>xmode</span>
     <% end %>
-    <div class="hidden items-center gap-5 text-sm text-zinc-400 md:flex">
-      <%= link_to "Product", product_path, class: "hover:text-white" %>
-      <%= link_to "Pricing", pricing_path, class: "hover:text-white" %>
-      <%= link_to "Docs", docs_path, class: "hover:text-white" %>
-      <%= link_to "Open Source", open_source_path, class: "hover:text-white" %>
+    <div class="hidden items-center gap-5 text-sm text-muted-foreground md:flex">
+      <%= link_to "Docs", docs_path, class: "hover:text-foreground" %>
+      <%= link_to "Open Source", open_source_path, class: "hover:text-foreground" %>
+      <% if landing_url.present? %>
+        <%= link_to "Landing", landing_url, class: "hover:text-foreground" %>
+      <% end %>
     </div>
     <div class="flex items-center gap-2">
+      <%= button_to "Demo",
+            demo_login_path(workspace: "planet-express"),
+            method: :post,
+            form: { class: "hidden sm:block" },
+            class: "app-btn app-btn-muted" %>
       <%= link_to "Sign in", login_path, class: "app-btn app-btn-muted" %>
       <%= link_to "Start", signup_path, class: "app-btn app-btn-primary" %>
     </div>

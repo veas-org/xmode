@@ -1,0 +1,52 @@
+<% content_for :page_title, @skill.name %>
+<div class="mb-5 flex gap-2">
+  <%= link_to "Edit", edit_skill_path(@skill), class: "app-btn app-btn-muted" %>
+  <%= link_to "Export YAML", export_skill_path(@skill), class: "app-btn app-btn-muted" %>
+</div>
+<section class="app-card p-5">
+  <dl class="grid gap-4 md:grid-cols-3">
+    <div><dt class="app-eyebrow">Key</dt><dd class="mt-1 text-foreground"><%= @skill.key %></dd></div>
+    <div><dt class="app-eyebrow">Category</dt><dd class="mt-1 text-foreground"><%= @skill.category %></dd></div>
+    <div><dt class="app-eyebrow">Actions</dt><dd class="mt-1 text-foreground"><%= @actions.count %></dd></div>
+  </dl>
+  <p class="mt-5 text-sm leading-6 text-muted-foreground"><%= @skill.description %></p>
+  <div class="mt-5 grid gap-4 md:grid-cols-2">
+    <div>
+      <p class="app-eyebrow">Instructions</p>
+      <p class="mt-2 rounded-md bg-background p-3 text-sm text-muted-foreground"><%= @skill.instructions %></p>
+    </div>
+    <div>
+      <p class="app-eyebrow">Plan fallback</p>
+      <p class="mt-2 rounded-md bg-background p-3 text-sm text-muted-foreground"><%= @skill.plan_template %></p>
+    </div>
+  </div>
+  <% if @skill.best_practices.present? %>
+    <div class="mt-5">
+      <p class="app-eyebrow">Best practices</p>
+      <ul class="mt-2 space-y-2 text-sm text-muted-foreground">
+        <% @skill.best_practices.each do |practice| %>
+          <li class="rounded-md border border-border px-3 py-2"><%= practice %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+</section>
+
+<section class="app-card mt-5 p-5">
+  <h2 class="mb-4 font-semibold text-foreground">Actions using this skill</h2>
+  <table class="app-table">
+    <thead><tr><th>Action</th><th>Provider</th><th>Objective</th></tr></thead>
+    <tbody>
+      <% @actions.each do |action| %>
+        <tr>
+          <td><%= link_to action.name, action_path(action), class: "text-foreground hover:text-foreground" %></td>
+          <td><%= action.provider %></td>
+          <td><%= action.requires_objective? ? "required" : "optional" %></td>
+        </tr>
+      <% end %>
+      <% if @actions.empty? %>
+        <tr><td colspan="3" class="text-muted-foreground">No actions use this skill yet.</td></tr>
+      <% end %>
+    </tbody>
+  </table>
+</section>

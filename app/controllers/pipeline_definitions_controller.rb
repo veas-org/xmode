@@ -49,16 +49,22 @@ class PipelineDefinitionsController < AuthenticatedController
   end
 
   def run
+    project = current_workspace.projects.find_by(id: params[:project_id])
+    issue = issue_for_run(project)
     run = current_workspace.pipeline_runs.create!(
       pipeline_definition: @pipeline,
       user: current_user,
-      project_id: params[:project_id],
-      issue_id: params[:issue_id],
+      project: project,
+      issue: issue,
       event_id: params[:event_id],
-      trigger: "manual",
+      trigger: current_workspace.demo? ? "demo_agent" : "manual",
       input_context: input_context_params
     )
-    PipelineRunnerJob.perform_later(run.id)
+    if current_workspace.demo?
+      Pipelines::Runner.call(run)
+    else
+      PipelineRunnerJob.perform_later(run.id)
+    end
     redirect_to pipeline_run_path(run), notice: "Pipeline run queued."
   end
 
@@ -77,7 +83,21 @@ class PipelineDefinitionsController < AuthenticatedController
   end
 
   def input_context_params
-    params.fetch(:input_context, {}).permit(:objective, :command, :issue_id, :project_id, :event_id).to_h
+    params.fetch(:input_context, {}).permit(:objective, :plan, :command, :issue_id, :project_id, :event_id).to_h
+  end
+
+  def issue_for_run(project)
+    return current_workspace.issues.find_by(id: params[:issue_id]) if params[:issue_id].present?
+    return unless current_workspace.demo? && project && input_context_params["objective"].present?
+
+    current_workspace.issues.create!(
+      team: project.team,
+      project: project,
+      assignee: current_user,
+      title: input_context_params["objective"].to_s.truncate(120),
+      description: "Created by the Planet Express fake agent demo.",
+      priority: "medium"
+    )
   end
 
   def parse_json(value, default:)

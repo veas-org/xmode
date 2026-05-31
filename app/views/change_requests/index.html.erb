@@ -5,14 +5,14 @@
     <tbody>
       <% @change_requests.each do |cr| %>
         <tr>
-          <td><%= link_to cr.title, change_request_path(cr), class: "text-white hover:text-sky-300" %></td>
+          <td><%= link_to cr.title, change_request_path(cr), class: "text-foreground hover:text-foreground" %></td>
           <td><%= cr.provider %></td>
           <td><span class="status-pill"><%= cr.status %></span></td>
           <td><%= cr.branch_name %></td>
           <td><%= cr.repository_connection.full_name.presence || cr.repository_connection.name %></td>
         </tr>
       <% end %>
-      <% if @change_requests.empty? %><tr><td colspan="5" class="text-zinc-500">No Change Requests yet.</td></tr><% end %>
+      <% if @change_requests.empty? %><tr><td colspan="5" class="text-muted-foreground">No Change Requests yet.</td></tr><% end %>
     </tbody>
   </table>
 </section>

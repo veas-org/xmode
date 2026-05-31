@@ -9,6 +9,25 @@
     <div><%= form.label :provider, class: "app-label" %><%= form.select :provider, ActionDefinition::PROVIDERS, {}, class: "app-input" %></div>
     <div><%= form.label :timeout_seconds, class: "app-label" %><%= form.number_field :timeout_seconds, class: "app-input" %></div>
   </div>
+  <div class="grid gap-4 md:grid-cols-3">
+    <div class="md:col-span-2">
+      <%= form.label :skill_definition_id, "Skill", class: "app-label" %>
+      <%= form.collection_select :skill_definition_id, @skills || current_workspace.skill_definitions.order(:category, :name), :id, :name, { include_blank: "No skill" }, class: "app-input" %>
+    </div>
+    <div class="space-y-3 pt-6 text-sm text-muted-foreground">
+      <label class="flex items-center gap-2"><%= form.check_box :requires_objective %> Requires objective</label>
+      <label class="flex items-center gap-2"><%= form.check_box :plan_required_when_objective_unclear %> Plan when unclear</label>
+    </div>
+  </div>
+  <div class="grid gap-4 md:grid-cols-2">
+    <div><%= form.label :objective_template, class: "app-label" %><%= form.text_area :objective_template, rows: 4, class: "app-input" %></div>
+    <div><%= form.label :plan_template, class: "app-label" %><%= form.text_area :plan_template, rows: 4, class: "app-input" %></div>
+  </div>
+  <div><%= form.label :execution_guidance, class: "app-label" %><%= form.text_area :execution_guidance, rows: 3, class: "app-input" %></div>
+  <div>
+    <%= label_tag "action_definition_best_practices_text", "Best practices", class: "app-label" %>
+    <%= text_area_tag "action_definition[best_practices_text]", action_definition.best_practices.to_a.join("\n"), rows: 4, class: "app-input" %>
+  </div>
   <div class="grid gap-4 md:grid-cols-2">
     <div><%= label_tag "action_definition_input_schema_json", "Input schema JSON", class: "app-label" %><%= text_area_tag "action_definition[input_schema_json]", JSON.pretty_generate(action_definition.input_schema.presence || {}), rows: 8, class: "app-input font-mono text-xs" %></div>
     <div><%= label_tag "action_definition_output_schema_json", "Output schema JSON", class: "app-label" %><%= text_area_tag "action_definition[output_schema_json]", JSON.pretty_generate(action_definition.output_schema.presence || {}), rows: 8, class: "app-input font-mono text-xs" %></div>

@@ -13,6 +13,8 @@ module Runners
     end
 
     def call
+      return Demo::AgentSimulator.call(@step) if @run.workspace.demo?
+
       command = @action.defaults["command"].presence || @step.input_json["command"].presence || "pwd"
       artifact_dir.mkpath
       sandbox_dir.mkpath

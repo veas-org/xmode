@@ -6,6 +6,15 @@ xmode is planned as an open source, self-hostable project management and automat
 
 The working repo is currently `/Users/marcin/Documents/powered`. The project can be renamed later.
 
+## Open Source Boundary
+
+This repository is the AGPL-3.0 xmode application: workspaces, project management, skills, actions, pipelines, runs, integrations, and Change Requests. The commercial landing site is intentionally separate and private at `/Users/marcin/Documents/xmode-landing`.
+
+Useful environment variables:
+
+- `LANDING_BASE_URL` - optional public marketing site URL used for product, pricing, security, privacy, and terms redirects.
+- `APP_BASE_URL` - optional canonical app URL used by external surfaces that link back into the product app.
+
 ## Planning Docs
 
 - [Implementation Goal](docs/implementation-goal.md)
@@ -17,6 +26,7 @@ The working repo is currently `/Users/marcin/Documents/powered`. The project can
 - [Implementation Roadmap](docs/implementation-roadmap.md)
 - [Self-Hosting](docs/self-hosting.md)
 - [Contributing](docs/contributing.md)
+- [Skill Authoring](docs/skill-authoring.md)
 - [Action Authoring](docs/action-authoring.md)
 - [Pipeline Authoring](docs/pipeline-authoring.md)
 - [Security Model](docs/security-model.md)
@@ -31,4 +41,7 @@ The working repo is currently `/Users/marcin/Documents/powered`. The project can
 - Docker/Kamal-style deployment from day one
 - Email/password authentication initially
 - Multiple workspaces and teams
+- Skill management for reusable capabilities behind actions
 - Stripe billing scaffold for future hosted SaaS
+- Seeded Planet Express demo workspace with Bender demo login
+- Fake Planet Express agent operations for demo pipeline runs
