@@ -397,7 +397,9 @@ GEM
     stimulus-rails (1.3.4)
       railties (>= 6.0.0)
     stringio (3.2.0)
-    stripe (15.5.0)
+    stripe (19.2.0)
+      bigdecimal
+      logger
     tailwind_merge (1.5.1)
       sin_lru_redux (~> 2.5)
     tailwindcss-rails (4.4.0)
@@ -483,7 +485,7 @@ DEPENDENCIES
   solid_queue
   sqlite3 (>= 2.1)
   stimulus-rails
-  stripe (~> 15.0)
+  stripe (~> 19.2)
   tailwind_merge
   tailwindcss-rails
   thruster
