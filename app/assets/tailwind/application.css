@@ -46,38 +46,38 @@
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
+  --background: oklch(0.112 0.012 248);
   --foreground: oklch(0.985 0 0);
-  --card: oklch(0.18 0 0);
+  --card: oklch(0.158 0.014 248);
   --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.18 0 0);
+  --popover: oklch(0.158 0.014 248);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.985 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
+  --primary: oklch(0.92 0.045 222);
+  --primary-foreground: oklch(0.14 0.016 248);
+  --secondary: oklch(0.23 0.018 248);
   --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
+  --muted: oklch(0.232 0.017 248);
+  --muted-foreground: oklch(0.708 0.018 248);
+  --accent: oklch(0.26 0.026 230);
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.396 0.141 25.723);
   --destructive-foreground: oklch(0.637 0.237 25.331);
-  --border: oklch(0.269 0 0);
-  --input: oklch(0.269 0 0);
-  --ring: oklch(0.439 0 0);
+  --border: oklch(0.25 0.018 248);
+  --input: oklch(0.25 0.018 248);
+  --ring: oklch(0.62 0.08 222);
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.769 0.188 70.08);
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.18 0 0);
+  --sidebar: oklch(0.13 0.016 248);
   --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.985 0 0);
-  --sidebar-primary-foreground: oklch(0.205 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-primary: oklch(0.92 0.045 222);
+  --sidebar-primary-foreground: oklch(0.14 0.016 248);
+  --sidebar-accent: oklch(0.24 0.024 230);
   --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(0.269 0 0);
-  --sidebar-ring: oklch(0.439 0 0);
+  --sidebar-border: oklch(0.24 0.02 248);
+  --sidebar-ring: oklch(0.62 0.08 222);
 
   /* ruby_ui specific */
   --warning: hsl(38 92% 50%);
@@ -148,40 +148,127 @@
 }
 
 @layer components {
+  .public-body {
+    background:
+      radial-gradient(circle at 14% -10%, rgba(14, 165, 233, 0.13), transparent 30rem),
+      radial-gradient(circle at 86% 0%, rgba(20, 184, 166, 0.1), transparent 28rem),
+      linear-gradient(180deg, rgba(12, 16, 24, 0.98), rgba(8, 10, 15, 1));
+    isolation: isolate;
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  .public-body::before {
+    background-image:
+      radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.16) 1px, transparent 0),
+      radial-gradient(circle at 1px 1px, rgba(125, 211, 252, 0.18) 1px, transparent 0),
+      linear-gradient(128deg, transparent 8%, rgba(14, 165, 233, 0.08) 28%, transparent 45%, rgba(20, 184, 166, 0.06) 72%, transparent 90%);
+    background-position: 0 0, 24px 18px, 0 0;
+    background-size: 56px 56px, 116px 116px, 100% 100%;
+    content: "";
+    inset: 0;
+    mask-image: linear-gradient(180deg, black 0%, rgba(0, 0, 0, 0.82) 58%, transparent 100%);
+    opacity: 0.34;
+    pointer-events: none;
+    position: fixed;
+    z-index: -1;
+  }
+
+  .public-body > header,
+  .public-body > main {
+    position: relative;
+    z-index: 1;
+  }
+
+  .public-nav {
+    background: rgba(9, 11, 17, 0.74);
+    box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.055);
+  }
+
+  .turbo-progress-bar {
+    background: linear-gradient(90deg, rgba(125, 211, 252, 0.82), rgba(45, 212, 191, 0.58));
+    box-shadow: 0 0 18px rgba(125, 211, 252, 0.4);
+    height: 2px;
+  }
+
   .app-shell {
     @apply grid min-h-screen grid-cols-1 bg-background text-foreground lg:grid-cols-[256px_minmax(0,1fr)];
+    background:
+      radial-gradient(circle at 16% -8%, rgba(14, 165, 233, 0.14), transparent 29rem),
+      radial-gradient(circle at 86% 2%, rgba(20, 184, 166, 0.11), transparent 27rem),
+      linear-gradient(180deg, rgba(12, 16, 24, 0.98), rgba(8, 10, 15, 1));
+    isolation: isolate;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .app-shell::before {
+    background-image:
+      radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.16) 1px, transparent 0),
+      radial-gradient(circle at 1px 1px, rgba(125, 211, 252, 0.18) 1px, transparent 0),
+      linear-gradient(128deg, transparent 8%, rgba(14, 165, 233, 0.08) 28%, transparent 45%, rgba(20, 184, 166, 0.06) 72%, transparent 90%);
+    background-position: 0 0, 24px 18px, 0 0;
+    background-size: 56px 56px, 116px 116px, 100% 100%;
+    content: "";
+    inset: 0;
+    mask-image: linear-gradient(180deg, black 0%, rgba(0, 0, 0, 0.82) 58%, transparent 100%);
+    opacity: 0.4;
+    pointer-events: none;
+    position: fixed;
+    z-index: -1;
+  }
+
+  .app-shell::after {
+    background:
+      linear-gradient(105deg, transparent 9%, rgba(255, 255, 255, 0.12) 10%, rgba(125, 211, 252, 0.18) 11%, transparent 18%),
+      linear-gradient(116deg, transparent 56%, rgba(20, 184, 166, 0.11) 58%, rgba(255, 255, 255, 0.08) 59%, transparent 67%);
+    content: "";
+    inset: 0;
+    opacity: 0.2;
+    pointer-events: none;
+    position: fixed;
+    z-index: -1;
   }
 
   .app-sidebar {
-    @apply hidden min-h-screen flex-col bg-sidebar p-2 text-sidebar-foreground lg:flex;
+    @apply hidden min-h-screen flex-col p-2.5 text-sidebar-foreground lg:flex;
+    backdrop-filter: blur(22px);
+    background: rgba(12, 15, 22, 0.78);
+    box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.055);
+    position: relative;
+    z-index: 1;
   }
 
   .app-sidebar nav {
-    @apply min-h-0 flex-1 overflow-y-auto pb-3;
+    @apply min-h-0 flex-1 overflow-y-auto pb-4 pr-1;
   }
 
   .app-sidebar-section {
-    @apply mt-5 px-2 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground;
+    @apply mt-4 px-2 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground;
   }
 
   .app-sidebar-link {
-    @apply flex h-8 items-center gap-2 rounded-md px-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground;
+    @apply flex h-8 items-center gap-2 rounded-md px-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-sidebar-accent/75 hover:text-sidebar-accent-foreground;
   }
 
   .app-sidebar-link.is-active {
-    @apply bg-sidebar-accent text-sidebar-accent-foreground shadow-sm;
+    @apply bg-sidebar-accent/85 text-sidebar-accent-foreground shadow-sm;
+    box-shadow: inset 0 0 0 1px rgba(125, 211, 252, 0.08);
   }
 
   .app-sidebar-footer {
-    @apply mt-auto rounded-lg bg-muted/40 px-1.5 py-2;
+    @apply mt-auto rounded-lg px-1.5 py-2;
+    background: rgba(255, 255, 255, 0.035);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
   }
 
   .app-sidebar-demo {
-    @apply mb-2 flex h-8 items-center justify-between rounded-md bg-muted px-2 text-xs font-medium text-muted-foreground;
+    @apply mb-1.5 flex h-8 items-center justify-between rounded-md bg-muted/55 px-2 text-xs font-medium text-muted-foreground;
   }
 
   .app-sidebar-demo-dot {
-    @apply h-1.5 w-1.5 rounded-full bg-primary;
+    @apply h-1.5 w-1.5 rounded-full bg-sky-300;
+    box-shadow: 0 0 14px rgba(125, 211, 252, 0.65);
   }
 
   .app-sidebar-account {
@@ -189,7 +276,7 @@
   }
 
   .app-sidebar-avatar {
-    @apply grid h-7 w-7 shrink-0 place-items-center rounded-md bg-muted text-xs font-semibold text-muted-foreground;
+    @apply grid h-7 w-7 shrink-0 place-items-center rounded-md bg-muted/75 text-xs font-semibold text-muted-foreground;
   }
 
   .app-sidebar-account-name {
@@ -209,15 +296,20 @@
   }
 
   .app-sidebar-icon-action {
-    @apply grid h-7 w-7 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-background hover:text-foreground;
+    @apply grid h-7 w-7 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-background/80 hover:text-foreground;
   }
 
   .app-main {
-    @apply min-w-0 bg-background;
+    @apply min-w-0 bg-transparent;
+    min-height: 100vh;
+    position: relative;
+    z-index: 1;
   }
 
   .app-topbar {
-    @apply sticky top-0 z-30 flex h-12 items-center justify-between gap-4 bg-background/95 px-4 backdrop-blur md:px-6;
+    @apply sticky top-0 z-30 flex h-12 items-center justify-between gap-4 px-4 backdrop-blur md:px-5;
+    background: rgba(9, 11, 17, 0.72);
+    box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.055);
   }
 
   .app-topbar h1 {
@@ -233,15 +325,19 @@
   }
 
   .app-content {
-    @apply mx-auto w-full max-w-[1600px] px-4 py-5 md:px-6;
+    @apply mx-auto w-full max-w-[1500px] px-3 py-4 md:px-5 md:py-5;
   }
 
   .app-card {
     @apply rounded-lg bg-card text-card-foreground shadow-sm;
+    background: rgba(20, 24, 34, 0.78);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.045), 0 18px 54px rgba(0, 0, 0, 0.14);
   }
 
   .app-panel {
     @apply rounded-lg bg-card text-card-foreground shadow-sm;
+    background: rgba(20, 24, 34, 0.78);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.045), 0 18px 54px rgba(0, 0, 0, 0.14);
   }
 
   .app-eyebrow {
@@ -261,7 +357,7 @@
   }
 
   .app-icon-btn {
-    @apply grid h-8 w-8 place-items-center rounded-md bg-muted text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50;
+    @apply grid h-8 w-8 place-items-center rounded-md bg-muted/70 text-muted-foreground transition-colors hover:bg-accent/80 hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50;
   }
 
   .app-btn-danger {
@@ -269,7 +365,8 @@
   }
 
   .app-input {
-    @apply h-9 w-full rounded-md border border-transparent bg-muted px-3 py-1 text-sm text-foreground shadow-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring/50;
+    @apply h-9 w-full rounded-md border border-transparent bg-muted/70 px-3 py-1 text-sm text-foreground shadow-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring/50;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.035);
   }
 
   .app-label {
@@ -289,7 +386,7 @@
   }
 
   .status-pill {
-    @apply inline-flex items-center rounded-md bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground;
+    @apply inline-flex items-center rounded-md bg-muted/70 px-1.5 py-0.5 text-xs font-medium text-muted-foreground;
   }
 
   .graph-canvas {
@@ -297,15 +394,18 @@
   }
 
   .linear-page {
-    @apply grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px];
+    @apply grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px];
   }
 
   .linear-surface {
     @apply overflow-hidden rounded-lg bg-card text-card-foreground shadow-sm;
+    background: rgba(20, 24, 34, 0.76);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.045), 0 18px 60px rgba(0, 0, 0, 0.16);
   }
 
   .linear-toolbar {
-    @apply flex min-h-12 flex-wrap items-center justify-between gap-3 bg-muted/30 px-4;
+    @apply flex min-h-11 flex-wrap items-center justify-between gap-3 bg-muted/20 px-3.5;
+    box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.035);
   }
 
   .linear-title {
@@ -313,23 +413,23 @@
   }
 
   .linear-tabs {
-    @apply inline-flex h-9 flex-wrap items-center justify-center gap-1 rounded-md bg-muted p-1 text-muted-foreground;
+    @apply inline-flex min-h-8 flex-wrap items-center justify-center gap-0.5 rounded-md bg-muted/55 p-0.5 text-muted-foreground;
   }
 
   .linear-tab {
-    @apply inline-flex h-7 items-center rounded-sm px-2 text-sm font-medium transition-colors hover:text-foreground;
+    @apply inline-flex h-7 items-center rounded-[5px] px-2 text-sm font-medium transition-colors hover:text-foreground;
   }
 
   .linear-tab.is-active {
-    @apply bg-background text-foreground shadow-sm;
+    @apply bg-background/90 text-foreground shadow-sm;
   }
 
   .linear-list {
-    @apply space-y-1 p-1;
+    @apply space-y-0 p-1.5;
   }
 
   .linear-row {
-    @apply flex min-w-0 items-center gap-3 rounded-md px-3 py-2.5 transition-colors hover:bg-muted/50;
+    @apply flex min-w-0 items-center gap-3 rounded-md px-3 py-2.5 transition-colors hover:bg-muted/45;
   }
 
   .linear-row-main {
@@ -345,15 +445,16 @@
   }
 
   .linear-side {
-    @apply space-y-4;
+    @apply space-y-3;
   }
 
   .linear-command {
-    @apply flex h-9 w-full items-center justify-between rounded-md bg-muted px-3 text-sm text-muted-foreground shadow-sm;
+    @apply flex h-9 w-full items-center justify-between rounded-md bg-muted/60 px-3 text-sm text-muted-foreground shadow-sm;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.035);
   }
 
   .linear-kbd {
-    @apply rounded bg-background px-1.5 py-0.5 text-[11px] text-muted-foreground;
+    @apply rounded bg-background/80 px-1.5 py-0.5 text-[11px] text-muted-foreground;
   }
 
   .linear-empty {
@@ -361,27 +462,30 @@
   }
 
   .linear-count {
-    @apply rounded-md bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground;
+    @apply rounded-md bg-muted/70 px-1.5 py-0.5 text-xs font-medium text-muted-foreground;
   }
 
   .inbox-shell {
-    @apply grid gap-4 xl:grid-cols-[minmax(0,1fr)_420px];
+    @apply grid gap-4 xl:grid-cols-[minmax(0,1fr)_400px];
   }
 
   .inbox-list-panel {
     @apply overflow-hidden rounded-lg bg-card text-card-foreground shadow-sm;
+    background: rgba(20, 24, 34, 0.76);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.045), 0 18px 60px rgba(0, 0, 0, 0.16);
   }
 
   .inbox-header {
-    @apply flex min-h-14 flex-wrap items-center justify-between gap-3 bg-muted/40 px-4;
+    @apply flex min-h-13 flex-wrap items-center justify-between gap-3 bg-muted/25 px-3.5;
+    box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.035);
   }
 
   .inbox-subbar {
-    @apply flex flex-wrap items-center justify-between gap-3 bg-background px-3 py-2;
+    @apply flex flex-wrap items-center justify-between gap-3 bg-background/30 px-3 py-2;
   }
 
   .inbox-search {
-    @apply flex h-8 min-w-[240px] items-center gap-2 rounded-md bg-muted px-2 text-sm text-muted-foreground;
+    @apply flex h-8 min-w-[240px] items-center gap-2 rounded-md bg-muted/60 px-2 text-sm text-muted-foreground;
   }
 
   .inbox-search-input {
@@ -389,31 +493,35 @@
   }
 
   .inbox-list {
-    @apply space-y-1 p-1;
+    @apply space-y-0 p-1.5;
   }
 
   .inbox-row {
-    @apply flex min-w-0 items-center gap-3 rounded-md px-3 py-2.5 transition-colors hover:bg-muted/50;
+    @apply flex min-w-0 items-center gap-3 rounded-md px-3 py-2.5 transition-colors hover:bg-muted/45;
   }
 
   .inbox-row.is-selected {
-    @apply bg-muted/70;
+    @apply bg-muted/65;
   }
 
   .inbox-row-indicator {
-    @apply h-2 w-2 shrink-0 rounded-full bg-primary/70;
+    @apply h-2 w-2 shrink-0 rounded-full bg-sky-300/80;
+    box-shadow: 0 0 16px rgba(125, 211, 252, 0.5);
   }
 
   .inbox-preview {
     @apply overflow-hidden rounded-lg bg-card text-card-foreground shadow-sm;
+    background: rgba(20, 24, 34, 0.76);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.045), 0 18px 60px rgba(0, 0, 0, 0.16);
   }
 
   .inbox-preview-header {
-    @apply flex min-h-14 items-center justify-between gap-3 bg-muted/40 px-4;
+    @apply flex min-h-13 items-center justify-between gap-3 bg-muted/25 px-3.5;
+    box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.035);
   }
 
   .inbox-property {
-    @apply flex items-center justify-between gap-4 rounded-md bg-muted/40 px-3 py-2 text-muted-foreground;
+    @apply flex items-center justify-between gap-4 rounded-md bg-muted/45 px-3 py-2 text-muted-foreground;
   }
 
   .inbox-property strong {
@@ -421,7 +529,7 @@
   }
 
   .app-badge {
-    @apply inline-flex h-5 items-center rounded-md bg-muted px-1.5 text-[11px] font-medium text-muted-foreground;
+    @apply inline-flex h-5 items-center rounded-md bg-muted/70 px-1.5 text-[11px] font-medium text-muted-foreground;
   }
 
   .app-icon {
