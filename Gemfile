@@ -48,7 +48,7 @@ gem "tailwind_merge"
 # Validation, markdown docs, provider HTTP clients, and billing.
 gem "json_schemer", "~> 2.3"
 gem "redcarpet"
-gem "stripe", "~> 15.0"
+gem "stripe", "~> 19.2"
 gem "httparty", "~> 0.22"
 
 # Use Active Storage variants [https://guides.rubyonrails.org/active_storage_overview.html#transforming-images]
