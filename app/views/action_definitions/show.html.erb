@@ -1,0 +1,13 @@
+<% content_for :page_title, @action.name %>
+<div class="mb-5 flex gap-2">
+  <%= link_to "Edit", edit_action_path(@action), class: "app-btn app-btn-muted" %>
+  <%= link_to "Export YAML", export_action_path(@action), class: "app-btn app-btn-muted" %>
+</div>
+<section class="app-card p-5">
+  <dl class="grid gap-4 md:grid-cols-3">
+    <div><dt class="app-eyebrow">Key</dt><dd class="mt-1 text-white"><%= @action.key %></dd></div>
+    <div><dt class="app-eyebrow">Category</dt><dd class="mt-1 text-white"><%= @action.category %></dd></div>
+    <div><dt class="app-eyebrow">Provider</dt><dd class="mt-1 text-white"><%= @action.provider %></dd></div>
+  </dl>
+  <pre class="mt-5 overflow-auto rounded-md bg-zinc-950 p-4 text-xs text-zinc-300"><%= JSON.pretty_generate(@action.snapshot) %></pre>
+</section>

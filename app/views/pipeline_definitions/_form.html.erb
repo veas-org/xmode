@@ -1,0 +1,22 @@
+<%= form_with model: pipeline_definition, url: pipeline_definition.persisted? ? pipeline_path(pipeline_definition) : pipelines_path, class: "space-y-5" do |form| %>
+  <%= render "shared/form_errors", object: pipeline_definition %>
+  <div class="grid gap-4 md:grid-cols-2">
+    <div><%= form.label :name, class: "app-label" %><%= form.text_field :name, class: "app-input", required: true %></div>
+    <div><%= form.label :key, class: "app-label" %><%= form.text_field :key, class: "app-input", required: true %></div>
+  </div>
+
+  <% actions_json = (@actions || []).map { |a| { id: a.id, key: a.key, name: a.name } }.to_json %>
+  <div data-controller="pipeline-graph" data-pipeline-graph-actions-value="<%= actions_json %>">
+    <div class="mb-3 flex flex-wrap gap-2">
+      <% (@actions || []).each do |action| %>
+        <button type="button" class="app-btn app-btn-muted" data-action="pipeline-graph#addNode" data-action-key="<%= action.key %>"><%= action.name %></button>
+      <% end %>
+      <button type="button" class="app-btn app-btn-danger" data-action="pipeline-graph#clear">Clear</button>
+    </div>
+    <div class="graph-canvas relative overflow-hidden" data-pipeline-graph-target="graph"></div>
+    <%= text_area_tag "pipeline_definition[graph_json]", JSON.pretty_generate(pipeline_definition.graph.presence || { nodes: [], edges: [] }), rows: 10, class: "app-input mt-4 font-mono text-xs", data: { pipeline_graph_target: "field" } %>
+  </div>
+
+  <div><%= label_tag "pipeline_definition_required_context_json", "Required context JSON", class: "app-label" %><%= text_area_tag "pipeline_definition[required_context_json]", JSON.pretty_generate(pipeline_definition.required_context.presence || {}), rows: 5, class: "app-input font-mono text-xs" %></div>
+  <%= form.submit class: "app-btn app-btn-primary" %>
+<% end %>

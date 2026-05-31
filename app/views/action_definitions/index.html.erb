@@ -1,0 +1,23 @@
+<% content_for :page_title, "Actions" %>
+<div class="mb-5 flex justify-between">
+  <%= form_with url: import_actions_path, method: :post, class: "flex flex-1 gap-2" do %>
+    <%= text_area_tag :catalog_yaml, nil, rows: 1, placeholder: "Paste action YAML", class: "app-input max-w-lg" %>
+    <%= submit_tag "Import", class: "app-btn app-btn-muted" %>
+  <% end %>
+  <%= link_to "New action", new_action_path, class: "app-btn app-btn-primary" %>
+</div>
+<section class="app-card p-5">
+  <table class="app-table">
+    <thead><tr><th>Name</th><th>Category</th><th>Provider</th><th>Permissions</th></tr></thead>
+    <tbody>
+      <% @actions.each do |action| %>
+        <tr>
+          <td><%= link_to action.name, action_path(action), class: "text-white hover:text-sky-300" %></td>
+          <td><%= action.category %></td>
+          <td><%= action.provider %></td>
+          <td><%= action.permissions.join(", ") %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</section>

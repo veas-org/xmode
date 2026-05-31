@@ -1,0 +1,35 @@
+<% content_for :page_title, "Dashboard" %>
+<div class="grid gap-4 md:grid-cols-4">
+  <%= render Components::MetricCard.new(label: "Issues", value: current_workspace.issues.count, hint: "Across all teams") %>
+  <%= render Components::MetricCard.new(label: "Projects", value: current_workspace.projects.count, hint: "Active bodies of work") %>
+  <%= render Components::MetricCard.new(label: "Runs", value: current_workspace.pipeline_runs.count, hint: "Automation history") %>
+  <%= render Components::MetricCard.new(label: "Events", value: current_workspace.events.count, hint: "Signals in inbox") %>
+</div>
+
+<div class="mt-6 grid gap-6 lg:grid-cols-2">
+  <section class="app-card p-5">
+    <div class="mb-4 flex items-center justify-between">
+      <h2 class="font-semibold text-white">Recent Issues</h2>
+      <%= link_to "New issue", new_issue_path, class: "app-btn app-btn-primary" %>
+    </div>
+    <%= render "issues/table", issues: @issues %>
+  </section>
+
+  <section class="app-card p-5">
+    <div class="mb-4 flex items-center justify-between">
+      <h2 class="font-semibold text-white">Automation Queue</h2>
+      <%= link_to "Pipelines", pipelines_path, class: "app-btn app-btn-muted" %>
+    </div>
+    <div class="space-y-3">
+      <% @runs.each do |run| %>
+        <%= link_to pipeline_run_path(run), class: "block rounded-md border border-white/10 p-3 hover:border-sky-400/40" do %>
+          <div class="flex items-center justify-between">
+            <span class="text-sm text-white"><%= run.pipeline_definition&.name || "Pipeline run" %></span>
+            <span class="status-pill"><%= run.status %></span>
+          </div>
+        <% end %>
+      <% end %>
+      <% if @runs.empty? %><p class="text-sm text-zinc-500">No runs yet.</p><% end %>
+    </div>
+  </section>
+</div>

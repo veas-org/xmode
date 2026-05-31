@@ -1,0 +1,14 @@
+<% content_for :page_title, "Cycles" %>
+<div class="mb-5 flex justify-end"><%= link_to "New cycle", new_cycle_path, class: "app-btn app-btn-primary" %></div>
+<div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+  <% @cycles.each do |cycle| %>
+    <%= link_to cycle_path(cycle), class: "app-card block p-5 hover:border-sky-400/40" do %>
+      <div class="flex items-center justify-between">
+        <h2 class="font-semibold text-white"><%= cycle.name %></h2>
+        <span class="status-pill"><%= cycle.status %></span>
+      </div>
+      <p class="mt-3 text-sm text-zinc-400"><%= cycle.starts_on || "No start" %> - <%= cycle.ends_on || "No end" %></p>
+      <p class="mt-4 text-xs text-zinc-500"><%= cycle.issues.count %> issues</p>
+    <% end %>
+  <% end %>
+</div>

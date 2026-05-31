@@ -1,0 +1,18 @@
+<% content_for :title, "Pricing - xmode" %>
+<section class="mx-auto max-w-7xl px-5 py-16">
+  <p class="app-eyebrow">Pricing</p>
+  <h1 class="mt-4 text-4xl font-semibold text-white">Useful self-hosted. Better hosted.</h1>
+  <div class="mt-10 grid gap-4 md:grid-cols-3">
+    <% [
+      [ "Community", "$0", "AGPL self-hosted edition for teams that run their own infrastructure." ],
+      [ "Team", "Hosted", "Seats, managed runners, automation minutes, GitHub/GitLab integrations, and support." ],
+      [ "Enterprise", "Custom", "SSO, governance, audit retention, dedicated runners, and private support." ]
+    ].each do |name, price, body| %>
+      <article class="app-card p-5">
+        <p class="app-eyebrow"><%= name %></p>
+        <h2 class="mt-3 text-3xl font-semibold text-white"><%= price %></h2>
+        <p class="mt-3 text-sm leading-6 text-zinc-400"><%= body %></p>
+      </article>
+    <% end %>
+  </div>
+</section>

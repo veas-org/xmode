@@ -1,0 +1,17 @@
+<%= form_with model: issue, class: "space-y-4" do |form| %>
+  <%= render "shared/form_errors", object: issue %>
+  <div><%= form.label :title, class: "app-label" %><%= form.text_field :title, class: "app-input", required: true %></div>
+  <div><%= form.label :description, class: "app-label" %><%= form.text_area :description, rows: 8, class: "app-input" %></div>
+  <div class="grid gap-4 md:grid-cols-3">
+    <div><%= form.label :project_id, "Project", class: "app-label" %><%= form.collection_select :project_id, current_workspace.projects.order(:title), :id, :title, { include_blank: true }, class: "app-input" %></div>
+    <div><%= form.label :cycle_id, "Cycle", class: "app-label" %><%= form.collection_select :cycle_id, current_workspace.cycles.order(:starts_on), :id, :name, { include_blank: true }, class: "app-input" %></div>
+    <div><%= form.label :issue_status_id, "Status", class: "app-label" %><%= form.collection_select :issue_status_id, current_team.issue_statuses.order(:position), :id, :name, {}, class: "app-input" %></div>
+  </div>
+  <div class="grid gap-4 md:grid-cols-3">
+    <div><%= form.label :priority, class: "app-label" %><%= form.select :priority, Issue::PRIORITIES, {}, class: "app-input" %></div>
+    <div><%= form.label :estimate, class: "app-label" %><%= form.number_field :estimate, class: "app-input" %></div>
+    <div><%= form.label :due_on, class: "app-label" %><%= form.date_field :due_on, class: "app-input" %></div>
+  </div>
+  <%= form.hidden_field :team_id, value: issue.team_id || current_team&.id %>
+  <%= form.submit class: "app-btn app-btn-primary" %>
+<% end %>

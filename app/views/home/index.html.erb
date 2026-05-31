@@ -1,0 +1,26 @@
+<% content_for :title, "xmode - The AI-native project management tool" %>
+<section class="mx-auto grid min-h-[calc(100vh-73px)] max-w-7xl items-center gap-10 px-5 py-16 lg:grid-cols-[1.1fr_.9fr]">
+  <div>
+    <p class="app-eyebrow">Open source. Commercial-ready. Agent-native.</p>
+    <h1 class="mt-5 max-w-4xl text-5xl font-semibold tracking-tight text-white md:text-7xl">The AI-native project management tool</h1>
+    <p class="mt-6 max-w-2xl text-lg leading-8 text-zinc-400">xmode turns issues, projects, schedules, and events into auditable automation pipelines that plan work, run agents, verify results, and open Change Requests.</p>
+    <div class="mt-8 flex flex-wrap gap-3">
+      <%= link_to "Start workspace", signup_path, class: "app-btn app-btn-primary" %>
+      <%= link_to "Read docs", docs_path, class: "app-btn app-btn-muted" %>
+    </div>
+  </div>
+  <div class="app-card p-4">
+    <div class="rounded-md border border-white/10 bg-zinc-950 p-4">
+      <div class="flex items-center justify-between border-b border-white/10 pb-3">
+        <span class="text-sm font-medium text-white">Implement Issue</span>
+        <span class="status-pill">running</span>
+      </div>
+      <% [ "Plan Story", "Verify Plan", "Code", "Run Tests", "Review Diff", "Open Change Request" ].each_with_index do |step, index| %>
+        <div class="flex items-center gap-3 border-b border-white/5 py-3 last:border-0">
+          <span class="grid h-7 w-7 place-items-center rounded-md <%= index < 2 ? 'bg-emerald-400/15 text-emerald-200' : 'bg-white/5 text-zinc-400' %>"><%= index + 1 %></span>
+          <span class="text-sm text-zinc-200"><%= step %></span>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</section>

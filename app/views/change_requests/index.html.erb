@@ -1,0 +1,18 @@
+<% content_for :page_title, "Change Requests" %>
+<section class="app-card p-5">
+  <table class="app-table">
+    <thead><tr><th>Title</th><th>Provider</th><th>Status</th><th>Branch</th><th>Repository</th></tr></thead>
+    <tbody>
+      <% @change_requests.each do |cr| %>
+        <tr>
+          <td><%= link_to cr.title, change_request_path(cr), class: "text-white hover:text-sky-300" %></td>
+          <td><%= cr.provider %></td>
+          <td><span class="status-pill"><%= cr.status %></span></td>
+          <td><%= cr.branch_name %></td>
+          <td><%= cr.repository_connection.full_name.presence || cr.repository_connection.name %></td>
+        </tr>
+      <% end %>
+      <% if @change_requests.empty? %><tr><td colspan="5" class="text-zinc-500">No Change Requests yet.</td></tr><% end %>
+    </tbody>
+  </table>
+</section>

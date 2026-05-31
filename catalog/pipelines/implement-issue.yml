@@ -1,0 +1,65 @@
+---
+key: implement-issue
+name: Implement Issue
+required_context:
+  issue: true
+  repository: true
+graph:
+  nodes:
+  - id: node-1
+    action_key: plan-story
+    label: Plan Story
+    x: 120
+    y: 160
+  - id: node-2
+    action_key: verify-plan
+    label: Verify Plan
+    x: 340
+    y: 160
+  - id: node-3
+    action_key: code
+    label: Code
+    x: 560
+    y: 160
+  - id: node-4
+    action_key: run-tests
+    label: Run Tests
+    x: 780
+    y: 160
+  - id: node-5
+    action_key: review-diff
+    label: Review Diff
+    x: 1000
+    y: 160
+  - id: node-6
+    action_key: open-change-request
+    label: Open Change Request
+    x: 1220
+    y: 160
+  edges:
+  - id: node-1-node-2
+    from: node-1
+    to: node-2
+    condition: success
+  - id: node-2-node-3
+    from: node-2
+    to: node-3
+    condition: approved
+  - id: node-3-node-4
+    from: node-3
+    to: node-4
+    condition: success
+  - id: node-4-node-5
+    from: node-4
+    to: node-5
+    condition: success
+  - id: node-5-node-6
+    from: node-5
+    to: node-6
+    condition: approved
+triggers:
+- manual
+permissions:
+- run_code_actions
+- approve_change_requests
+builtin: true

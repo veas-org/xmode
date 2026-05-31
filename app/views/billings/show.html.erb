@@ -1,0 +1,11 @@
+<% content_for :page_title, "Billing" %>
+<section class="app-card p-6">
+  <p class="app-eyebrow">Workspace plan</p>
+  <h2 class="mt-2 text-3xl font-semibold text-white"><%= @subscription.plan.titleize %></h2>
+  <dl class="mt-6 grid gap-4 md:grid-cols-3">
+    <div><dt class="app-eyebrow">Status</dt><dd class="mt-1 text-white"><%= @subscription.status %></dd></div>
+    <div><dt class="app-eyebrow">Seats</dt><dd class="mt-1 text-white"><%= @subscription.seats %></dd></div>
+    <div><dt class="app-eyebrow">Automation minutes</dt><dd class="mt-1 text-white"><%= @subscription.automation_minutes_used %></dd></div>
+  </dl>
+  <p class="mt-6 text-sm text-zinc-400">Stripe checkout and webhooks are scaffolded at the model/controller boundary; production price IDs are configured later.</p>
+</section>

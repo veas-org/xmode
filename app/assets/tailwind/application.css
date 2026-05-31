@@ -1,0 +1,242 @@
+@import "tailwindcss";
+
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+
+  /* ruby_ui specific */
+  --warning: hsl(38 92% 50%);
+  --warning-foreground: hsl(0 0% 100%);
+  --success: hsl(87 100% 37%);
+  --success-foreground: hsl(0 0% 100%);
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.145 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.145 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.985 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.396 0.141 25.723);
+  --destructive-foreground: oklch(0.637 0.237 25.331);
+  --border: oklch(0.269 0 0);
+  --input: oklch(0.269 0 0);
+  --ring: oklch(0.439 0 0);
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(0.269 0 0);
+  --sidebar-ring: oklch(0.439 0 0);
+
+  /* ruby_ui specific */
+  --warning: hsl(38 92% 50%);
+  --warning-foreground: hsl(0 0% 100%);
+  --success: hsl(84 81% 44%);
+  --success-foreground: hsl(0 0% 100%);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* ruby_ui specific */
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+}
+
+/* Container settings */
+@utility container {
+  margin-inline: auto;
+  padding-inline: 2rem;
+  max-width: 1400px;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@layer components {
+  .app-shell {
+    @apply grid min-h-screen grid-cols-1 bg-zinc-950 text-zinc-100 lg:grid-cols-[260px_minmax(0,1fr)];
+  }
+
+  .app-sidebar {
+    @apply hidden min-h-screen flex-col border-r border-white/10 bg-zinc-950/95 p-4 lg:flex;
+  }
+
+  .app-sidebar-link {
+    @apply block rounded-md px-3 py-2 text-sm font-medium text-zinc-400 transition hover:bg-white/[0.05] hover:text-white;
+  }
+
+  .app-sidebar-link.is-active {
+    @apply bg-sky-400/10 text-sky-200 ring-1 ring-sky-400/20;
+  }
+
+  .app-main {
+    @apply min-w-0;
+  }
+
+  .app-topbar {
+    @apply sticky top-0 z-30 flex items-center justify-between border-b border-white/10 bg-zinc-950/90 px-4 py-4 backdrop-blur md:px-8;
+  }
+
+  .app-topbar h1 {
+    @apply text-xl font-semibold text-white;
+  }
+
+  .app-topbar-actions {
+    @apply flex items-center gap-2;
+  }
+
+  .app-content {
+    @apply mx-auto w-full max-w-7xl px-4 py-6 md:px-8;
+  }
+
+  .app-card {
+    @apply rounded-md border border-white/10 bg-white/[0.035] shadow-2xl shadow-black/10;
+  }
+
+  .app-panel {
+    @apply rounded-md border border-white/10 bg-zinc-900/70;
+  }
+
+  .app-eyebrow {
+    @apply text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500;
+  }
+
+  .app-btn {
+    @apply inline-flex items-center justify-center rounded-md px-3 py-2 text-sm font-medium transition disabled:pointer-events-none disabled:opacity-50;
+  }
+
+  .app-btn-primary {
+    @apply bg-sky-400 text-zinc-950 hover:bg-sky-300;
+  }
+
+  .app-btn-muted {
+    @apply border border-white/10 bg-white/[0.04] text-zinc-200 hover:bg-white/[0.08] hover:text-white;
+  }
+
+  .app-btn-danger {
+    @apply border border-red-400/30 bg-red-500/10 text-red-100 hover:bg-red-500/20;
+  }
+
+  .app-input {
+    @apply w-full rounded-md border border-white/10 bg-zinc-950 px-3 py-2 text-sm text-white outline-none transition placeholder:text-zinc-600 focus:border-sky-400/70 focus:ring-2 focus:ring-sky-400/15;
+  }
+
+  .app-label {
+    @apply mb-1.5 block text-sm font-medium text-zinc-300;
+  }
+
+  .app-table {
+    @apply w-full text-left text-sm;
+  }
+
+  .app-table th {
+    @apply border-b border-white/10 px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-zinc-500;
+  }
+
+  .app-table td {
+    @apply border-b border-white/5 px-3 py-3 text-zinc-300;
+  }
+
+  .status-pill {
+    @apply inline-flex rounded-full border border-white/10 px-2 py-0.5 text-xs text-zinc-300;
+  }
+
+  .graph-canvas {
+    @apply min-h-[520px] rounded-md border border-white/10 bg-[radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.10)_1px,transparent_0)] [background-size:22px_22px];
+  }
+}

@@ -1,0 +1,18 @@
+<%= form_with model: action_definition, url: action_definition.persisted? ? action_path(action_definition) : actions_path, class: "space-y-4" do |form| %>
+  <%= render "shared/form_errors", object: action_definition %>
+  <div class="grid gap-4 md:grid-cols-2">
+    <div><%= form.label :name, class: "app-label" %><%= form.text_field :name, class: "app-input", required: true %></div>
+    <div><%= form.label :key, class: "app-label" %><%= form.text_field :key, class: "app-input", required: true %></div>
+  </div>
+  <div class="grid gap-4 md:grid-cols-3">
+    <div><%= form.label :category, class: "app-label" %><%= form.select :category, ActionDefinition::CATEGORIES, {}, class: "app-input" %></div>
+    <div><%= form.label :provider, class: "app-label" %><%= form.select :provider, ActionDefinition::PROVIDERS, {}, class: "app-input" %></div>
+    <div><%= form.label :timeout_seconds, class: "app-label" %><%= form.number_field :timeout_seconds, class: "app-input" %></div>
+  </div>
+  <div class="grid gap-4 md:grid-cols-2">
+    <div><%= label_tag "action_definition_input_schema_json", "Input schema JSON", class: "app-label" %><%= text_area_tag "action_definition[input_schema_json]", JSON.pretty_generate(action_definition.input_schema.presence || {}), rows: 8, class: "app-input font-mono text-xs" %></div>
+    <div><%= label_tag "action_definition_output_schema_json", "Output schema JSON", class: "app-label" %><%= text_area_tag "action_definition[output_schema_json]", JSON.pretty_generate(action_definition.output_schema.presence || {}), rows: 8, class: "app-input font-mono text-xs" %></div>
+  </div>
+  <div><%= label_tag "action_definition_defaults_json", "Defaults JSON", class: "app-label" %><%= text_area_tag "action_definition[defaults_json]", JSON.pretty_generate(action_definition.defaults.presence || {}), rows: 5, class: "app-input font-mono text-xs" %></div>
+  <%= form.submit class: "app-btn app-btn-primary" %>
+<% end %>

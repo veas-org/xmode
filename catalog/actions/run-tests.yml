@@ -1,0 +1,22 @@
+---
+key: run-tests
+name: Run Tests
+category: verification
+provider: local_shell
+permissions:
+- run_code_actions
+input_schema:
+  type: object
+  additionalProperties: true
+output_schema:
+  type: object
+  additionalProperties: true
+defaults:
+  command: bin/rails test
+runtime_config:
+  shell: true
+timeout_seconds: 1200
+retry_policy: {}
+artifact_policy:
+  capture: true
+builtin: true

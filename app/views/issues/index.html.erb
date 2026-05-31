@@ -1,0 +1,12 @@
+<% content_for :page_title, @view == "my" ? "My Issues" : "Inbox" %>
+<div class="mb-5 flex items-center justify-between">
+  <div class="flex gap-2">
+    <%= link_to "Inbox", issues_path(view: "inbox"), class: "app-btn app-btn-muted" %>
+    <%= link_to "My Issues", issues_path(view: "my"), class: "app-btn app-btn-muted" %>
+    <%= link_to "Active Cycle", issues_path(view: "active_cycle"), class: "app-btn app-btn-muted" %>
+  </div>
+  <%= link_to "New issue", new_issue_path, class: "app-btn app-btn-primary" %>
+</div>
+<section class="app-card p-5">
+  <%= render "table", issues: @issues %>
+</section>

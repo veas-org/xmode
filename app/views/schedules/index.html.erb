@@ -1,0 +1,18 @@
+<% content_for :page_title, "Schedules" %>
+<div class="mb-5 flex justify-end"><%= link_to "New schedule", new_schedule_path, class: "app-btn app-btn-primary" %></div>
+<section class="app-card p-5">
+  <table class="app-table">
+    <thead><tr><th>Pipeline</th><th>Kind</th><th>When</th><th>Status</th></tr></thead>
+    <tbody>
+      <% @schedules.each do |schedule| %>
+        <tr>
+          <td><%= link_to schedule.pipeline_definition.name, schedule_path(schedule), class: "text-white hover:text-sky-300" %></td>
+          <td><%= schedule.kind %></td>
+          <td><%= schedule.run_at || schedule.cron %></td>
+          <td><span class="status-pill"><%= schedule.status %></span></td>
+        </tr>
+      <% end %>
+      <% if @schedules.empty? %><tr><td colspan="4" class="text-zinc-500">No schedules yet.</td></tr><% end %>
+    </tbody>
+  </table>
+</section>

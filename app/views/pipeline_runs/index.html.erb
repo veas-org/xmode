@@ -1,0 +1,17 @@
+<% content_for :page_title, "Pipeline Runs" %>
+<section class="app-card p-5">
+  <table class="app-table">
+    <thead><tr><th>Run</th><th>Status</th><th>Trigger</th><th>Context</th><th>Started</th></tr></thead>
+    <tbody>
+      <% @runs.each do |run| %>
+        <tr>
+          <td><%= link_to run.pipeline_definition&.name || "Run ##{run.id}", pipeline_run_path(run), class: "text-white hover:text-sky-300" %></td>
+          <td><span class="status-pill"><%= run.status %></span></td>
+          <td><%= run.trigger %></td>
+          <td><%= run.issue&.identifier || run.project&.title || run.event&.title || "-" %></td>
+          <td><%= run.started_at ? "#{time_ago_in_words(run.started_at)} ago" : "-" %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</section>

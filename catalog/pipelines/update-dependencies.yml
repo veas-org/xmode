@@ -1,0 +1,37 @@
+---
+key: update-dependencies
+name: Update Dependencies
+required_context:
+  repository: true
+graph:
+  nodes:
+  - id: node-1
+    action_key: update-dependencies
+    label: Update Dependencies
+    x: 120
+    y: 160
+  - id: node-2
+    action_key: run-tests
+    label: Run Tests
+    x: 340
+    y: 160
+  - id: node-3
+    action_key: open-change-request
+    label: Open Change Request
+    x: 560
+    y: 160
+  edges:
+  - id: node-1-node-2
+    from: node-1
+    to: node-2
+    condition: success
+  - id: node-2-node-3
+    from: node-2
+    to: node-3
+    condition: success
+triggers:
+- manual
+- recurring
+permissions:
+- run_code_actions
+builtin: true

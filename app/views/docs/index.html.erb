@@ -1,0 +1,9 @@
+<section class="mx-auto max-w-5xl px-5 py-16">
+  <p class="app-eyebrow">Docs</p>
+  <h1 class="mt-4 text-4xl font-semibold text-white">Planning and implementation docs</h1>
+  <div class="mt-8 grid gap-3">
+    <% @docs.each do |doc| %>
+      <%= link_to doc.basename(".md").to_s.tr("-", " ").titleize, doc_path(doc.basename(".md").to_s), class: "app-card block p-4 text-zinc-200 hover:border-sky-400/40" %>
+    <% end %>
+  </div>
+</section>

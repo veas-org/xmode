@@ -1,0 +1,19 @@
+---
+key: plan-story
+name: Plan Story
+category: planning
+provider: codex
+permissions:
+- view_project
+input_schema:
+  type: object
+  additionalProperties: true
+output_schema:
+  type: object
+  additionalProperties: true
+defaults: {}
+runtime_config: {}
+timeout_seconds: 600
+retry_policy: {}
+artifact_policy: {}
+builtin: true

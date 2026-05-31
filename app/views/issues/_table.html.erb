@@ -1,0 +1,16 @@
+<table class="app-table">
+  <thead><tr><th>Issue</th><th>Status</th><th>Project</th><th>Assignee</th></tr></thead>
+  <tbody>
+    <% issues.each do |issue| %>
+      <tr>
+        <td><%= link_to "#{issue.identifier} #{issue.title}", issue_path(issue), class: "text-white hover:text-sky-300" %></td>
+        <td><span class="status-pill"><%= issue.display_status %></span></td>
+        <td><%= issue.project&.title || "-" %></td>
+        <td><%= issue.assignee&.display_name || "-" %></td>
+      </tr>
+    <% end %>
+    <% if issues.empty? %>
+      <tr><td colspan="4" class="text-zinc-500">No issues yet.</td></tr>
+    <% end %>
+  </tbody>
+</table>

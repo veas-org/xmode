@@ -1,0 +1,31 @@
+class PipelineRun < ApplicationRecord
+  STATUSES = %w[queued running waiting_for_approval completed failed canceled].freeze
+
+  belongs_to :workspace
+  belongs_to :pipeline_definition, optional: true
+  belongs_to :user, optional: true
+  belongs_to :project, optional: true
+  belongs_to :issue, optional: true
+  belongs_to :event, optional: true
+
+  has_many :action_run_steps, dependent: :destroy
+  has_many :run_logs, dependent: :destroy
+  has_many :run_artifacts, dependent: :destroy
+  has_many :approvals, dependent: :destroy
+  has_one :change_request, dependent: :nullify
+
+  before_validation :capture_pipeline_snapshot, on: :create
+
+  validates :status, inclusion: { in: STATUSES }
+  validates :trigger, presence: true
+
+  def append_log(message, level: "info", step: nil)
+    run_logs.create!(message: message, level: level, action_run_step: step)
+  end
+
+  private
+
+  def capture_pipeline_snapshot
+    self.pipeline_snapshot = pipeline_definition&.snapshot || pipeline_snapshot.presence || {}
+  end
+end

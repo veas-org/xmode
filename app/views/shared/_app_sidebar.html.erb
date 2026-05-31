@@ -1,0 +1,30 @@
+<aside class="app-sidebar">
+  <%= link_to app_path, class: "mb-6 flex items-center gap-3 px-2 text-white" do %>
+    <span class="grid h-9 w-9 place-items-center rounded-md bg-sky-400 text-sm font-black text-zinc-950">x</span>
+    <span class="text-lg font-semibold">xmode</span>
+  <% end %>
+
+  <nav class="space-y-1">
+    <% [
+      [ "Inbox", issues_path(view: "inbox") ],
+      [ "My Issues", issues_path(view: "my") ],
+      [ "Projects", projects_path ],
+      [ "Cycles", cycles_path ],
+      [ "Views", issues_path ],
+      [ "Events", events_path ],
+      [ "Pipelines", pipelines_path ],
+      [ "Actions", actions_path ],
+      [ "Schedules", schedules_path ],
+      [ "Change Requests", change_requests_path ],
+      [ "Integrations", integrations_path ],
+      [ "Billing", billing_path ]
+    ].each do |label, path| %>
+      <%= link_to label, path, class: "app-sidebar-link #{'is-active' if request.path == path.to_s.split('?').first}" %>
+    <% end %>
+  </nav>
+
+  <div class="mt-auto rounded-md border border-white/10 bg-white/[0.03] p-3 text-xs text-zinc-400">
+    <p class="font-medium text-zinc-200"><%= current_team&.name || "No team" %></p>
+    <p class="mt-1"><%= current_user&.display_name %></p>
+  </div>
+</aside>

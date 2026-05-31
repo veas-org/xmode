@@ -1,0 +1,6 @@
+<% content_for :page_title, @cycle.name %>
+<div class="mb-5 flex justify-end"><%= link_to "Edit", edit_cycle_path(@cycle), class: "app-btn app-btn-muted" %></div>
+<section class="app-card p-5">
+  <h2 class="mb-4 font-semibold text-white">Cycle Issues</h2>
+  <%= render "issues/table", issues: @issues %>
+</section>
