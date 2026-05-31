@@ -1,2 +1,11 @@
 <% content_for :page_title, "Edit #{@issue.identifier}" %>
-<section class="app-card p-6"><%= render "form", issue: @issue %></section>
+<%= render layout: "shared/side_panel",
+      locals: {
+        title: "Edit #{@issue.identifier}",
+        eyebrow: "Issue details",
+        description: "Update scope, status, priority, and acceptance context without leaving the issue flow.",
+        back_path: issue_path(@issue),
+        wide: true
+      } do %>
+  <%= render "form", issue: @issue %>
+<% end %>

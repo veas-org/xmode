@@ -1,8 +1,14 @@
 <% content_for :page_title, "New workspace" %>
-<div class="mx-auto max-w-lg app-card p-6">
+<%= render layout: "shared/side_panel",
+      locals: {
+        title: "New workspace",
+        eyebrow: "Workspace",
+        description: "Create another organization boundary for teams, projects, pipelines, and integrations.",
+        back_path: app_path
+      } do %>
   <%= form_with model: @workspace, class: "space-y-4" do |form| %>
     <%= render "shared/form_errors", object: @workspace %>
     <div><%= form.label :name, class: "app-label" %><%= form.text_field :name, class: "app-input", required: true %></div>
     <%= form.submit "Create workspace", class: "app-btn app-btn-primary" %>
   <% end %>
-</div>
+<% end %>

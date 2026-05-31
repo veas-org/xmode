@@ -1,2 +1,10 @@
 <% content_for :page_title, "Edit schedule" %>
-<section class="app-card p-6"><%= render "form", schedule: @schedule %></section>
+<%= render layout: "shared/side_panel",
+      locals: {
+        title: "Edit schedule",
+        eyebrow: "Automation timing",
+        description: "Update the trigger, timing, and status for this automation schedule.",
+        back_path: schedule_path(@schedule)
+      } do %>
+  <%= render "form", schedule: @schedule %>
+<% end %>

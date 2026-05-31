@@ -1,30 +1,148 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = ["input", "preview"]
+  static targets = ["button", "editor", "input", "preview"]
+  static values = { placeholder: String }
 
   connect() {
+    this.sourceMode = false
+    this.tiptapReady = false
     this.refresh()
+    this.bootTiptap()
+  }
+
+  disconnect() {
+    this.editor?.destroy()
+  }
+
+  async bootTiptap() {
+    if (!this.hasEditorTarget) return
+
+    try {
+      const [{ Editor }, { default: StarterKit }, { default: Link }, { default: Placeholder }, { marked }, { default: TurndownService }] = await Promise.all([
+        import("@tiptap/core"),
+        import("@tiptap/starter-kit"),
+        import("@tiptap/extension-link"),
+        import("@tiptap/extension-placeholder"),
+        import("marked"),
+        import("turndown")
+      ])
+
+      this.marked = marked
+      this.turndown = new TurndownService({
+        bulletListMarker: "-",
+        codeBlockStyle: "fenced",
+        headingStyle: "atx"
+      })
+
+      this.editor = new Editor({
+        element: this.editorTarget,
+        extensions: [
+          StarterKit,
+          Link.configure({ autolink: true, openOnClick: false }),
+          Placeholder.configure({ placeholder: this.placeholderValue || "" })
+        ],
+        content: this.markdownToHtml(this.inputTarget.value),
+        editorProps: {
+          attributes: {
+            class: "tiptap-content rich-markdown"
+          }
+        },
+        onUpdate: ({ editor }) => {
+          if (this.sourceMode) return
+
+          this.inputTarget.value = this.htmlToMarkdown(editor.getHTML())
+          this.inputTarget.dispatchEvent(new Event("input", { bubbles: true }))
+          this.refresh()
+          this.updateToolbar()
+        },
+        onSelectionUpdate: () => this.updateToolbar(),
+        onFocus: () => this.updateToolbar()
+      })
+
+      this.tiptapReady = true
+      this.editorTarget.classList.remove("hidden")
+      this.inputTarget.classList.add("hidden")
+      this.updateToolbar()
+    } catch {
+      this.tiptapReady = false
+    }
   }
 
   bold() {
+    if (this.runCommand((editor) => editor.chain().focus().toggleBold().run())) return
+
     this.wrapSelection("**", "**", "bold text")
   }
 
   italic() {
+    if (this.runCommand((editor) => editor.chain().focus().toggleItalic().run())) return
+
     this.wrapSelection("_", "_", "italic text")
   }
 
+  heading() {
+    if (this.runCommand((editor) => editor.chain().focus().toggleHeading({ level: 2 }).run())) return
+
+    this.prefixLines("## ")
+  }
+
   list() {
+    if (this.runCommand((editor) => editor.chain().focus().toggleBulletList().run())) return
+
     this.prefixLines("- ")
   }
 
+  orderedList() {
+    if (this.runCommand((editor) => editor.chain().focus().toggleOrderedList().run())) return
+
+    this.numberLines()
+  }
+
   quote() {
+    if (this.runCommand((editor) => editor.chain().focus().toggleBlockquote().run())) return
+
     this.prefixLines("> ")
   }
 
   code() {
+    if (this.runCommand((editor) => editor.chain().focus().toggleCodeBlock().run())) return
+
     this.wrapSelection("```\n", "\n```", "code")
+  }
+
+  link() {
+    if (!this.tiptapReady) {
+      this.wrapSelection("[", "](https://example.com)", "link text")
+      return
+    }
+
+    const previousUrl = this.editor.getAttributes("link").href
+    const url = window.prompt("Link URL", previousUrl || "https://")
+    if (url === null) return
+    if (url === "") {
+      this.editor.chain().focus().extendMarkRange("link").unsetLink().run()
+    } else {
+      this.editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run()
+    }
+  }
+
+  toggleSource() {
+    if (!this.tiptapReady) return
+
+    this.sourceMode = !this.sourceMode
+    if (this.sourceMode) {
+      this.inputTarget.classList.remove("hidden")
+      this.editorTarget.classList.add("hidden")
+      this.inputTarget.focus()
+    } else {
+      this.editor.commands.setContent(this.markdownToHtml(this.inputTarget.value), false)
+      this.inputTarget.classList.add("hidden")
+      this.editorTarget.classList.remove("hidden")
+      this.editor.commands.focus()
+      this.updateToolbar()
+    }
+    this.refresh()
   }
 
   togglePreview() {
@@ -36,6 +154,53 @@ export default class extends Controller {
     if (!this.hasPreviewTarget) return
 
     this.previewTarget.innerHTML = this.renderMarkdown(this.inputTarget.value)
+  }
+
+  runCommand(callback) {
+    if (!this.tiptapReady || this.sourceMode) return false
+
+    callback(this.editor)
+    this.updateToolbar()
+    return true
+  }
+
+  updateToolbar() {
+    if (!this.tiptapReady || !this.hasButtonTarget) return
+
+    this.buttonTargets.forEach((button) => {
+      const format = button.dataset.format
+      const active = this.formatActive(format)
+      button.classList.toggle("is-active", active)
+    })
+  }
+
+  formatActive(format) {
+    switch (format) {
+      case "heading":
+        return this.editor.isActive("heading", { level: 2 })
+      case "bulletList":
+        return this.editor.isActive("bulletList")
+      case "orderedList":
+        return this.editor.isActive("orderedList")
+      case "blockquote":
+        return this.editor.isActive("blockquote")
+      case "codeBlock":
+        return this.editor.isActive("codeBlock")
+      case "link":
+        return this.editor.isActive("link")
+      default:
+        return this.editor.isActive(format)
+    }
+  }
+
+  markdownToHtml(markdown) {
+    if (this.marked) return this.marked.parse(markdown || "")
+
+    return this.renderMarkdown(markdown)
+  }
+
+  htmlToMarkdown(html) {
+    return this.turndown.turndown(html).trim()
   }
 
   wrapSelection(before, after, fallback) {
@@ -65,6 +230,21 @@ export default class extends Controller {
     this.refresh()
   }
 
+  numberLines() {
+    const input = this.inputTarget
+    const start = input.selectionStart
+    const end = input.selectionEnd
+    const selection = input.value.slice(start, end) || "List item"
+    const replacement = selection
+      .split("\n")
+      .map((line, index) => line.match(/^\d+\.\s/) ? line : `${index + 1}. ${line}`)
+      .join("\n")
+
+    input.setRangeText(replacement, start, end, "select")
+    input.focus()
+    this.refresh()
+  }
+
   renderMarkdown(markdown) {
     const blocks = this.escape(markdown).split(/\n{2,}/).map((block) => this.renderBlock(block.trim())).filter(Boolean)
     return blocks.length ? blocks.join("") : "<p></p>"
@@ -79,6 +259,9 @@ export default class extends Controller {
     if (block.split("\n").every((line) => line.startsWith("- "))) {
       return `<ul>${block.split("\n").map((line) => `<li>${this.inline(line.slice(2))}</li>`).join("")}</ul>`
     }
+    if (block.split("\n").every((line) => line.match(/^\d+\.\s/))) {
+      return `<ol>${block.split("\n").map((line) => `<li>${this.inline(line.replace(/^\d+\.\s/, ""))}</li>`).join("")}</ol>`
+    }
     if (block.split("\n").every((line) => line.startsWith("> "))) {
       return `<blockquote>${block.split("\n").map((line) => this.inline(line.slice(2))).join("<br>")}</blockquote>`
     }
@@ -91,6 +274,7 @@ export default class extends Controller {
       .replace(/`([^`]+)`/g, "<code>$1</code>")
       .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
       .replace(/_([^_]+)_/g, "<em>$1</em>")
+      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, "<a href=\"$2\">$1</a>")
   }
 
   escape(value) {

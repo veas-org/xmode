@@ -1,7 +1,7 @@
 <%= form_with model: schedule, class: "space-y-4" do |form| %>
   <%= render "shared/form_errors", object: schedule %>
   <div><%= form.label :pipeline_definition_id, "Pipeline", class: "app-label" %><%= form.collection_select :pipeline_definition_id, current_workspace.pipeline_definitions.order(:name), :id, :name, {}, class: "app-input" %></div>
-  <div class="grid gap-4 md:grid-cols-3">
+  <div class="grid gap-4 sm:grid-cols-2">
     <div><%= form.label :kind, class: "app-label" %><%= form.select :kind, Schedule::KINDS, {}, class: "app-input" %></div>
     <div><%= form.label :run_at, class: "app-label" %><%= form.datetime_field :run_at, class: "app-input" %></div>
     <div><%= form.label :cron, class: "app-label" %><%= form.text_field :cron, class: "app-input", placeholder: "0 9 * * 1" %></div>

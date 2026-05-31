@@ -7,12 +7,12 @@
         label: "Description",
         rows: 10,
         placeholder: "Objective, context, acceptance checks, risks, and links." %>
-  <div class="grid gap-4 md:grid-cols-3">
+  <div class="grid gap-4 sm:grid-cols-2">
     <div><%= form.label :project_id, "Project", class: "app-label" %><%= form.collection_select :project_id, current_workspace.projects.order(:title), :id, :title, { include_blank: true }, class: "app-input" %></div>
     <div><%= form.label :cycle_id, "Cycle", class: "app-label" %><%= form.collection_select :cycle_id, current_workspace.cycles.order(:starts_on), :id, :name, { include_blank: true }, class: "app-input" %></div>
     <div><%= form.label :issue_status_id, "Status", class: "app-label" %><%= form.collection_select :issue_status_id, current_team.issue_statuses.order(:position), :id, :name, {}, class: "app-input" %></div>
   </div>
-  <div class="grid gap-4 md:grid-cols-3">
+  <div class="grid gap-4 sm:grid-cols-3">
     <div><%= form.label :priority, class: "app-label" %><%= form.select :priority, Issue::PRIORITIES, {}, class: "app-input" %></div>
     <div><%= form.label :estimate, class: "app-label" %><%= form.number_field :estimate, class: "app-input" %></div>
     <div><%= form.label :due_on, class: "app-label" %><%= form.date_field :due_on, class: "app-input" %></div>

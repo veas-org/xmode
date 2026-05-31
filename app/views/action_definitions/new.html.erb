@@ -1,2 +1,11 @@
 <% content_for :page_title, "New action" %>
-<section class="app-card p-6"><%= render "form", action_definition: @action_definition %></section>
+<%= render layout: "shared/side_panel",
+      locals: {
+        title: "New action",
+        eyebrow: "Action catalog",
+        description: "Bind a skill to an executable provider step with typed inputs, outputs, and guardrails.",
+        back_path: actions_path,
+        wide: true
+      } do %>
+  <%= render "form", action_definition: @action_definition %>
+<% end %>

@@ -9,7 +9,7 @@
       <%= button_to "Explore demo",
             demo_login_path(workspace: "planet-express"),
             method: :post,
-            form: { class: "inline-block" },
+            form: { class: "inline-block", data: { turbo: false } },
             class: "app-btn app-btn-muted" %>
     </div>
     <p class="mt-4 text-sm text-muted-foreground">
@@ -19,14 +19,14 @@
       <% end %>
     </p>
   </div>
-  <div class="app-card p-4">
-    <div class="rounded-md border border-border bg-background p-4">
-      <div class="flex items-center justify-between border-b border-border pb-3">
-        <span class="text-sm font-medium text-foreground">Open automation loop</span>
-        <span class="status-pill">oss</span>
-      </div>
+  <div class="app-card p-5">
+    <div class="flex items-center justify-between gap-3">
+      <span class="text-sm font-medium text-foreground">Open automation loop</span>
+      <span class="status-pill">oss</span>
+    </div>
+    <div class="mt-4 space-y-1">
       <% [ "Objective", "Plan", "Skill", "Action", "Run", "Change Request" ].each_with_index do |step, index| %>
-        <div class="flex items-center gap-3 border-b border-border py-3 last:border-0">
+        <div class="app-flat-row flex items-center gap-3">
           <span class="grid h-7 w-7 place-items-center rounded-md text-xs font-medium <%= index < 2 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground' %>"><%= index + 1 %></span>
           <span class="text-sm text-foreground"><%= step %></span>
         </div>

@@ -1,5 +1,11 @@
 <% content_for :page_title, "New integration" %>
-<section class="app-card p-6">
+<%= render layout: "shared/side_panel",
+      locals: {
+        title: "New integration",
+        eyebrow: "Repository access",
+        description: "Connect a source provider so pipeline runs can create branches and Change Requests.",
+        back_path: integrations_path
+      } do %>
   <%= form_with model: @integration, url: integrations_path, class: "space-y-4" do |form| %>
     <%= render "shared/form_errors", object: @integration %>
     <div><%= form.label :provider, class: "app-label" %><%= form.select :provider, IntegrationAccount::PROVIDERS, {}, class: "app-input" %></div>
@@ -7,4 +13,4 @@
     <div><%= form.label :token_ciphertext, "Access token", class: "app-label" %><%= form.password_field :token_ciphertext, class: "app-input" %></div>
     <%= form.submit "Save integration", class: "app-btn app-btn-primary" %>
   <% end %>
-</section>
+<% end %>

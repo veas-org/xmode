@@ -161,6 +161,13 @@ module ApplicationHelper
         tag.path(d: "M10 10.5V6a2 2 0 0 0-4 0v8"),
         tag.path(d: "M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2a8 8 0 0 1-8-8v-2a2 2 0 1 1 4 0v2")
       ]
+    when "heading-2"
+      [
+        tag.path(d: "M4 12h8"),
+        tag.path(d: "M4 18V6"),
+        tag.path(d: "M12 18V6"),
+        tag.path(d: "M21 18h-4c0-4 4-3 4-6 0-1.7-1.3-3-3-3-1.5 0-2.5 1-3 2")
+      ]
     when "inbox"
       [
         tag.polyline(points: "22 12 16 12 14 15 10 15 8 12 2 12"),
@@ -186,6 +193,20 @@ module ApplicationHelper
         tag.line(x1: 3, x2: 3.01, y1: 6, y2: 6),
         tag.line(x1: 3, x2: 3.01, y1: 12, y2: 12),
         tag.line(x1: 3, x2: 3.01, y1: 18, y2: 18)
+      ]
+    when "list-ordered"
+      [
+        tag.line(x1: 10, x2: 21, y1: 6, y2: 6),
+        tag.line(x1: 10, x2: 21, y1: 12, y2: 12),
+        tag.line(x1: 10, x2: 21, y1: 18, y2: 18),
+        tag.path(d: "M4 6h1v4"),
+        tag.path(d: "M4 10h2"),
+        tag.path(d: "M6 18H4c0-1 2-2 2-3 0-.5-.5-1-1-1s-1 .5-1 1")
+      ]
+    when "link"
+      [
+        tag.path(d: "M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"),
+        tag.path(d: "M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71")
       ]
     when "log-out"
       [

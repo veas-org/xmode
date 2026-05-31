@@ -1,8 +1,8 @@
 <%= form_with model: cycle, class: "space-y-4" do |form| %>
   <%= render "shared/form_errors", object: cycle %>
   <div><%= form.label :name, class: "app-label" %><%= form.text_field :name, class: "app-input", required: true %></div>
-  <div class="grid gap-4 md:grid-cols-4">
-    <div><%= form.label :status, class: "app-label" %><%= form.select :status, Cycle::STATUSES, {}, class: "app-input" %></div>
+  <div class="grid gap-4 sm:grid-cols-2">
+    <div><%= form.label :status, class: "app-label" %><%= form.select :status, ::Cycle::STATUSES, {}, class: "app-input" %></div>
     <div><%= form.label :team_id, "Team", class: "app-label" %><%= form.collection_select :team_id, current_workspace.teams.order(:name), :id, :name, {}, class: "app-input" %></div>
     <div><%= form.label :starts_on, class: "app-label" %><%= form.date_field :starts_on, class: "app-input" %></div>
     <div><%= form.label :ends_on, class: "app-label" %><%= form.date_field :ends_on, class: "app-input" %></div>

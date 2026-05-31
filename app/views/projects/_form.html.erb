@@ -7,7 +7,7 @@
         label: "Description",
         rows: 8,
         placeholder: "Mission, repositories, operating constraints, and automation policy." %>
-  <div class="grid gap-4 md:grid-cols-3">
+  <div class="grid gap-4 sm:grid-cols-2">
     <div><%= form.label :status, class: "app-label" %><%= form.select :status, Project::STATUSES, {}, class: "app-input" %></div>
     <div><%= form.label :team_id, "Team", class: "app-label" %><%= form.collection_select :team_id, current_workspace.teams.order(:name), :id, :name, {}, class: "app-input" %></div>
     <div><%= form.label :repository_url, class: "app-label" %><%= form.url_field :repository_url, class: "app-input" %></div>

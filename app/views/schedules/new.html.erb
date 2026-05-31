@@ -1,2 +1,10 @@
 <% content_for :page_title, "New schedule" %>
-<section class="app-card p-6"><%= render "form", schedule: @schedule %></section>
+<%= render layout: "shared/side_panel",
+      locals: {
+        title: "New schedule",
+        eyebrow: "Automation timing",
+        description: "Attach a pipeline to a one-off or recurring trigger.",
+        back_path: schedules_path
+      } do %>
+  <%= render "form", schedule: @schedule %>
+<% end %>

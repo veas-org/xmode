@@ -1,6 +1,6 @@
 <%= form_with model: pipeline_definition, url: pipeline_definition.persisted? ? pipeline_path(pipeline_definition) : pipelines_path, class: "space-y-5" do |form| %>
   <%= render "shared/form_errors", object: pipeline_definition %>
-  <div class="grid gap-4 md:grid-cols-2">
+  <div class="grid gap-4 sm:grid-cols-2">
     <div><%= form.label :name, class: "app-label" %><%= form.text_field :name, class: "app-input", required: true %></div>
     <div><%= form.label :key, class: "app-label" %><%= form.text_field :key, class: "app-input", required: true %></div>
   </div>

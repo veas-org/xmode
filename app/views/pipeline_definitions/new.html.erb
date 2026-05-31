@@ -1,2 +1,11 @@
 <% content_for :page_title, "New pipeline" %>
-<section class="app-card p-6"><%= render "form", pipeline_definition: @pipeline_definition %></section>
+<%= render layout: "shared/side_panel",
+      locals: {
+        title: "New pipeline",
+        eyebrow: "Pipeline catalog",
+        description: "Compose actions into a reusable automation wrapper with context, graph, and run contracts.",
+        back_path: pipelines_path,
+        wide: true
+      } do %>
+  <%= render "form", pipeline_definition: @pipeline_definition %>
+<% end %>

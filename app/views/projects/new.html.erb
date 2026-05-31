@@ -1,2 +1,11 @@
 <% content_for :page_title, "New project" %>
-<section class="app-card p-6"><%= render "form", project: @project %></section>
+<%= render layout: "shared/side_panel",
+      locals: {
+        title: "New project",
+        eyebrow: "Project setup",
+        description: "Define the work boundary, repository context, and automation policy for a team.",
+        back_path: projects_path,
+        wide: true
+      } do %>
+  <%= render "form", project: @project %>
+<% end %>

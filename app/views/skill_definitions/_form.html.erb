@@ -1,6 +1,6 @@
 <%= form_with model: skill_definition, url: skill_definition.persisted? ? skill_path(skill_definition) : skills_path, class: "space-y-4" do |form| %>
   <%= render "shared/form_errors", object: skill_definition %>
-  <div class="grid gap-4 md:grid-cols-2">
+  <div class="grid gap-4 sm:grid-cols-2">
     <div><%= form.label :name, class: "app-label" %><%= form.text_field :name, class: "app-input", required: true %></div>
     <div><%= form.label :key, class: "app-label" %><%= form.text_field :key, class: "app-input", required: true %></div>
   </div>
@@ -17,7 +17,7 @@
         label: "Instructions",
         rows: 8,
         placeholder: "Objective handling, planning behavior, guardrails, and output rules." %>
-  <div class="grid gap-4 md:grid-cols-2">
+  <div class="grid gap-4 sm:grid-cols-2">
     <%= render "shared/markdown_editor", form: form, field: :objective_template, label: "Objective template", rows: 5 %>
     <%= render "shared/markdown_editor", form: form, field: :plan_template, label: "Plan template", rows: 5 %>
   </div>
@@ -25,7 +25,7 @@
     <%= label_tag "skill_definition_best_practices_text", "Best practices", class: "app-label" %>
     <%= text_area_tag "skill_definition[best_practices_text]", skill_definition.best_practices.to_a.join("\n"), rows: 5, class: "app-textarea" %>
   </div>
-  <div class="grid gap-4 md:grid-cols-2">
+  <div class="grid gap-4 sm:grid-cols-2">
     <div><%= label_tag "skill_definition_input_schema_json", "Input schema JSON", class: "app-label" %><%= text_area_tag "skill_definition[input_schema_json]", JSON.pretty_generate(skill_definition.input_schema.presence || {}), rows: 8, class: "app-textarea font-mono text-xs" %></div>
     <div><%= label_tag "skill_definition_output_schema_json", "Output schema JSON", class: "app-label" %><%= text_area_tag "skill_definition[output_schema_json]", JSON.pretty_generate(skill_definition.output_schema.presence || {}), rows: 8, class: "app-textarea font-mono text-xs" %></div>
   </div>

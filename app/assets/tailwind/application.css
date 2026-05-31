@@ -336,6 +336,81 @@
     @apply mx-auto w-full max-w-[1440px] px-4 py-5 md:px-6 md:py-6;
   }
 
+  .app-side-panel-page {
+    @apply grid min-h-[calc(100vh-6rem)] gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(460px,620px)];
+  }
+
+  .app-side-panel-page.is-wide {
+    @apply lg:grid-cols-1;
+  }
+
+  .app-side-panel-context {
+    @apply hidden min-w-0 py-8 pr-4 lg:block;
+  }
+
+  .app-side-panel-page.is-wide .app-side-panel-context {
+    @apply hidden;
+  }
+
+  @media (min-width: 96rem) {
+    .app-side-panel-page.is-wide {
+      grid-template-columns: minmax(280px, 0.7fr) minmax(620px, 820px);
+    }
+
+    .app-side-panel-page.is-wide .app-side-panel-context {
+      display: block;
+    }
+  }
+
+  .app-side-panel-context h2 {
+    @apply mt-3 max-w-xl text-2xl font-semibold tracking-tight text-foreground;
+  }
+
+  .app-side-panel-context p:not(.app-eyebrow) {
+    @apply mt-3 max-w-lg text-sm leading-6 text-muted-foreground;
+  }
+
+  .app-side-panel {
+    @apply flex min-h-0 flex-col overflow-hidden rounded-lg bg-card text-card-foreground shadow-sm;
+    backdrop-filter: blur(18px);
+    background:
+      radial-gradient(circle at 1px 1px, rgba(125, 211, 252, 0.04) 1px, transparent 0) 0 0 / 44px 44px,
+      radial-gradient(circle at 12% 0%, rgba(56, 189, 248, 0.08), transparent 18rem),
+      linear-gradient(180deg, rgba(18, 23, 33, 0.78), rgba(11, 15, 23, 0.86));
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.045), 0 20px 56px rgba(0, 0, 0, 0.18);
+    max-height: calc(100vh - 6rem);
+    position: sticky;
+    top: 4.5rem;
+  }
+
+  .app-side-panel-wide {
+    @apply w-full justify-self-end;
+    max-width: 820px;
+  }
+
+  .app-side-panel-header {
+    @apply flex items-start justify-between gap-4 px-5 py-4;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.014));
+    box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.035);
+  }
+
+  .app-side-panel-header h2 {
+    @apply truncate text-base font-semibold text-foreground;
+  }
+
+  .app-side-panel-header p:not(.app-eyebrow) {
+    @apply mt-1 max-w-2xl text-sm leading-6 text-muted-foreground;
+  }
+
+  .app-side-panel-body {
+    @apply min-h-0 flex-1 overflow-y-auto p-5;
+    scrollbar-width: thin;
+  }
+
+  .app-side-panel .graph-canvas {
+    min-height: 420px;
+  }
+
   .app-card {
     @apply rounded-lg bg-card text-card-foreground shadow-sm;
     background: rgba(20, 24, 34, 0.78);
@@ -397,6 +472,27 @@
 
   .markdown-tool-btn {
     @apply grid h-7 w-7 place-items-center rounded-[5px] text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground;
+  }
+
+  .markdown-tool-btn.is-active {
+    @apply bg-muted text-foreground;
+  }
+
+  .tiptap-surface {
+    @apply min-h-40 rounded-md bg-background/70 px-3 py-2.5 text-sm leading-6 text-foreground shadow-sm outline-none;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.035);
+  }
+
+  .tiptap-content {
+    @apply min-h-36 outline-none;
+  }
+
+  .tiptap-content p.is-editor-empty:first-child::before {
+    color: var(--muted-foreground);
+    content: attr(data-placeholder);
+    float: left;
+    height: 0;
+    pointer-events: none;
   }
 
   .markdown-preview {
@@ -491,8 +587,8 @@
   }
 
   .operating-map-step {
-    @apply rounded-md bg-muted/30 p-3.5;
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.035);
+    @apply rounded-md bg-transparent p-3.5;
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.026), transparent 82%);
   }
 
   .operating-map-index {

@@ -1,2 +1,11 @@
 <% content_for :page_title, "Edit #{@action.name}" %>
-<section class="app-card p-6"><%= render "form", action_definition: @action_definition %></section>
+<%= render layout: "shared/side_panel",
+      locals: {
+        title: "Edit #{@action.name}",
+        eyebrow: "Action catalog",
+        description: "Update provider behavior, objective handling, schemas, and best practices.",
+        back_path: action_path(@action),
+        wide: true
+      } do %>
+  <%= render "form", action_definition: @action_definition %>
+<% end %>

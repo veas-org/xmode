@@ -1,2 +1,10 @@
 <% content_for :page_title, "New cycle" %>
-<section class="app-card p-6"><%= render "form", cycle: @cycle %></section>
+<%= render layout: "shared/side_panel",
+      locals: {
+        title: "New cycle",
+        eyebrow: "Cycle planning",
+        description: "Set the focused time window for team work.",
+        back_path: cycles_path
+      } do %>
+  <%= render "form", cycle: @cycle %>
+<% end %>
