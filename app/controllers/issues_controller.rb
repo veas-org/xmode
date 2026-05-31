@@ -1,5 +1,6 @@
 class IssuesController < AuthenticatedController
   before_action :set_issue, only: %i[show edit update]
+  before_action :set_event_context, only: %i[new create]
 
   def index
     @view = params[:view].presence || "inbox"
@@ -21,12 +22,14 @@ class IssuesController < AuthenticatedController
 
   def new
     @issue = current_workspace.issues.new(team: current_team, project_id: params[:project_id])
+    apply_event_defaults(@issue) if @event_context
   end
 
   def create
     @issue = current_workspace.issues.new(issue_params)
     @issue.team ||= current_team
     if @issue.save
+      link_event_to_issue(@issue) if @event_context
       redirect_to @issue, notice: "Issue created."
     else
       render :new, status: :unprocessable_entity
@@ -48,6 +51,38 @@ class IssuesController < AuthenticatedController
 
   def set_issue
     @issue = current_workspace.issues.find(params[:id])
+  end
+
+  def set_event_context
+    event_id = params[:event_id].presence || params.dig(:issue, :event_id).presence
+    @event_context = current_workspace.events.find_by(id: event_id) if event_id
+  end
+
+  def apply_event_defaults(issue)
+    issue.project ||= @event_context.project
+    issue.title = @event_context.title if issue.title.blank?
+    issue.priority = event_priority(@event_context)
+    issue.description = event_issue_description(@event_context) if issue.description.blank?
+  end
+
+  def link_event_to_issue(issue)
+    @event_context.update!(issue: issue, status: "linked")
+  end
+
+  def event_priority(event)
+    event.severity.in?(%w[critical error]) ? "urgent" : "medium"
+  end
+
+  def event_issue_description(event)
+    <<~MARKDOWN
+      ## Event source
+      #{event.source} `#{event.event_type}` event #{event.id}
+
+      ## Payload
+      ```json
+      #{JSON.pretty_generate(event.payload)}
+      ```
+    MARKDOWN
   end
 
   def issue_params

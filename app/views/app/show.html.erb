@@ -114,15 +114,16 @@
       <section class="linear-surface">
         <div class="linear-toolbar">
           <div>
-            <p class="app-eyebrow">Planet Express</p>
-            <h2 class="linear-title mt-1">Fake agent</h2>
+            <p class="app-eyebrow">Planet Express demo</p>
+            <h2 class="linear-title mt-1">Simulated agent run</h2>
           </div>
         </div>
         <%= form_with url: run_pipeline_path(@demo_agent_pipeline), method: :post, class: "space-y-3 p-4" do %>
+          <p class="text-sm leading-6 text-muted-foreground">Creates a real demo run with planning, logs, artifacts, and a Change Request trail.</p>
           <div>
             <%= label_tag "input_context_objective", "Objective", class: "app-label" %>
             <%= text_field_tag "input_context[objective]",
-                  "Implement automatic retry handling for failed moon deliveries",
+                  "Implement retry handling for failed delivery webhooks",
                   id: "input_context_objective",
                   class: "app-input",
                   required: true %>
@@ -133,7 +134,7 @@
                   options_from_collection_for_select(@demo_agent_projects || [], :id, :title, (@demo_agent_projects || []).first&.id),
                   class: "app-input" %>
           </div>
-          <%= submit_tag "Run fake agent", class: "app-btn app-btn-primary w-full" %>
+          <%= submit_tag "Run demo agent", class: "app-btn app-btn-primary w-full" %>
         <% end %>
       </section>
     <% end %>

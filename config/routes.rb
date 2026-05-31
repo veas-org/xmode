@@ -25,9 +25,7 @@ Rails.application.routes.draw do
   resources :cycles, except: :destroy
   resources :views, controller: :saved_views, only: %i[index show]
   resources :issues, except: :destroy
-  resources :events, only: %i[index show] do
-    member { post :create_issue }
-  end
+  resources :events, only: %i[index show]
   resources :skills, controller: :skill_definitions, except: :destroy do
     collection do
       post :import

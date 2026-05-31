@@ -1,5 +1,5 @@
 <% content_for :page_title, @project.title %>
-<div class="mb-5 flex items-center justify-between">
+<div class="app-page-actions">
   <div>
     <p class="app-eyebrow"><%= @project.key %> · <%= @project.status %></p>
     <div class="rich-markdown mt-2 max-w-3xl">
@@ -11,7 +11,7 @@
     <%= link_to "New issue", new_issue_path(project_id: @project.id), class: "app-btn app-btn-primary" %>
   </div>
 </div>
-<section class="app-card p-5">
+<section class="linear-surface p-5">
   <h2 class="mb-4 font-semibold text-foreground">Issues</h2>
   <%= render "issues/table", issues: @issues %>
 </section>

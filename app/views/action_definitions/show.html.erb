@@ -3,7 +3,7 @@
   <%= link_to "Edit", edit_action_path(@action), class: "app-btn app-btn-muted" %>
   <%= link_to "Export YAML", export_action_path(@action), class: "app-btn app-btn-muted" %>
 </div>
-<section class="app-card p-5">
+<section class="linear-surface p-5">
   <dl class="grid gap-4 md:grid-cols-3">
     <div><dt class="app-eyebrow">Key</dt><dd class="mt-1 text-foreground"><%= @action.key %></dd></div>
     <div><dt class="app-eyebrow">Category</dt><dd class="mt-1 text-foreground"><%= @action.category %></dd></div>
@@ -15,13 +15,13 @@
   <div class="mt-5 grid gap-4 md:grid-cols-2">
     <div>
       <p class="app-eyebrow">Objective template</p>
-      <div class="rich-markdown mt-2 rounded-md bg-background/70 p-3">
+      <div class="rich-markdown mt-2">
         <%= render_markdown(@action.objective_template, empty: "No objective template.") %>
       </div>
     </div>
     <div>
       <p class="app-eyebrow">Plan template</p>
-      <div class="rich-markdown mt-2 rounded-md bg-background/70 p-3">
+      <div class="rich-markdown mt-2">
         <%= render_markdown(@action.plan_template.presence || @action.skill_definition&.plan_template, empty: "No plan template.") %>
       </div>
     </div>
@@ -29,7 +29,7 @@
   <% if @action.execution_guidance.present? %>
     <div class="mt-5">
       <p class="app-eyebrow">Execution guidance</p>
-      <div class="rich-markdown mt-2 rounded-md bg-background/70 p-3">
+      <div class="rich-markdown mt-2">
         <%= render_markdown(@action.execution_guidance) %>
       </div>
     </div>
@@ -39,7 +39,7 @@
       <p class="app-eyebrow">Best practices</p>
       <ul class="mt-2 space-y-2 text-sm text-muted-foreground">
         <% @action.best_practices.each do |practice| %>
-          <li class="rounded-md border border-border px-3 py-2"><%= practice %></li>
+          <li class="app-flat-row"><%= practice %></li>
         <% end %>
       </ul>
     </div>

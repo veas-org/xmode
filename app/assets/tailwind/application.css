@@ -443,6 +443,22 @@
     @apply grid h-8 w-8 place-items-center rounded-md bg-muted/70 text-muted-foreground transition-colors hover:bg-accent/80 hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50;
   }
 
+  .app-disclosure {
+    @apply rounded-md bg-muted/35 px-3 py-2 text-sm text-muted-foreground;
+  }
+
+  .app-disclosure[open] {
+    @apply bg-muted/50;
+  }
+
+  .app-disclosure summary {
+    @apply cursor-pointer list-none font-medium text-muted-foreground hover:text-foreground;
+  }
+
+  .app-disclosure summary::-webkit-details-marker {
+    display: none;
+  }
+
   .app-btn-danger {
     @apply border border-destructive/30 bg-destructive/10 text-destructive-foreground hover:bg-destructive/20;
   }

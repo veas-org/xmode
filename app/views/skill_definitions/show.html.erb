@@ -3,7 +3,7 @@
   <%= link_to "Edit", edit_skill_path(@skill), class: "app-btn app-btn-muted" %>
   <%= link_to "Export YAML", export_skill_path(@skill), class: "app-btn app-btn-muted" %>
 </div>
-<section class="app-card p-5">
+<section class="linear-surface p-5">
   <dl class="grid gap-4 md:grid-cols-3">
     <div><dt class="app-eyebrow">Key</dt><dd class="mt-1 text-foreground"><%= @skill.key %></dd></div>
     <div><dt class="app-eyebrow">Category</dt><dd class="mt-1 text-foreground"><%= @skill.category %></dd></div>
@@ -15,13 +15,13 @@
   <div class="mt-5 grid gap-4 md:grid-cols-2">
     <div>
       <p class="app-eyebrow">Instructions</p>
-      <div class="rich-markdown mt-2 rounded-md bg-background/70 p-3">
+      <div class="rich-markdown mt-2">
         <%= render_markdown(@skill.instructions, empty: "No instructions.") %>
       </div>
     </div>
     <div>
       <p class="app-eyebrow">Plan fallback</p>
-      <div class="rich-markdown mt-2 rounded-md bg-background/70 p-3">
+      <div class="rich-markdown mt-2">
         <%= render_markdown(@skill.plan_template, empty: "No plan template.") %>
       </div>
     </div>
@@ -31,14 +31,14 @@
       <p class="app-eyebrow">Best practices</p>
       <ul class="mt-2 space-y-2 text-sm text-muted-foreground">
         <% @skill.best_practices.each do |practice| %>
-          <li class="rounded-md border border-border px-3 py-2"><%= practice %></li>
+          <li class="app-flat-row"><%= practice %></li>
         <% end %>
       </ul>
     </div>
   <% end %>
 </section>
 
-<section class="app-card mt-5 p-5">
+<section class="linear-surface mt-5 p-5">
   <h2 class="mb-4 font-semibold text-foreground">Actions using this skill</h2>
   <table class="app-table">
     <thead><tr><th>Action</th><th>Provider</th><th>Objective</th></tr></thead>

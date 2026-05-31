@@ -107,14 +107,14 @@ module Demo
         "summary" => "Demo agent implemented #{issue_name}.",
         "status" => "completed",
         "branch" => branch_name,
-        "changed_files" => fake_changed_files,
-        "changed_files_count" => fake_changed_files.size
+        "changed_files" => demo_changed_files,
+        "changed_files_count" => demo_changed_files.size
       }
     end
 
     def verification_output
       {
-        "summary" => "Fake verification passed for #{project_name}.",
+        "summary" => "Demo verification passed for #{project_name}.",
         "status" => "completed",
         "checks" => [
           "RoutePolicyTest#test_retry_window",
@@ -127,16 +127,16 @@ module Demo
 
     def change_request_output
       {
-        "summary" => "Fake Change Request prepared for #{issue_name}.",
+        "summary" => "Demo Change Request prepared for #{issue_name}.",
         "status" => "completed",
         "branch" => branch_name,
-        "changed_files_count" => fake_changed_files.size
+        "changed_files_count" => demo_changed_files.size
       }
     end
 
     def maintenance_output
       {
-        "summary" => "Fake dependency update completed for #{project_name}.",
+        "summary" => "Demo dependency update completed for #{project_name}.",
         "status" => "completed",
         "changed_files" => [ "Gemfile.lock", "package-lock.json" ],
         "changed_files_count" => 2
@@ -151,7 +151,7 @@ module Demo
       }
     end
 
-    def fake_changed_files
+    def demo_changed_files
       [
         "app/services/planet_express/delivery_retry_policy.rb",
         "app/jobs/planet_express/route_exception_job.rb",
@@ -161,7 +161,7 @@ module Demo
 
     def branch_name
       issue_part = @run.issue&.identifier&.downcase || "demo-run-#{@run.id}"
-      "xmode/#{issue_part}-fake-agent"
+      "xmode/#{issue_part}-demo-agent"
     end
 
     def write_artifacts(output)
@@ -188,13 +188,13 @@ module Demo
       write_artifact("agent-report.md", report, "text/markdown")
 
       if action_key == "code"
-        write_artifact("fake-diff.patch", fake_diff, "text/x-patch")
+        write_artifact("demo-diff.patch", demo_diff, "text/x-patch")
       elsif action_key.in?(%w[run-tests security-scan])
-        write_artifact("fake-ci.log", "3 checks passed in 4.2s\n", "text/plain")
+        write_artifact("demo-ci.log", "3 checks passed in 4.2s\n", "text/plain")
       end
     end
 
-    def fake_diff
+    def demo_diff
       <<~PATCH
         diff --git a/app/services/planet_express/delivery_retry_policy.rb b/app/services/planet_express/delivery_retry_policy.rb
         new file mode 100644

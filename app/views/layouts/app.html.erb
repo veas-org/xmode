@@ -23,13 +23,14 @@
             </h1>
           </div>
           <div class="app-topbar-actions">
-            <div class="linear-command app-topbar-command hidden md:flex">
+            <%= form_with url: issues_path, method: :get, class: "linear-command app-topbar-command hidden md:flex" do %>
+              <%= hidden_field_tag :view, "inbox" %>
               <span class="flex min-w-0 items-center gap-2">
                 <%= lucide_icon("search", class_name: "app-icon") %>
-                <span class="truncate">Search issues, projects, runs...</span>
+                <%= search_field_tag :q, params[:q], placeholder: "Search issues...", class: "inbox-search-input" %>
               </span>
-              <span class="linear-kbd">Cmd K</span>
-            </div>
+              <span class="linear-kbd">Enter</span>
+            <% end %>
             <%= link_to new_issue_path, class: "app-btn app-btn-primary hidden sm:inline-flex" do %>
               <%= lucide_icon("plus", class_name: "app-icon") %>
               <span>Issue</span>

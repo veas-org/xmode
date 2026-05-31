@@ -6,10 +6,13 @@
     <p class="mt-1 max-w-2xl text-sm text-muted-foreground">Executable steps used by pipelines. Actions bind a skill to a provider, permissions, objective handling, inputs, outputs, and evidence rules.</p>
   </div>
   <div class="flex flex-wrap items-center gap-2">
-    <%= form_with url: import_actions_path, method: :post, class: "flex min-w-0 flex-wrap gap-2" do %>
-      <%= text_area_tag :catalog_yaml, nil, rows: 1, placeholder: "Paste action YAML", class: "app-input w-64 max-w-full" %>
-      <%= submit_tag "Import", class: "app-btn app-btn-muted" %>
-    <% end %>
+    <details class="app-disclosure">
+      <summary>Import YAML</summary>
+      <%= form_with url: import_actions_path, method: :post, class: "mt-3 flex min-w-0 flex-wrap gap-2" do %>
+        <%= text_area_tag :catalog_yaml, nil, rows: 2, placeholder: "Paste action YAML", class: "app-textarea w-64 max-w-full" %>
+        <%= submit_tag "Import", class: "app-btn app-btn-muted" %>
+      <% end %>
+    </details>
     <%= link_to new_action_path, class: "app-btn app-btn-primary" do %>
       <%= lucide_icon("plus", class_name: "app-icon") %>
       <span>Action</span>

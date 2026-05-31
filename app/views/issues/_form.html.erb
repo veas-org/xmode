@@ -18,5 +18,8 @@
     <div><%= form.label :due_on, class: "app-label" %><%= form.date_field :due_on, class: "app-input" %></div>
   </div>
   <%= form.hidden_field :team_id, value: issue.team_id || current_team&.id %>
+  <% if defined?(@event_context) && @event_context.present? %>
+    <%= hidden_field_tag :event_id, @event_context.id %>
+  <% end %>
   <%= form.submit class: "app-btn app-btn-primary" %>
 <% end %>

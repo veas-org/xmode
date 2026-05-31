@@ -146,6 +146,7 @@ module Demo
         seed_workspace!
         seed_default_members!
         WorkspaceDefaults.seed!(workspace)
+        cleanup_demo_interactions!
         seed_projects!
         seed_integrations!
         seed_billing!
@@ -211,6 +212,20 @@ module Demo
           project.save!
         end
       end
+    end
+
+    def cleanup_demo_interactions!
+      demo_issues = workspace.issues.where(
+        "description LIKE :current_marker OR description LIKE :legacy_marker",
+        current_marker: "%## Demo source%",
+        legacy_marker: "%Planet Express%agent%demo%"
+      )
+      demo_runs = workspace.pipeline_runs.where(trigger: "demo_agent")
+
+      workspace.change_requests.where(issue_id: demo_issues.select(:id)).destroy_all
+      workspace.change_requests.where(pipeline_run_id: demo_runs.select(:id)).destroy_all
+      demo_runs.destroy_all
+      demo_issues.destroy_all
     end
 
     def seed_integrations!
