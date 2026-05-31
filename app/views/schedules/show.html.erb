@@ -1,10 +1,27 @@
 <% content_for :page_title, "Schedule ##{@schedule.id}" %>
-<section class="app-card p-5">
-  <dl class="grid gap-4 md:grid-cols-4">
-    <div><dt class="app-eyebrow">Pipeline</dt><dd class="mt-1 text-foreground"><%= @schedule.pipeline_definition.name %></dd></div>
-    <div><dt class="app-eyebrow">Kind</dt><dd class="mt-1 text-foreground"><%= @schedule.kind %></dd></div>
-    <div><dt class="app-eyebrow">When</dt><dd class="mt-1 text-foreground"><%= @schedule.run_at || @schedule.cron %></dd></div>
-    <div><dt class="app-eyebrow">Status</dt><dd class="mt-1 text-foreground"><%= @schedule.status %></dd></div>
+
+<section class="linear-surface p-5">
+  <div class="flex flex-wrap items-start justify-between gap-3">
+    <div>
+      <p class="app-eyebrow"><%= @schedule.kind %> schedule</p>
+      <h2 class="mt-1 text-xl font-semibold text-foreground"><%= @schedule.pipeline_definition.name %></h2>
+    </div>
+    <span class="status-pill"><%= @schedule.status %></span>
+  </div>
+  <dl class="mt-5 grid gap-2 text-sm md:grid-cols-2">
+    <div class="inbox-property"><dt>Pipeline</dt><dd><strong><%= @schedule.pipeline_definition.name %></strong></dd></div>
+    <div class="inbox-property"><dt>Target</dt><dd><strong><%= @schedule.schedulable&.try(:title) || @schedule.schedulable&.try(:name) || "Workspace" %></strong></dd></div>
+    <div class="inbox-property"><dt>When</dt><dd><strong><%= @schedule.run_at&.strftime("%b %-d, %Y %-I:%M %p") || @schedule.cron %></strong></dd></div>
+    <div class="inbox-property"><dt>Status</dt><dd><strong><%= @schedule.status %></strong></dd></div>
   </dl>
-  <%= link_to "Edit", edit_schedule_path(@schedule), class: "app-btn app-btn-muted mt-5" %>
+  <div class="mt-5 flex flex-wrap gap-2">
+    <%= link_to edit_schedule_path(@schedule), class: "app-btn app-btn-muted" do %>
+      <%= lucide_icon("pencil", class_name: "app-icon") %>
+      <span>Edit</span>
+    <% end %>
+    <%= button_to run_pipeline_path(@schedule.pipeline_definition), method: :post, class: "app-btn app-btn-primary" do %>
+      <%= lucide_icon("play", class_name: "app-icon") %>
+      <span>Run now</span>
+    <% end %>
+  </div>
 </section>

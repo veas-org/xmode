@@ -1,18 +1,38 @@
 <% content_for :page_title, "Change Requests" %>
-<section class="app-card p-5">
-  <table class="app-table">
-    <thead><tr><th>Title</th><th>Provider</th><th>Status</th><th>Branch</th><th>Repository</th></tr></thead>
-    <tbody>
-      <% @change_requests.each do |cr| %>
-        <tr>
-          <td><%= link_to cr.title, change_request_path(cr), class: "text-foreground hover:text-foreground" %></td>
-          <td><%= cr.provider %></td>
-          <td><span class="status-pill"><%= cr.status %></span></td>
-          <td><%= cr.branch_name %></td>
-          <td><%= cr.repository_connection.full_name.presence || cr.repository_connection.name %></td>
-        </tr>
+
+<div class="app-page-actions">
+  <div>
+    <p class="app-eyebrow">Review boundary</p>
+    <p class="mt-1 max-w-2xl text-sm text-muted-foreground">Code-changing automation ends here: a new branch, provider-specific PR/MR record, check evidence, and links back to issue and run context.</p>
+  </div>
+  <span class="status-pill"><%= pluralize(@change_requests.count, "request") %></span>
+</div>
+
+<section class="linear-surface">
+  <div class="linear-toolbar">
+    <div class="flex min-w-0 items-center gap-2">
+      <%= lucide_icon("git-pull-request", class_name: "app-icon text-muted-foreground") %>
+      <h2 class="linear-title">Change Requests</h2>
+      <span class="linear-count"><%= @change_requests.size %></span>
+    </div>
+  </div>
+  <div class="linear-list">
+    <% @change_requests.each do |cr| %>
+      <%= link_to change_request_path(cr), class: "linear-row" do %>
+        <span class="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-muted/45 text-muted-foreground">
+          <%= lucide_icon("git-branch", class_name: "app-icon") %>
+        </span>
+        <div class="linear-row-main">
+          <p class="linear-row-title"><%= cr.title %></p>
+          <div class="linear-row-meta">
+            <span><%= cr.provider %></span>
+            <span><%= cr.repository_connection.full_name.presence || cr.repository_connection.name %></span>
+            <span><%= cr.branch_name %></span>
+          </div>
+        </div>
+        <span class="status-pill"><%= cr.status %></span>
       <% end %>
-      <% if @change_requests.empty? %><tr><td colspan="5" class="text-muted-foreground">No Change Requests yet.</td></tr><% end %>
-    </tbody>
-  </table>
+    <% end %>
+    <% if @change_requests.empty? %><p class="linear-empty">No Change Requests yet.</p><% end %>
+  </div>
 </section>

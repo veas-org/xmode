@@ -1,19 +1,68 @@
 <% content_for :page_title, @pipeline.name %>
-<div class="mb-5 flex flex-wrap gap-2">
-  <%= link_to "Edit graph", edit_pipeline_path(@pipeline), class: "app-btn app-btn-muted" %>
-  <%= link_to "Export YAML", export_pipeline_path(@pipeline), class: "app-btn app-btn-muted" %>
-  <%= link_to "Schedule", new_schedule_path(pipeline_definition_id: @pipeline.id), class: "app-btn app-btn-muted" %>
-  <%= button_to "Run pipeline", run_pipeline_path(@pipeline), method: :post, class: "app-btn app-btn-primary" %>
-</div>
-<section class="app-card p-5">
-  <h2 class="font-semibold text-foreground">Graph</h2>
-  <div class="graph-canvas relative mt-4 overflow-auto p-4">
-    <% @pipeline.graph.fetch("nodes", []).each do |node| %>
-      <div class="mb-3 inline-block rounded-md border border-border bg-background px-4 py-3">
-        <p class="text-sm font-medium text-foreground"><%= node["label"] %></p>
-        <p class="text-xs text-muted-foreground"><%= node["action_key"] %></p>
-      </div>
+<% nodes = @pipeline.graph.fetch("nodes", []) %>
+<% edges = @pipeline.graph.fetch("edges", []) %>
+
+<div class="app-page-actions">
+  <div>
+    <p class="app-eyebrow"><%= @pipeline.key %></p>
+    <p class="mt-1 max-w-2xl text-sm text-muted-foreground">This pipeline snapshots its graph before every run, then records steps, logs, artifacts, approvals, and any resulting Change Request.</p>
+  </div>
+  <div class="flex flex-wrap gap-2">
+    <%= link_to edit_pipeline_path(@pipeline), class: "app-btn app-btn-muted" do %>
+      <%= lucide_icon("workflow", class_name: "app-icon") %>
+      <span>Edit graph</span>
+    <% end %>
+    <%= link_to export_pipeline_path(@pipeline), class: "app-btn app-btn-muted" do %>
+      <%= lucide_icon("download", class_name: "app-icon") %>
+      <span>YAML</span>
+    <% end %>
+    <%= link_to new_schedule_path(pipeline_definition_id: @pipeline.id), class: "app-btn app-btn-muted" do %>
+      <%= lucide_icon("clock", class_name: "app-icon") %>
+      <span>Schedule</span>
+    <% end %>
+    <%= button_to run_pipeline_path(@pipeline), method: :post, class: "app-btn app-btn-primary" do %>
+      <%= lucide_icon("play", class_name: "app-icon") %>
+      <span>Run</span>
     <% end %>
   </div>
-  <pre class="mt-5 overflow-auto rounded-md bg-background p-4 text-xs text-muted-foreground"><%= JSON.pretty_generate(@pipeline.graph) %></pre>
-</section>
+</div>
+
+<div class="app-detail-grid">
+  <section class="linear-surface p-5">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <h2 class="font-semibold text-foreground">Action graph</h2>
+      <span class="status-pill"><%= pluralize(nodes.size, "step") %></span>
+    </div>
+    <div class="mt-4 space-y-0">
+      <% nodes.each_with_index do |node, index| %>
+        <article class="app-run-step flex min-w-0 items-center gap-3">
+          <span class="status-pill shrink-0"><%= index + 1 %></span>
+          <div class="min-w-0 flex-1">
+            <h3 class="truncate text-sm font-semibold text-foreground"><%= node["label"] || node["action_key"] %></h3>
+            <p class="mt-1 truncate text-xs text-muted-foreground"><%= node["action_key"] %></p>
+          </div>
+          <% next_edge = edges.find { |edge| edge["from"] == node["id"] } %>
+          <% if next_edge %>
+            <span class="hidden text-xs text-muted-foreground sm:inline"><%= next_edge["condition"].presence || "next" %></span>
+          <% end %>
+        </article>
+      <% end %>
+    </div>
+  </section>
+
+  <aside class="space-y-4">
+    <section class="linear-surface p-4">
+      <h3 class="font-medium text-foreground">Run contract</h3>
+      <dl class="mt-3 grid gap-2 text-sm">
+        <div class="inbox-property"><dt>Triggers</dt><dd><strong><%= @pipeline.triggers.presence&.join(", ") || "manual" %></strong></dd></div>
+        <div class="inbox-property"><dt>Required context</dt><dd><strong><%= @pipeline.required_context.keys.presence&.join(", ") || "none" %></strong></dd></div>
+        <div class="inbox-property"><dt>Edges</dt><dd><strong><%= edges.size %></strong></dd></div>
+        <div class="inbox-property"><dt>Definition</dt><dd><strong><%= @pipeline.builtin? ? "built-in" : "workspace" %></strong></dd></div>
+      </dl>
+    </section>
+    <section class="linear-surface p-4">
+      <h3 class="font-medium text-foreground">Raw graph</h3>
+      <pre class="mt-3 max-h-96 overflow-auto rounded-md bg-background/70 p-3 text-xs text-muted-foreground"><%= JSON.pretty_generate(@pipeline.graph) %></pre>
+    </section>
+  </aside>
+</div>

@@ -37,7 +37,7 @@
           </div>
           <% input = step.input_json || {} %>
           <% if input["skill"].present? || input["objective"].present? || input["plan"].present? %>
-            <div class="mt-3 space-y-2 rounded-md bg-background/55 p-3 text-sm text-muted-foreground">
+            <div class="mt-3 space-y-2 text-sm text-muted-foreground">
               <% if input.dig("skill", "name").present? %>
                 <p><span class="app-eyebrow">Skill</span> <%= input.dig("skill", "name") %></p>
               <% end %>
@@ -66,7 +66,7 @@
       <div class="mt-3 space-y-3 text-sm text-muted-foreground">
         <% @artifacts.each do |artifact| %>
           <% preview = artifact_text_preview(artifact) %>
-          <article class="rounded-md bg-background/70 p-3">
+          <article class="app-flat-row">
             <div class="flex items-center justify-between gap-3">
               <p class="font-medium text-foreground"><%= artifact.name %></p>
               <span class="status-pill"><%= artifact.byte_size %> bytes</span>

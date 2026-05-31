@@ -1,27 +1,69 @@
 <% content_for :page_title, "Integrations" %>
-<div class="mb-5 flex justify-end"><%= link_to "New integration", new_integration_path, class: "app-btn app-btn-primary" %></div>
-<div class="grid gap-6 lg:grid-cols-2">
-  <section class="app-card p-5">
-    <h2 class="font-semibold text-foreground">Accounts</h2>
-    <div class="mt-4 space-y-3">
+
+<div class="app-page-actions">
+  <div>
+    <p class="app-eyebrow">Provider connections</p>
+    <p class="mt-1 max-w-2xl text-sm text-muted-foreground">Connect GitHub, GitLab, and repository contexts used by actions, pipeline runs, and Change Request creation.</p>
+  </div>
+  <%= link_to new_integration_path, class: "app-btn app-btn-primary" do %>
+    <%= lucide_icon("plus", class_name: "app-icon") %>
+    <span>Integration</span>
+  <% end %>
+</div>
+
+<div class="grid gap-5 lg:grid-cols-2">
+  <section class="linear-surface">
+    <div class="linear-toolbar">
+      <div class="flex min-w-0 items-center gap-2">
+        <%= lucide_icon("plug", class_name: "app-icon text-muted-foreground") %>
+        <h2 class="linear-title">Accounts</h2>
+        <span class="linear-count"><%= @integrations.size %></span>
+      </div>
+    </div>
+    <div class="linear-list">
       <% @integrations.each do |integration| %>
-        <div class="rounded-md border border-border p-3">
-          <div class="flex items-center justify-between">
-            <span class="text-foreground"><%= integration.name %></span>
-            <span class="status-pill"><%= integration.provider %></span>
+        <article class="linear-row">
+          <span class="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-muted/45 text-muted-foreground">
+            <%= lucide_icon(integration.provider == "github" ? "github" : "plug", class_name: "app-icon") %>
+          </span>
+          <div class="linear-row-main">
+            <p class="linear-row-title"><%= integration.name %></p>
+            <div class="linear-row-meta">
+              <span><%= integration.provider %></span>
+              <span><%= integration.updated_at ? "updated #{time_ago_in_words(integration.updated_at)} ago" : "not synced" %></span>
+            </div>
           </div>
-        </div>
+          <span class="status-pill"><%= integration.status %></span>
+        </article>
       <% end %>
-      <% if @integrations.empty? %><p class="text-sm text-muted-foreground">No integrations connected.</p><% end %>
+      <% if @integrations.empty? %><p class="linear-empty">No integrations connected.</p><% end %>
     </div>
   </section>
-  <section class="app-card p-5">
-    <h2 class="font-semibold text-foreground">Repositories</h2>
-    <div class="mt-4 space-y-3">
+  <section class="linear-surface">
+    <div class="linear-toolbar">
+      <div class="flex min-w-0 items-center gap-2">
+        <%= lucide_icon("git-branch", class_name: "app-icon text-muted-foreground") %>
+        <h2 class="linear-title">Repositories</h2>
+        <span class="linear-count"><%= @repositories.size %></span>
+      </div>
+    </div>
+    <div class="linear-list">
       <% @repositories.each do |repo| %>
-        <div class="rounded-md border border-border p-3 text-sm text-muted-foreground"><%= repo.full_name.presence || repo.url %></div>
+        <article class="linear-row">
+          <span class="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-muted/45 text-muted-foreground">
+            <%= lucide_icon("folder-git-2", class_name: "app-icon") %>
+          </span>
+          <div class="linear-row-main">
+            <p class="linear-row-title"><%= repo.full_name.presence || repo.name %></p>
+            <div class="linear-row-meta">
+              <span><%= repo.provider %></span>
+              <span><%= repo.default_branch %></span>
+              <span><%= repo.url %></span>
+            </div>
+          </div>
+        </article>
       <% end %>
-      <% if @repositories.empty? %><p class="text-sm text-muted-foreground">Repository sync comes after provider credentials are added.</p><% end %>
+      <% if @repositories.empty? %><p class="linear-empty">Repository sync comes after provider credentials are added.</p><% end %>
     </div>
   </section>
 </div>

@@ -1,6 +1,24 @@
 <% content_for :page_title, @cycle.name %>
-<div class="mb-5 flex justify-end"><%= link_to "Edit", edit_cycle_path(@cycle), class: "app-btn app-btn-muted" %></div>
-<section class="app-card p-5">
-  <h2 class="mb-4 font-semibold text-foreground">Cycle Issues</h2>
+
+<div class="app-page-actions">
+  <div>
+    <p class="app-eyebrow"><%= @cycle.team.name %> · <%= @cycle.status %></p>
+    <p class="mt-1 text-sm text-muted-foreground"><%= [ @cycle.starts_on || "No start", @cycle.ends_on || "No end" ].join(" - ") %></p>
+  </div>
+  <%= link_to edit_cycle_path(@cycle), class: "app-btn app-btn-muted" do %>
+    <%= lucide_icon("pencil", class_name: "app-icon") %>
+    <span>Edit</span>
+  <% end %>
+</div>
+
+<section class="linear-surface">
+  <div class="linear-toolbar">
+    <div class="flex min-w-0 items-center gap-2">
+      <%= lucide_icon("calendar", class_name: "app-icon text-muted-foreground") %>
+      <h2 class="linear-title">Cycle issues</h2>
+      <span class="linear-count"><%= @issues.size %></span>
+    </div>
+    <%= link_to "New issue", new_issue_path, class: "linear-tab" %>
+  </div>
   <%= render "issues/table", issues: @issues %>
 </section>

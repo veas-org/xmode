@@ -1,17 +1,41 @@
 <% content_for :page_title, "Pipeline Runs" %>
-<section class="app-card p-5">
-  <table class="app-table">
-    <thead><tr><th>Run</th><th>Status</th><th>Trigger</th><th>Context</th><th>Started</th></tr></thead>
-    <tbody>
-      <% @runs.each do |run| %>
-        <tr>
-          <td><%= link_to run.pipeline_definition&.name || "Run ##{run.id}", pipeline_run_path(run), class: "text-foreground hover:text-foreground" %></td>
-          <td><span class="status-pill"><%= run.status %></span></td>
-          <td><%= run.trigger %></td>
-          <td><%= run.issue&.identifier || run.project&.title || run.event&.title || "-" %></td>
-          <td><%= run.started_at ? "#{time_ago_in_words(run.started_at)} ago" : "-" %></td>
-        </tr>
+
+<div class="app-page-actions">
+  <div>
+    <p class="app-eyebrow">Automation queue</p>
+    <p class="mt-1 max-w-2xl text-sm text-muted-foreground">Every run is a frozen snapshot of a pipeline definition with logs, artifacts, approvals, and Change Request evidence.</p>
+  </div>
+  <%= link_to pipelines_path, class: "app-btn app-btn-muted" do %>
+    <%= lucide_icon("workflow", class_name: "app-icon") %>
+    <span>Pipelines</span>
+  <% end %>
+</div>
+
+<section class="linear-surface">
+  <div class="linear-toolbar">
+    <div class="flex min-w-0 items-center gap-2">
+      <%= lucide_icon("activity", class_name: "app-icon text-muted-foreground") %>
+      <h2 class="linear-title">Runs</h2>
+      <span class="linear-count"><%= @runs.size %></span>
+    </div>
+  </div>
+  <div class="linear-list">
+    <% @runs.each do |run| %>
+      <%= link_to pipeline_run_path(run), class: "linear-row" do %>
+        <span class="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-muted/45 text-muted-foreground">
+          <%= lucide_icon(run.status == "completed" ? "check" : "activity", class_name: "app-icon") %>
+        </span>
+        <div class="linear-row-main">
+          <p class="linear-row-title"><%= run.pipeline_definition&.name || "Run ##{run.id}" %></p>
+          <div class="linear-row-meta">
+            <span><%= run.trigger %></span>
+            <span><%= run.issue&.identifier || run.project&.title || run.event&.title || "Workspace" %></span>
+            <span><%= run.started_at ? "#{time_ago_in_words(run.started_at)} ago" : "#{time_ago_in_words(run.created_at)} ago" %></span>
+          </div>
+        </div>
+        <span class="status-pill"><%= run.status %></span>
       <% end %>
-    </tbody>
-  </table>
+    <% end %>
+    <% if @runs.empty? %><p class="linear-empty">No runs yet.</p><% end %>
+  </div>
 </section>

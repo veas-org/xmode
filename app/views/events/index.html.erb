@@ -1,18 +1,40 @@
 <% content_for :page_title, "Event Inbox" %>
-<section class="app-card p-5">
-  <table class="app-table">
-    <thead><tr><th>Event</th><th>Source</th><th>Severity</th><th>Status</th><th>Received</th></tr></thead>
-    <tbody>
-      <% @events.each do |event| %>
-        <tr>
-          <td><%= link_to event.title, event_path(event), class: "text-foreground hover:text-foreground" %></td>
-          <td><%= event.source %></td>
-          <td><span class="status-pill"><%= event.severity %></span></td>
-          <td><%= event.status %></td>
-          <td><%= time_ago_in_words(event.created_at) %> ago</td>
-        </tr>
+
+<div class="app-page-actions">
+  <div>
+    <p class="app-eyebrow">Event intake</p>
+    <p class="mt-1 max-w-2xl text-sm text-muted-foreground">Webhook and system events land here before they become issues or trigger matched automation rules.</p>
+  </div>
+  <span class="status-pill"><%= pluralize(@events.count, "event") %></span>
+</div>
+
+<section class="linear-surface">
+  <div class="linear-toolbar">
+    <div class="flex min-w-0 items-center gap-2">
+      <%= lucide_icon("bell", class_name: "app-icon text-muted-foreground") %>
+      <h2 class="linear-title">Event inbox</h2>
+      <span class="linear-count"><%= @events.size %></span>
+    </div>
+  </div>
+  <div class="linear-list">
+    <% @events.each do |event| %>
+      <%= link_to event_path(event), class: "linear-row" do %>
+        <span class="inbox-row-indicator"></span>
+        <div class="linear-row-main">
+          <p class="linear-row-title"><%= event.title %></p>
+          <div class="linear-row-meta">
+            <span><%= event.source %></span>
+            <span><%= event.event_type %></span>
+            <span><%= event.project&.title || "No project" %></span>
+            <span><%= time_ago_in_words(event.created_at) %> ago</span>
+          </div>
+        </div>
+        <div class="hidden flex-wrap justify-end gap-2 md:flex">
+          <span class="status-pill"><%= event.severity %></span>
+          <span class="status-pill"><%= event.status %></span>
+        </div>
       <% end %>
-      <% if @events.empty? %><tr><td colspan="5" class="text-muted-foreground">No events yet.</td></tr><% end %>
-    </tbody>
-  </table>
+    <% end %>
+    <% if @events.empty? %><p class="linear-empty">No events yet.</p><% end %>
+  </div>
 </section>

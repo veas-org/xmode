@@ -1,24 +1,53 @@
 <% content_for :page_title, "Actions" %>
-<div class="mb-5 flex justify-between">
-  <%= form_with url: import_actions_path, method: :post, class: "flex flex-1 gap-2" do %>
-    <%= text_area_tag :catalog_yaml, nil, rows: 1, placeholder: "Paste action YAML", class: "app-input max-w-lg" %>
-    <%= submit_tag "Import", class: "app-btn app-btn-muted" %>
-  <% end %>
-  <%= link_to "New action", new_action_path, class: "app-btn app-btn-primary" %>
+
+<div class="app-page-actions">
+  <div>
+    <p class="app-eyebrow">Action catalog</p>
+    <p class="mt-1 max-w-2xl text-sm text-muted-foreground">Executable steps used by pipelines. Actions bind a skill to a provider, permissions, objective handling, inputs, outputs, and evidence rules.</p>
+  </div>
+  <div class="flex flex-wrap items-center gap-2">
+    <%= form_with url: import_actions_path, method: :post, class: "flex min-w-0 flex-wrap gap-2" do %>
+      <%= text_area_tag :catalog_yaml, nil, rows: 1, placeholder: "Paste action YAML", class: "app-input w-64 max-w-full" %>
+      <%= submit_tag "Import", class: "app-btn app-btn-muted" %>
+    <% end %>
+    <%= link_to new_action_path, class: "app-btn app-btn-primary" do %>
+      <%= lucide_icon("plus", class_name: "app-icon") %>
+      <span>Action</span>
+    <% end %>
+  </div>
 </div>
-<section class="app-card p-5">
-  <table class="app-table">
-    <thead><tr><th>Name</th><th>Skill</th><th>Category</th><th>Provider</th><th>Objective</th></tr></thead>
-    <tbody>
-      <% @actions.each do |action| %>
-        <tr>
-          <td><%= link_to action.name, action_path(action), class: "text-foreground hover:text-foreground" %></td>
-          <td><%= action.skill_definition&.name || "-" %></td>
-          <td><%= action.category %></td>
-          <td><%= action.provider %></td>
-          <td><%= action.requires_objective? ? "required" : "optional" %></td>
-        </tr>
+
+<section class="linear-surface">
+  <div class="linear-toolbar">
+    <div class="flex min-w-0 items-center gap-2">
+      <%= lucide_icon("play", class_name: "app-icon text-muted-foreground") %>
+      <h2 class="linear-title">Executable actions</h2>
+      <span class="linear-count"><%= @actions.size %></span>
+    </div>
+    <span class="app-eyebrow">Typed input and output contracts</span>
+  </div>
+
+  <div class="linear-list">
+    <% @actions.each do |action| %>
+      <%= link_to action_path(action), class: "linear-row" do %>
+        <span class="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-muted/45 text-muted-foreground">
+          <%= lucide_icon(action.provider == "manual" ? "hand" : "terminal", class_name: "app-icon") %>
+        </span>
+        <div class="linear-row-main">
+          <p class="linear-row-title"><%= action.name %></p>
+          <div class="linear-row-meta">
+            <span><%= action.skill_definition&.name || "No skill" %></span>
+            <span><%= action.category %></span>
+            <span><%= action.provider %></span>
+          </div>
+        </div>
+        <div class="hidden flex-wrap justify-end gap-2 md:flex">
+          <span class="status-pill"><%= action.requires_objective? ? "objective required" : "objective optional" %></span>
+          <% if action.plan_required_when_objective_unclear? %>
+            <span class="status-pill">plan fallback</span>
+          <% end %>
+        </div>
       <% end %>
-    </tbody>
-  </table>
+    <% end %>
+  </div>
 </section>

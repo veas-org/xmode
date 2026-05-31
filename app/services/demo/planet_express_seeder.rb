@@ -147,6 +147,8 @@ module Demo
         seed_default_members!
         WorkspaceDefaults.seed!(workspace)
         seed_projects!
+        seed_integrations!
+        seed_billing!
         seed_cycle!
         seed_issues!
         seed_objectives!
@@ -208,6 +210,39 @@ module Demo
           project.status = "active"
           project.save!
         end
+      end
+    end
+
+    def seed_integrations!
+      account = workspace.integration_accounts.find_or_initialize_by(provider: "github", name: "Planet Express GitHub")
+      account.status = "active"
+      account.metadata = {
+        "installation" => "planet-express-demo",
+        "permissions" => %w[contents pull_requests checks]
+      }
+      account.save!
+
+      PROJECTS.each do |attributes|
+        workspace.repository_connections.find_or_initialize_by(url: attributes.fetch(:repository_url)).tap do |connection|
+          connection.integration_account = account
+          connection.provider = "github"
+          connection.name = attributes.fetch(:title)
+          connection.full_name = attributes.fetch(:repository_url).sub(%r{\Ahttps://github.com/}, "").sub(/\.git\z/, "")
+          connection.default_branch = "main"
+          connection.external_id = "demo-#{attributes.fetch(:key)}"
+          connection.save!
+        end
+      end
+    end
+
+    def seed_billing!
+      workspace.billing_subscriptions.find_or_initialize_by(stripe_subscription_id: "sub_planet_express_demo").tap do |subscription|
+        subscription.plan = "team"
+        subscription.status = "trialing"
+        subscription.seats = workspace.memberships.count
+        subscription.automation_minutes_used = 184
+        subscription.current_period_end = 21.days.from_now
+        subscription.save!
       end
     end
 

@@ -1,23 +1,48 @@
 <% content_for :page_title, "Skills" %>
-<div class="mb-5 flex justify-between">
-  <%= form_with url: import_skills_path, method: :post, class: "flex flex-1 gap-2" do %>
-    <%= text_area_tag :catalog_yaml, nil, rows: 1, placeholder: "Paste skill YAML", class: "app-input max-w-lg" %>
-    <%= submit_tag "Import", class: "app-btn app-btn-muted" %>
-  <% end %>
-  <%= link_to "New skill", new_skill_path, class: "app-btn app-btn-primary" %>
+
+<div class="app-page-actions">
+  <div>
+    <p class="app-eyebrow">Skill management</p>
+    <p class="mt-1 max-w-2xl text-sm text-muted-foreground">Reusable team capabilities. Each skill defines how objectives, plans, evidence, and best practices should flow into executable actions.</p>
+  </div>
+  <div class="flex flex-wrap items-center gap-2">
+    <%= form_with url: import_skills_path, method: :post, class: "flex min-w-0 flex-wrap gap-2" do %>
+      <%= text_area_tag :catalog_yaml, nil, rows: 1, placeholder: "Paste skill YAML", class: "app-input w-64 max-w-full" %>
+      <%= submit_tag "Import", class: "app-btn app-btn-muted" %>
+    <% end %>
+    <%= link_to new_skill_path, class: "app-btn app-btn-primary" do %>
+      <%= lucide_icon("plus", class_name: "app-icon") %>
+      <span>Skill</span>
+    <% end %>
+  </div>
 </div>
-<section class="app-card p-5">
-  <table class="app-table">
-    <thead><tr><th>Name</th><th>Category</th><th>Actions</th><th>Objective</th></tr></thead>
-    <tbody>
-      <% @skills.each do |skill| %>
-        <tr>
-          <td><%= link_to skill.name, skill_path(skill), class: "text-foreground hover:text-foreground" %></td>
-          <td><%= skill.category %></td>
-          <td><%= skill.action_definitions.size %></td>
-          <td><%= skill.objective_template.present? ? "templated" : "custom" %></td>
-        </tr>
+
+<section class="linear-surface">
+  <div class="linear-toolbar">
+    <div class="flex min-w-0 items-center gap-2">
+      <%= lucide_icon("sparkles", class_name: "app-icon text-muted-foreground") %>
+      <h2 class="linear-title">Skills library</h2>
+      <span class="linear-count"><%= @skills.size %></span>
+    </div>
+    <span class="app-eyebrow">Objective and plan aware</span>
+  </div>
+
+  <div class="grid gap-2 p-2 md:grid-cols-2 xl:grid-cols-3">
+    <% @skills.each do |skill| %>
+      <%= link_to skill_path(skill), class: "rounded-lg bg-muted/30 p-4 transition-colors hover:bg-muted/55" do %>
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0">
+            <p class="app-eyebrow"><%= skill.category %></p>
+            <h3 class="mt-1 truncate text-sm font-semibold text-foreground"><%= skill.name %></h3>
+          </div>
+          <span class="status-pill"><%= pluralize(skill.action_definitions.size, "action") %></span>
+        </div>
+        <p class="mt-3 line-clamp-3 text-sm leading-6 text-muted-foreground"><%= strip_tags(render_markdown(skill.description)).presence || "No description." %></p>
+        <div class="mt-4 flex flex-wrap gap-2">
+          <span class="status-pill"><%= skill.objective_template.present? ? "objective template" : "custom objective" %></span>
+          <span class="status-pill"><%= skill.plan_template.present? ? "plan fallback" : "manual plan" %></span>
+        </div>
       <% end %>
-    </tbody>
-  </table>
+    <% end %>
+  </div>
 </section>
