@@ -40,7 +40,9 @@
           <%= yield %>
         </main>
         <% unless content_for?(:side_panel_response) %>
-          <%= turbo_frame_tag side_panel_frame, class: "app-side-panel-frame" %>
+          <%= turbo_frame_tag side_panel_frame,
+                class: "app-side-panel-frame",
+                data: { controller: "side-panel", action: "keydown@window->side-panel#closeOnEscape" } %>
         <% end %>
       </section>
     </div>
