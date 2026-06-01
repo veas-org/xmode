@@ -13,6 +13,10 @@ class ActionRunStep < ApplicationRecord
   validates :name, presence: true
   validates :status, inclusion: { in: STATUSES }
 
+  def display_status
+    status.to_s.tr("_", " ").titleize
+  end
+
   private
 
   def capture_action_snapshot

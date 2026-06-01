@@ -159,11 +159,11 @@
             <div class="linear-row-main">
               <p class="linear-row-title"><%= run.pipeline_definition&.name || "Pipeline run" %></p>
               <div class="linear-row-meta">
-                <span><%= run.trigger %></span>
+                <span><%= run.display_trigger %></span>
                 <span><%= time_ago_in_words(run.created_at) %> ago</span>
               </div>
             </div>
-            <span class="status-pill shrink-0"><%= run.status %></span>
+            <span class="status-pill shrink-0"><%= run.display_status %></span>
           <% end %>
         <% end %>
         <% if @runs.empty? %>

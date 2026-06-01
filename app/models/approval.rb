@@ -6,4 +6,8 @@ class Approval < ApplicationRecord
   belongs_to :user, optional: true
 
   validates :status, inclusion: { in: STATUSES }
+
+  def display_status
+    status.to_s.tr("_", " ").titleize
+  end
 end

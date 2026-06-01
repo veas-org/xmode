@@ -28,12 +28,12 @@
         <div class="linear-row-main">
           <p class="linear-row-title"><%= run.pipeline_definition&.name || "Run ##{run.id}" %></p>
           <div class="linear-row-meta">
-            <span><%= run.trigger %></span>
+            <span><%= run.display_trigger %></span>
             <span><%= run.issue&.identifier || run.project&.title || run.event&.title || "Workspace" %></span>
             <span><%= run.started_at ? "#{time_ago_in_words(run.started_at)} ago" : "#{time_ago_in_words(run.created_at)} ago" %></span>
           </div>
         </div>
-        <span class="status-pill"><%= run.status %></span>
+        <span class="status-pill"><%= run.display_status %></span>
       <% end %>
     <% end %>
     <% if @runs.empty? %><p class="linear-empty">No runs yet.</p><% end %>

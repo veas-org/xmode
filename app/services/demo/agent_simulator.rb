@@ -12,7 +12,7 @@ module Demo
 
     def call
       artifact_dir.mkpath
-      log("Planet Express agent simulator started for #{project_name}.")
+      log("Planet Express sandboxed agent started for #{project_name}.")
       log("Objective: #{objective}")
       log("Loaded skill: #{skill_name}") if skill_name.present?
       log(message_for_action)
@@ -58,15 +58,15 @@ module Demo
       when "plan-story"
         "Drafting a scoped implementation plan with assumptions, risks, acceptance checks, and the next approval decision."
       when "code"
-        "Simulating isolated branch edits for delivery services, route policies, and regression coverage."
+        "Preparing isolated branch edits for delivery services, route policies, and regression coverage."
       when "run-tests"
-        "Simulating CI evidence: unit checks, route policy specs, and smoke validation."
+        "Recording CI evidence: unit checks, route policy specs, and smoke validation."
       when "review-diff"
-        "Preparing review notes that connect the simulated diff back to the approved objective."
+        "Preparing review notes that connect the sandbox diff back to the approved objective."
       when "open-change-request"
-        "Packaging the simulated output into a branch-backed Change Request record."
+        "Packaging the sandbox output into a branch-backed Change Request record."
       when "update-dependencies"
-        "Simulating dependency patch updates and lockfile review."
+        "Preparing dependency patch updates and lockfile review."
       else
         "Executing demo action #{action_key.presence || @step.name}."
       end
@@ -104,7 +104,7 @@ module Demo
 
     def coded_output
       {
-        "summary" => "Demo agent implemented #{issue_name}.",
+        "summary" => "Sandboxed agent implemented #{issue_name}.",
         "status" => "completed",
         "branch" => branch_name,
         "changed_files" => demo_changed_files,
@@ -145,7 +145,7 @@ module Demo
 
     def generic_output
       {
-        "summary" => "Demo agent completed #{@step.name}.",
+        "summary" => "Sandboxed agent completed #{@step.name}.",
         "status" => "completed",
         "changed_files_count" => 0
       }

@@ -23,6 +23,19 @@ class PipelineRun < ApplicationRecord
     run_logs.create!(message: message, level: level, action_run_step: step)
   end
 
+  def display_status
+    status.to_s.tr("_", " ").titleize
+  end
+
+  def display_trigger
+    case trigger
+    when "demo", "demo_agent"
+      "Sandboxed agent"
+    else
+      trigger.to_s.tr("_", " ").titleize
+    end
+  end
+
   private
 
   def capture_pipeline_snapshot

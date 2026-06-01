@@ -1,7 +1,7 @@
 require "rails_helper"
 
 RSpec.describe "Demo agent operations", type: :request do
-  it "creates a demo issue and runs a simulated agent pipeline from the dashboard form" do
+  it "creates a demo issue and runs a sandboxed agent pipeline from the command center form" do
     Demo::PlanetExpressSeeder.call
     user = User.find_by!(email: Demo::PlanetExpressSeeder::BENDER_EMAIL)
     workspace = Workspace.find_by!(slug: "planet-express")
@@ -21,7 +21,7 @@ RSpec.describe "Demo agent operations", type: :request do
     expect(run.trigger).to eq("demo_agent")
     expect(run.issue.title).to eq("Implement retry handling for failed delivery webhooks")
     expect(run.reload.status).to eq("waiting_for_approval")
-    expect(run.run_logs.pluck(:message).join("\n")).to include("Planet Express agent simulator started")
+    expect(run.run_logs.pluck(:message).join("\n")).to include("Planet Express sandboxed agent started")
     expect(run.run_artifacts.pluck(:name)).to include("agent-report.md")
   end
 end

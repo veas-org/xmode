@@ -105,7 +105,7 @@ class PipelineDefinitionsController < AuthenticatedController
 
         ## Demo source
 
-        Created from the Planet Express simulated agent panel so the team can inspect the full xmode loop: objective, plan, action steps, logs, artifacts, approval, and Change Request.
+        Created from the Planet Express governed agent scenario so the team can inspect the full xmode loop: objective, plan, action steps, logs, artifacts, approval, and Change Request.
       MARKDOWN
       priority: "medium"
     )

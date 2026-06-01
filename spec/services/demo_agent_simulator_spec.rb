@@ -1,7 +1,7 @@
 require "rails_helper"
 
 RSpec.describe Demo::AgentSimulator do
-  it "writes simulated agent logs and artifacts for demo codex actions" do
+  it "writes sandboxed agent logs and artifacts for demo codex actions" do
     workspace = Workspace.create!(name: "Demo", demo: true)
     team = workspace.teams.create!(name: "Ops", key: "ops")
     user = User.create!(name: "Bender", email: "bender-agent@example.com", password: "password123", demo: true)
@@ -24,8 +24,8 @@ RSpec.describe Demo::AgentSimulator do
       output_schema: { type: "object" }
     )
     pipeline = workspace.pipeline_definitions.create!(
-      key: "simulated-agent",
-      name: "Simulated Agent",
+      key: "sandboxed-agent",
+      name: "Sandboxed Agent",
       graph: { nodes: [ { id: "node-1", action_key: "code", label: "Code" } ], edges: [] }
     )
     run = workspace.pipeline_runs.create!(
@@ -42,7 +42,7 @@ RSpec.describe Demo::AgentSimulator do
     expect(run.reload.status).to eq("completed")
     expect(step.output_json).to include("status" => "completed")
     expect(step.output_json["changed_files_count"]).to eq(3)
-    expect(run.run_logs.pluck(:message).join("\n")).to include("Planet Express agent simulator started")
+    expect(run.run_logs.pluck(:message).join("\n")).to include("Planet Express sandboxed agent started")
     expect(run.run_artifacts.pluck(:name)).to include("agent-report.md", "demo-diff.patch")
   end
 end
