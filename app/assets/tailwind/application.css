@@ -43,6 +43,14 @@
   --warning-foreground: hsl(0 0% 100%);
   --success: hsl(87 100% 37%);
   --success-foreground: hsl(0 0% 100%);
+  --app-control-bg: rgba(255, 255, 255, 0.078);
+  --app-control-bg-hover: rgba(255, 255, 255, 0.12);
+  --app-divider-soft: rgba(255, 255, 255, 0.072);
+  --app-row-bg: rgba(255, 255, 255, 0.028);
+  --app-row-bg-hover: rgba(255, 255, 255, 0.082);
+  --app-row-bg-selected: rgba(255, 255, 255, 0.115);
+  --app-surface-bg: linear-gradient(180deg, rgba(18, 23, 32, 0.965), rgba(11, 15, 23, 0.985));
+  --app-surface-header-bg: rgba(255, 255, 255, 0.054);
 }
 
 .dark {
@@ -57,8 +65,8 @@
   --secondary: oklch(0.23 0.018 248);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.232 0.017 248);
-  --muted-foreground: oklch(0.708 0.018 248);
-  --accent: oklch(0.26 0.026 230);
+  --muted-foreground: oklch(0.84 0.014 248);
+  --accent: oklch(0.3 0.026 230);
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.396 0.141 25.723);
   --destructive-foreground: oklch(0.637 0.237 25.331);
@@ -84,6 +92,14 @@
   --warning-foreground: hsl(0 0% 100%);
   --success: hsl(84 81% 44%);
   --success-foreground: hsl(0 0% 100%);
+  --app-control-bg: rgba(255, 255, 255, 0.078);
+  --app-control-bg-hover: rgba(255, 255, 255, 0.12);
+  --app-divider-soft: rgba(255, 255, 255, 0.072);
+  --app-row-bg: rgba(255, 255, 255, 0.028);
+  --app-row-bg-hover: rgba(255, 255, 255, 0.082);
+  --app-row-bg-selected: rgba(255, 255, 255, 0.115);
+  --app-surface-bg: linear-gradient(180deg, rgba(18, 23, 32, 0.965), rgba(11, 15, 23, 0.985));
+  --app-surface-header-bg: rgba(255, 255, 255, 0.054);
 }
 
 @theme inline {
@@ -193,6 +209,14 @@
 
   .app-shell {
     @apply grid min-h-screen grid-cols-1 bg-background text-foreground lg:grid-cols-[256px_minmax(0,1fr)];
+    --app-control-bg: rgba(255, 255, 255, 0.078);
+    --app-control-bg-hover: rgba(255, 255, 255, 0.12);
+    --app-divider-soft: rgba(255, 255, 255, 0.072);
+    --app-row-bg: rgba(255, 255, 255, 0.028);
+    --app-row-bg-hover: rgba(255, 255, 255, 0.082);
+    --app-row-bg-selected: rgba(255, 255, 255, 0.115);
+    --app-surface-bg: linear-gradient(180deg, rgba(18, 23, 32, 0.965), rgba(11, 15, 23, 0.985));
+    --app-surface-header-bg: rgba(255, 255, 255, 0.054);
     background:
       radial-gradient(circle at 14% -12%, rgba(14, 165, 233, 0.22), transparent 32rem),
       radial-gradient(circle at 88% 0%, rgba(20, 184, 166, 0.16), transparent 30rem),
@@ -254,11 +278,16 @@
   }
 
   .app-sidebar-link {
-    @apply flex h-8 items-center gap-2 rounded-md px-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-sidebar-accent/75 hover:text-sidebar-accent-foreground;
+    @apply flex h-8 items-center gap-2 rounded-md px-2.5 text-sm font-medium text-muted-foreground transition-colors hover:text-sidebar-accent-foreground;
+  }
+
+  .app-sidebar-link:hover {
+    background: var(--app-row-bg-hover);
   }
 
   .app-sidebar-link.is-active {
-    @apply bg-sidebar-accent/85 text-sidebar-accent-foreground shadow-sm;
+    @apply text-sidebar-accent-foreground shadow-sm;
+    background: var(--app-row-bg-selected);
     box-shadow: inset 0 0 0 1px rgba(125, 211, 252, 0.08);
   }
 
@@ -275,7 +304,8 @@
   }
 
   .app-sidebar-demo {
-    @apply mb-1.5 flex h-8 items-center justify-between rounded-md bg-muted/55 px-2 text-xs font-medium text-muted-foreground;
+    @apply mb-1.5 flex h-8 items-center justify-between rounded-md px-2 text-xs font-medium text-muted-foreground;
+    background: var(--app-row-bg);
   }
 
   .app-sidebar-demo-dot {
@@ -284,11 +314,16 @@
   }
 
   .app-sidebar-account {
-    @apply flex items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-sidebar-accent;
+    @apply flex items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors;
+  }
+
+  .app-sidebar-account:hover {
+    background: var(--app-row-bg-hover);
   }
 
   .app-sidebar-avatar {
-    @apply grid h-7 w-7 shrink-0 place-items-center rounded-md bg-muted/75 text-xs font-semibold text-muted-foreground;
+    @apply grid h-7 w-7 shrink-0 place-items-center rounded-md text-xs font-semibold text-muted-foreground;
+    background: var(--app-control-bg);
   }
 
   .app-sidebar-account-name {
@@ -300,7 +335,11 @@
   }
 
   .app-sidebar-signout {
-    @apply rounded-md px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-background hover:text-foreground;
+    @apply rounded-md px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground;
+  }
+
+  .app-sidebar-signout:hover {
+    background: var(--app-row-bg-hover);
   }
 
   .app-sidebar-icon {
@@ -308,7 +347,11 @@
   }
 
   .app-sidebar-icon-action {
-    @apply grid h-7 w-7 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-background/80 hover:text-foreground;
+    @apply grid h-7 w-7 place-items-center rounded-md text-muted-foreground transition-colors hover:text-foreground;
+  }
+
+  .app-sidebar-icon-action:hover {
+    background: var(--app-row-bg-hover);
   }
 
   .app-main {
@@ -374,13 +417,10 @@
   }
 
   .app-side-panel {
-    @apply flex min-h-0 w-full flex-col overflow-hidden rounded-lg bg-card text-card-foreground shadow-sm;
-    backdrop-filter: blur(18px);
-    background:
-      radial-gradient(circle at 12% 0%, rgba(56, 189, 248, 0.08), transparent 18rem),
-      radial-gradient(circle at 92% 10%, rgba(45, 212, 191, 0.055), transparent 16rem),
-      linear-gradient(180deg, rgba(18, 23, 33, 0.68), rgba(11, 15, 23, 0.78));
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.045), 0 20px 56px rgba(0, 0, 0, 0.18);
+    @apply flex min-h-0 w-full flex-col overflow-hidden rounded-lg text-card-foreground shadow-sm;
+    backdrop-filter: blur(12px);
+    background: var(--app-surface-bg);
+    box-shadow: inset 0 0 0 1px var(--app-divider-soft), 0 20px 56px rgba(0, 0, 0, 0.22);
     min-height: calc(100dvh - 6rem);
     max-width: 620px;
     position: relative;
@@ -401,8 +441,7 @@
 
   .app-side-panel-header {
     @apply flex items-start justify-between gap-4 px-5 py-4;
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.014));
-    box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.035);
+    background: var(--app-surface-header-bg);
   }
 
   .app-side-panel-header h2 {
@@ -423,15 +462,15 @@
   }
 
   .app-card {
-    @apply rounded-lg bg-card text-card-foreground shadow-sm;
-    background: rgba(20, 24, 34, 0.78);
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.045), 0 18px 54px rgba(0, 0, 0, 0.14);
+    @apply rounded-lg text-card-foreground shadow-sm;
+    background: var(--app-surface-bg);
+    box-shadow: inset 0 0 0 1px var(--app-divider-soft), 0 18px 44px rgba(0, 0, 0, 0.18);
   }
 
   .app-panel {
-    @apply rounded-lg bg-card text-card-foreground shadow-sm;
-    background: rgba(20, 24, 34, 0.78);
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.045), 0 18px 54px rgba(0, 0, 0, 0.14);
+    @apply rounded-lg text-card-foreground shadow-sm;
+    background: var(--app-surface-bg);
+    box-shadow: inset 0 0 0 1px var(--app-divider-soft), 0 18px 44px rgba(0, 0, 0, 0.18);
   }
 
   .app-eyebrow {
@@ -447,19 +486,27 @@
   }
 
   .app-btn-muted {
-    @apply bg-muted text-muted-foreground shadow-sm hover:bg-accent hover:text-accent-foreground;
+    @apply text-muted-foreground shadow-sm hover:text-accent-foreground;
+    background: var(--app-control-bg);
   }
 
   .app-icon-btn {
-    @apply grid h-8 w-8 place-items-center rounded-md bg-muted/70 text-muted-foreground transition-colors hover:bg-accent/80 hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50;
+    @apply grid h-8 w-8 place-items-center rounded-md text-muted-foreground transition-colors hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50;
+    background: var(--app-control-bg);
+  }
+
+  .app-btn-muted:hover,
+  .app-icon-btn:hover {
+    background: var(--app-control-bg-hover);
   }
 
   .app-disclosure {
-    @apply rounded-md bg-muted/35 px-3 py-2 text-sm text-muted-foreground;
+    @apply rounded-md px-3 py-2 text-sm text-muted-foreground;
+    background: var(--app-row-bg);
   }
 
   .app-disclosure[open] {
-    @apply bg-muted/50;
+    background: var(--app-row-bg-hover);
   }
 
   .app-disclosure summary {
@@ -475,12 +522,14 @@
   }
 
   .app-input {
-    @apply h-9 w-full rounded-md border border-transparent bg-muted/70 px-3 py-1 text-sm text-foreground shadow-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring/50;
+    @apply h-9 w-full rounded-md border border-transparent px-3 py-1 text-sm text-foreground shadow-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring/50;
+    background: var(--app-control-bg);
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.035);
   }
 
   .app-textarea {
-    @apply min-h-32 w-full resize-y rounded-md border border-transparent bg-muted/70 px-3 py-2.5 text-sm leading-6 text-foreground shadow-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring/50;
+    @apply min-h-32 w-full resize-y rounded-md border border-transparent px-3 py-2.5 text-sm leading-6 text-foreground shadow-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring/50;
+    background: var(--app-control-bg);
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.035);
   }
 
@@ -501,33 +550,43 @@
   }
 
   .markdown-toolbar {
-    @apply inline-flex items-center gap-0.5 rounded-md bg-muted/45 p-0.5;
+    @apply inline-flex items-center gap-0.5 rounded-md p-0.5;
+    background: var(--app-row-bg);
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.035);
   }
 
   .markdown-tool-btn {
-    @apply grid h-7 w-7 place-items-center rounded-[5px] text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground;
+    @apply grid h-7 w-7 place-items-center rounded-[5px] text-muted-foreground transition-colors hover:text-foreground;
   }
 
   .markdown-tool-btn.is-active {
-    @apply bg-muted text-foreground;
+    @apply text-foreground;
+    background: var(--app-control-bg);
   }
 
   .markdown-tool-btn[aria-pressed="true"] {
-    @apply bg-muted text-foreground;
+    @apply text-foreground;
+    background: var(--app-control-bg);
   }
 
   .markdown-template-bar {
-    @apply inline-flex min-w-0 flex-wrap items-center gap-1 rounded-md bg-muted/30 p-0.5;
+    @apply inline-flex min-w-0 flex-wrap items-center gap-1 rounded-md p-0.5;
+    background: var(--app-row-bg);
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
   }
 
   .markdown-template-btn {
-    @apply inline-flex h-7 items-center gap-1.5 rounded-[5px] px-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground;
+    @apply inline-flex h-7 items-center gap-1.5 rounded-[5px] px-2 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground;
+  }
+
+  .markdown-tool-btn:hover,
+  .markdown-template-btn:hover {
+    background: var(--app-row-bg-hover);
   }
 
   .tiptap-surface {
-    @apply min-h-40 rounded-md bg-background/55 px-3 py-2.5 text-sm leading-6 text-foreground shadow-sm outline-none;
+    @apply min-h-40 rounded-md px-3 py-2.5 text-sm leading-6 text-foreground shadow-sm outline-none;
+    background: rgba(5, 8, 14, 0.62);
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.035);
   }
 
@@ -544,7 +603,8 @@
   }
 
   .markdown-preview {
-    @apply rounded-md bg-muted/20 p-3;
+    @apply rounded-md p-3;
+    background: var(--app-row-bg);
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.035);
   }
 
@@ -594,16 +654,19 @@
   }
 
   .rich-markdown blockquote {
-    @apply rounded-md bg-muted/35 px-3 py-2 text-muted-foreground;
-    box-shadow: inset 2px 0 0 rgba(125, 211, 252, 0.45);
+    @apply rounded-md px-3 py-2 text-muted-foreground;
+    background: var(--app-row-bg);
+    box-shadow: inset 2px 0 0 rgba(255, 255, 255, 0.12);
   }
 
   .rich-markdown code {
-    @apply rounded bg-muted/60 px-1.5 py-0.5 font-mono text-xs text-foreground;
+    @apply rounded px-1.5 py-0.5 font-mono text-xs text-foreground;
+    background: var(--app-control-bg);
   }
 
   .rich-markdown pre {
-    @apply overflow-auto rounded-md bg-background/80 p-3;
+    @apply overflow-auto rounded-md p-3;
+    background: rgba(5, 8, 14, 0.72);
   }
 
   .rich-markdown pre code {
@@ -619,7 +682,8 @@
   }
 
   .rich-markdown th {
-    @apply bg-muted/40 px-3 py-2 text-xs font-medium text-muted-foreground;
+    @apply px-3 py-2 text-xs font-medium text-muted-foreground;
+    background: var(--app-row-bg);
   }
 
   .rich-markdown td {
@@ -627,7 +691,7 @@
   }
 
   .operating-map {
-    @apply mb-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px];
+    @apply mb-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px];
   }
 
   .operating-map-steps {
@@ -635,8 +699,8 @@
   }
 
   .operating-map-step {
-    @apply rounded-md bg-transparent p-3.5;
-    background: linear-gradient(90deg, rgba(255, 255, 255, 0.026), transparent 82%);
+    @apply rounded-md p-3.5;
+    background: var(--app-row-bg);
   }
 
   .operating-map-index {
@@ -648,7 +712,8 @@
   }
 
   .home-decision-meta {
-    @apply mt-4 flex items-center justify-between gap-3 rounded-md bg-muted/25 px-3 py-2 text-xs text-muted-foreground;
+    @apply mt-4 flex items-center justify-between gap-3 rounded-md px-3 py-2 text-xs text-muted-foreground;
+    background: var(--app-row-bg);
   }
 
   .home-decision-meta strong {
@@ -656,26 +721,27 @@
   }
 
   .home-demo-panel {
-    background:
-      radial-gradient(circle at 18% 0%, rgba(125, 211, 252, 0.1), transparent 16rem),
-      linear-gradient(180deg, rgba(18, 23, 33, 0.66), rgba(11, 15, 23, 0.78));
+    background: var(--app-surface-bg);
   }
 
   .home-pipeline-brief {
-    @apply grid gap-1.5 rounded-md bg-muted/20 p-2 text-xs text-muted-foreground;
+    @apply grid gap-1.5 rounded-md p-3 text-xs text-muted-foreground;
+    background: var(--app-row-bg);
   }
 
   .home-pipeline-brief span {
-    @apply rounded-[5px] px-2 py-1;
-    background: linear-gradient(90deg, rgba(255, 255, 255, 0.035), transparent 82%);
+    @apply rounded-[5px] px-2 py-1.5;
+    background: rgba(255, 255, 255, 0.04);
   }
 
   .app-view-card {
-    @apply block rounded-md bg-muted/25 p-4 transition-colors hover:bg-muted/45;
+    @apply block rounded-md p-4 transition-colors;
+    background: var(--app-row-bg);
   }
 
   .app-view-icon {
-    @apply grid h-8 w-8 shrink-0 place-items-center rounded-md bg-background/70 text-muted-foreground;
+    @apply grid h-8 w-8 shrink-0 place-items-center rounded-md text-muted-foreground;
+    background: var(--app-control-bg);
   }
 
   .app-table {
@@ -683,15 +749,42 @@
   }
 
   .app-table th {
-    @apply bg-muted/50 px-3 py-2 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground first:rounded-l-md last:rounded-r-md;
+    @apply px-3 py-2 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground first:rounded-l-md last:rounded-r-md;
+    background: var(--app-row-bg);
   }
 
   .app-table td {
-    @apply px-3 py-2.5 text-muted-foreground;
+    @apply px-3 py-3 text-muted-foreground;
   }
 
   .status-pill {
-    @apply inline-flex items-center rounded-md bg-muted/70 px-1.5 py-0.5 text-xs font-medium text-muted-foreground;
+    @apply inline-flex items-center rounded-md px-1.5 py-0.5 text-xs font-medium text-foreground;
+    background: var(--app-control-bg);
+  }
+
+  .status-icon-pill {
+    @apply inline-grid h-7 w-7 shrink-0 place-items-center rounded-md text-muted-foreground;
+    background: var(--app-control-bg);
+  }
+
+  .status-icon-pill.is-success {
+    color: oklch(0.86 0.13 164);
+  }
+
+  .status-icon-pill.is-info {
+    color: oklch(0.82 0.11 224);
+  }
+
+  .status-icon-pill.is-warning {
+    color: oklch(0.86 0.13 72);
+  }
+
+  .status-icon-pill.is-danger {
+    color: oklch(0.76 0.16 28);
+  }
+
+  .status-icon-pill.is-muted {
+    color: var(--muted-foreground);
   }
 
   .graph-canvas {
@@ -703,14 +796,14 @@
   }
 
   .linear-surface {
-    @apply overflow-hidden rounded-lg bg-card text-card-foreground shadow-sm;
-    background: rgba(20, 24, 34, 0.64);
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.042), 0 18px 54px rgba(0, 0, 0, 0.14);
+    @apply overflow-hidden rounded-lg text-card-foreground shadow-sm;
+    background: var(--app-surface-bg);
+    box-shadow: inset 0 0 0 1px var(--app-divider-soft), 0 18px 44px rgba(0, 0, 0, 0.18);
   }
 
   .linear-toolbar {
-    @apply flex min-h-11 min-w-0 flex-wrap items-center justify-between gap-3 bg-muted/20 px-3.5;
-    box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.035);
+    @apply flex min-h-0 min-w-0 flex-wrap items-center justify-between gap-3 px-4 py-3;
+    background: var(--app-surface-header-bg);
   }
 
   .linear-title {
@@ -718,7 +811,8 @@
   }
 
   .linear-tabs {
-    @apply inline-flex min-h-8 min-w-0 max-w-full flex-wrap items-center justify-center gap-0.5 rounded-md bg-muted/55 p-0.5 text-muted-foreground;
+    @apply inline-flex min-h-8 min-w-0 max-w-full flex-wrap items-center justify-center gap-0.5 rounded-md p-0.5 text-muted-foreground;
+    background: var(--app-control-bg);
   }
 
   .linear-tab {
@@ -726,15 +820,21 @@
   }
 
   .linear-tab.is-active {
-    @apply bg-background/90 text-foreground shadow-sm;
+    @apply text-foreground shadow-sm;
+    background: rgba(255, 255, 255, 0.12);
   }
 
   .linear-list {
-    @apply space-y-0 p-2;
+    @apply space-y-1 p-3;
   }
 
   .linear-row {
-    @apply flex min-w-0 items-center gap-3 rounded-md px-3.5 py-3 transition-colors hover:bg-muted/45;
+    @apply flex min-w-0 items-center gap-3 rounded-md p-3 transition-colors;
+    background: transparent;
+  }
+
+  .linear-row:hover {
+    background: var(--app-row-bg-hover);
   }
 
   .linear-row-main {
@@ -754,12 +854,14 @@
   }
 
   .linear-command {
-    @apply flex h-9 w-full items-center justify-between rounded-md bg-muted/60 px-3 text-sm text-muted-foreground shadow-sm;
+    @apply flex h-9 w-full items-center justify-between rounded-md px-3 text-sm text-muted-foreground shadow-sm;
+    background: var(--app-control-bg);
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.035);
   }
 
   .linear-kbd {
-    @apply rounded bg-background/80 px-1.5 py-0.5 text-[11px] text-muted-foreground;
+    @apply rounded px-1.5 py-0.5 text-[11px] text-muted-foreground;
+    background: rgba(0, 0, 0, 0.28);
   }
 
   .linear-empty {
@@ -767,7 +869,8 @@
   }
 
   .linear-count {
-    @apply rounded-md bg-muted/70 px-1.5 py-0.5 text-xs font-medium text-muted-foreground;
+    @apply rounded-md px-1.5 py-0.5 text-xs font-medium text-muted-foreground;
+    background: rgba(255, 255, 255, 0.082);
   }
 
   .inbox-shell {
@@ -775,22 +878,24 @@
   }
 
   .inbox-list-panel {
-    @apply overflow-hidden rounded-lg bg-card text-card-foreground shadow-sm;
-    background: rgba(20, 24, 34, 0.64);
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.042), 0 18px 54px rgba(0, 0, 0, 0.14);
+    @apply overflow-hidden rounded-lg text-card-foreground shadow-sm;
+    background: var(--app-surface-bg);
+    box-shadow: inset 0 0 0 1px var(--app-divider-soft), 0 18px 44px rgba(0, 0, 0, 0.18);
   }
 
   .inbox-header {
-    @apply flex min-h-13 flex-wrap items-center justify-between gap-3 bg-muted/25 px-3.5;
-    box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.035);
+    @apply flex min-h-0 flex-wrap items-center justify-between gap-3 px-4 py-3;
+    background: var(--app-surface-header-bg);
   }
 
   .inbox-subbar {
-    @apply flex flex-wrap items-center justify-between gap-3 bg-background/30 px-3 py-2;
+    @apply flex flex-wrap items-center justify-between gap-3 px-4 py-3;
+    background: rgba(0, 0, 0, 0.2);
   }
 
   .inbox-search {
-    @apply flex h-8 min-w-[240px] items-center gap-2 rounded-md bg-muted/60 px-2 text-sm text-muted-foreground;
+    @apply flex h-8 min-w-[240px] items-center gap-2 rounded-md px-2 text-sm text-muted-foreground;
+    background: var(--app-control-bg);
   }
 
   .inbox-search-input {
@@ -798,15 +903,19 @@
   }
 
   .inbox-list {
-    @apply space-y-0 p-2;
+    @apply space-y-1 p-3;
   }
 
   .inbox-row {
-    @apply flex min-w-0 items-center gap-3 rounded-md px-3.5 py-3 transition-colors hover:bg-muted/45;
+    @apply flex min-w-0 items-center gap-3 rounded-md p-3 transition-colors;
+  }
+
+  .inbox-row:hover {
+    background: var(--app-row-bg-hover);
   }
 
   .inbox-row.is-selected {
-    @apply bg-muted/65;
+    background: var(--app-row-bg-selected);
   }
 
   .inbox-row-indicator {
@@ -815,19 +924,19 @@
   }
 
   .inbox-preview {
-    @apply overflow-hidden rounded-lg bg-card text-card-foreground shadow-sm;
-    background: rgba(20, 24, 34, 0.64);
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.042), 0 18px 54px rgba(0, 0, 0, 0.14);
+    @apply overflow-hidden rounded-lg text-card-foreground shadow-sm;
+    background: var(--app-surface-bg);
+    box-shadow: inset 0 0 0 1px var(--app-divider-soft), 0 18px 44px rgba(0, 0, 0, 0.18);
   }
 
   .inbox-preview-header {
-    @apply flex min-h-13 items-center justify-between gap-3 bg-muted/25 px-3.5;
-    box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.035);
+    @apply flex min-h-0 items-center justify-between gap-3 px-4 py-3;
+    background: var(--app-surface-header-bg);
   }
 
   .inbox-property {
-    @apply flex items-center justify-between gap-4 px-0 py-2 text-muted-foreground;
-    background: linear-gradient(90deg, rgba(255, 255, 255, 0.026), transparent 82%);
+    @apply flex items-center justify-between gap-4 rounded-md px-3 py-2.5 text-muted-foreground;
+    background: var(--app-row-bg);
   }
 
   .inbox-property strong {
@@ -835,12 +944,13 @@
   }
 
   .app-flat-row {
-    @apply px-0 py-2 text-muted-foreground;
-    background: linear-gradient(90deg, rgba(255, 255, 255, 0.026), transparent 82%);
+    @apply rounded-md px-3 py-3 text-muted-foreground;
+    background: var(--app-row-bg);
   }
 
   .app-badge {
-    @apply inline-flex h-5 items-center rounded-md bg-muted/70 px-1.5 text-[11px] font-medium text-muted-foreground;
+    @apply inline-flex h-5 items-center rounded-md px-1.5 text-[11px] font-medium text-muted-foreground;
+    background: var(--app-control-bg);
   }
 
   .app-icon {
@@ -852,12 +962,9 @@
   .linear-surface,
   .inbox-list-panel,
   .inbox-preview {
-    backdrop-filter: blur(18px);
-    background:
-      radial-gradient(circle at 12% 0%, rgba(56, 189, 248, 0.08), transparent 19rem),
-      radial-gradient(circle at 92% 14%, rgba(45, 212, 191, 0.055), transparent 18rem),
-      linear-gradient(180deg, rgba(18, 23, 33, 0.62), rgba(11, 15, 23, 0.72));
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.042), 0 18px 48px rgba(0, 0, 0, 0.14);
+    backdrop-filter: blur(10px);
+    background: var(--app-surface-bg);
+    box-shadow: inset 0 0 0 1px var(--app-divider-soft), 0 18px 44px rgba(0, 0, 0, 0.18);
     overflow: hidden;
     position: relative;
   }
@@ -867,11 +974,11 @@
   .linear-surface::before,
   .inbox-list-panel::before,
   .inbox-preview::before {
-    background: linear-gradient(90deg, transparent, rgba(125, 211, 252, 0.34), rgba(45, 212, 191, 0.18), transparent);
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent);
     content: "";
     height: 1px;
     inset: 0 0 auto;
-    opacity: 0.72;
+    opacity: 0.58;
     pointer-events: none;
     position: absolute;
   }
@@ -887,7 +994,7 @@
 
   .linear-toolbar,
   .inbox-header {
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.014));
+    background: var(--app-surface-header-bg);
   }
 
   .app-page-actions {
@@ -903,17 +1010,22 @@
   }
 
   .app-run-step {
-    @apply px-0 py-3;
-    background: linear-gradient(90deg, rgba(255, 255, 255, 0.026), transparent 82%);
+    @apply rounded-md px-3 py-3;
+    background: var(--app-row-bg);
   }
 
   .app-automation-button {
-    @apply flex w-full min-w-0 items-center gap-3 rounded-md px-3 py-3 text-left transition-colors hover:bg-muted/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50;
-    background: linear-gradient(90deg, rgba(255, 255, 255, 0.026), transparent 82%);
+    @apply flex w-full min-w-0 items-center gap-3 rounded-md px-3 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50;
+    background: var(--app-row-bg);
+  }
+
+  .app-automation-button:hover {
+    background: var(--app-row-bg-hover);
   }
 
   .cycle-progress {
-    @apply h-2 overflow-hidden rounded-md bg-muted/45;
+    @apply h-2 overflow-hidden rounded-md;
+    background: var(--app-control-bg);
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.035);
   }
 

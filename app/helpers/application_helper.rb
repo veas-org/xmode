@@ -54,7 +54,53 @@ module ApplicationHelper
     nil
   end
 
+  def status_icon_pill(value, title: nil)
+    label = title.presence || value.to_s.tr("_", " ").titleize
+    tag.span(
+      lucide_icon(status_icon_name(value), class_name: "app-icon"),
+      class: "status-icon-pill #{status_icon_tone(value)}",
+      title: label,
+      aria: { label: label }
+    )
+  end
+
   private
+
+  def status_icon_name(value)
+    case value.to_s.parameterize
+    when "done", "completed", "complete", "closed", "merged", "current", "active"
+      "check-circle"
+    when "in-progress", "running", "processing", "open"
+      "activity"
+    when "waiting-for-approval", "waiting", "pending", "approval"
+      "hand"
+    when "failed", "failure", "canceled", "cancelled", "rejected", "blocked", "critical", "urgent"
+      "ban"
+    when "planned", "backlog", "todo", "new", "queued", "draft", "local-draft"
+      "circle-dot"
+    when "high", "medium", "low", "info"
+      "activity"
+    else
+      "circle-dot"
+    end
+  end
+
+  def status_icon_tone(value)
+    case value.to_s.parameterize
+    when "done", "completed", "complete", "closed", "merged", "current", "active"
+      "is-success"
+    when "in-progress", "running", "processing", "open"
+      "is-info"
+    when "waiting-for-approval", "waiting", "pending", "approval", "planned", "backlog", "queued", "draft", "local-draft"
+      "is-muted"
+    when "failed", "failure", "canceled", "cancelled", "rejected", "blocked", "critical", "urgent"
+      "is-danger"
+    when "high"
+      "is-warning"
+    else
+      "is-muted"
+    end
+  end
 
   def lucide_icon_nodes(name)
     case name.to_s
