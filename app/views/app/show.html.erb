@@ -54,7 +54,7 @@
         <div class="linear-tabs">
           <%= link_to "Inbox", issues_path(view: "inbox"), class: "linear-tab" %>
           <%= link_to "My Issues", issues_path(view: "my"), class: "linear-tab is-active" %>
-          <%= link_to "Backlog", issues_path, class: "linear-tab" %>
+          <%= link_to "Backlog", issues_path(view: "backlog"), class: "linear-tab" %>
         </div>
       </div>
 

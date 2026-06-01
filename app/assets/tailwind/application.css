@@ -611,6 +611,14 @@
     @apply text-[11px] font-medium text-sky-300;
   }
 
+  .app-view-card {
+    @apply block rounded-md bg-muted/25 p-4 transition-colors hover:bg-muted/45;
+  }
+
+  .app-view-icon {
+    @apply grid h-8 w-8 shrink-0 place-items-center rounded-md bg-background/70 text-muted-foreground;
+  }
+
   .app-table {
     @apply w-full text-left text-sm;
   }

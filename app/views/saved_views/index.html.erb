@@ -13,10 +13,10 @@
   <div class="grid gap-2 p-2 md:grid-cols-2 xl:grid-cols-3">
     <% @view_rows.each do |row| %>
       <% view = row.fetch(:view) %>
-      <%= link_to view_path(view), class: "rounded-lg bg-muted/35 p-4 transition-colors hover:bg-muted/60" do %>
+      <%= link_to view_path(view), class: "app-view-card" do %>
         <div class="flex items-start justify-between gap-3">
           <div class="flex min-w-0 items-center gap-2">
-            <span class="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-background text-muted-foreground">
+            <span class="app-view-icon">
               <%= lucide_icon(row.fetch(:icon), class_name: "app-icon") %>
             </span>
             <div class="min-w-0">
@@ -26,7 +26,8 @@
           </div>
           <span class="linear-count"><%= row.fetch(:count) %></span>
         </div>
-        <p class="mt-4 text-xs text-muted-foreground"><%= view.view_type.tr("_", " ").titleize %></p>
+        <p class="mt-4 line-clamp-2 text-xs leading-5 text-muted-foreground"><%= row.fetch(:description) %></p>
+        <p class="mt-3 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground"><%= view.view_type.tr("_", " ").titleize %></p>
       <% end %>
     <% end %>
 

@@ -1,6 +1,7 @@
 <% page_title = case @view
   when "my" then "My Issues"
   when "active_cycle" then "Active Cycle"
+  when "backlog" then "Backlog"
   else "Inbox"
 end %>
 <% content_for :page_title, page_title %>
@@ -122,6 +123,7 @@ end %>
       <%= link_to "Inbox", issues_path(view: "inbox"), class: "linear-tab" %>
       <%= link_to "My Issues", issues_path(view: "my"), class: "linear-tab #{'is-active' if @view == 'my'}" %>
       <%= link_to "Active Cycle", issues_path(view: "active_cycle"), class: "linear-tab #{'is-active' if @view == 'active_cycle'}" %>
+      <%= link_to "Backlog", issues_path(view: "backlog"), class: "linear-tab #{'is-active' if @view == 'backlog'}" %>
     </nav>
     <%= link_to new_issue_path, class: "app-btn app-btn-primary" do %>
       <%= lucide_icon("plus", class_name: "app-icon") %>
