@@ -1,27 +1,161 @@
 <% content_for :page_title, "Schedule ##{@schedule.id}" %>
 
-<section class="linear-surface p-5">
-  <div class="flex flex-wrap items-start justify-between gap-3">
-    <div>
-      <p class="app-eyebrow"><%= @schedule.kind %> schedule</p>
-      <h2 class="mt-1 text-xl font-semibold text-foreground"><%= @schedule.pipeline_definition.name %></h2>
-    </div>
-    <span class="status-pill"><%= @schedule.status %></span>
+<div class="app-page-actions">
+  <div class="min-w-0">
+    <p class="app-eyebrow"><%= @schedule.kind.tr("_", " ").titleize %> schedule</p>
+    <h2 class="mt-1 truncate text-xl font-semibold text-foreground">Schedule operating record</h2>
+    <p class="mt-1 max-w-3xl text-sm leading-6 text-muted-foreground">Recurring and one-off automation should show the trigger, target context, action path, run evidence, and Change Request boundary before a team trusts it.</p>
   </div>
-  <dl class="mt-5 grid gap-2 text-sm md:grid-cols-2">
-    <div class="inbox-property"><dt>Pipeline</dt><dd><strong><%= @schedule.pipeline_definition.name %></strong></dd></div>
-    <div class="inbox-property"><dt>Target</dt><dd><strong><%= @schedule.schedulable&.try(:title) || @schedule.schedulable&.try(:name) || "Workspace" %></strong></dd></div>
-    <div class="inbox-property"><dt>When</dt><dd><strong><%= @schedule.run_at&.strftime("%b %-d, %Y %-I:%M %p") || @schedule.cron %></strong></dd></div>
-    <div class="inbox-property"><dt>Status</dt><dd><strong><%= @schedule.status %></strong></dd></div>
-  </dl>
-  <div class="mt-5 flex flex-wrap gap-2">
+  <div class="flex flex-wrap items-center gap-2">
+    <span class="status-pill"><%= @schedule.status.titleize %></span>
     <%= link_to edit_schedule_path(@schedule), class: "app-btn app-btn-muted", data: side_panel_data do %>
       <%= lucide_icon("pencil", class_name: "app-icon") %>
       <span>Edit</span>
     <% end %>
-    <%= button_to run_pipeline_path(@schedule.pipeline_definition), method: :post, class: "app-btn app-btn-primary" do %>
+    <%= button_to run_pipeline_path(@pipeline, project_id: @target_project&.id), method: :post, class: "app-btn app-btn-muted" do %>
       <%= lucide_icon("play", class_name: "app-icon") %>
       <span>Run now</span>
     <% end %>
   </div>
-</section>
+</div>
+
+<div class="app-detail-grid">
+  <main class="min-w-0 space-y-4">
+    <section class="linear-surface p-5">
+      <div class="flex flex-wrap items-start justify-between gap-4">
+        <div class="min-w-0">
+          <p class="app-eyebrow">Trigger contract</p>
+          <h2 class="mt-2 text-2xl font-semibold text-foreground"><%= @pipeline.name %></h2>
+          <p class="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">This schedule dispatches a frozen pipeline definition against <span class="text-foreground"><%= @target&.try(:title) || @target&.try(:name) || "the workspace" %></span>.</p>
+        </div>
+        <span class="status-pill"><%= @schedule.run_at.present? ? "One-off" : "Recurring" %></span>
+      </div>
+
+      <dl class="mt-5 grid gap-2 text-sm md:grid-cols-3">
+        <% @trigger_rows.each do |label, value| %>
+          <div class="inbox-property"><dt><%= label %></dt><dd><strong><%= value.presence || "-" %></strong></dd></div>
+        <% end %>
+      </dl>
+    </section>
+
+    <section class="linear-surface">
+      <div class="linear-toolbar">
+        <div>
+          <h3 class="linear-title">Action path</h3>
+          <p class="text-xs text-muted-foreground">The scheduled run follows this action graph and snapshots it per execution.</p>
+        </div>
+        <span class="linear-count"><%= pluralize(@nodes.size, "step") %></span>
+      </div>
+
+      <div class="linear-list">
+        <% @nodes.each_with_index do |node, index| %>
+          <% action = @actions_by_key[node["action_key"]] %>
+          <% next_edge = @edges.find { |edge| edge["from"] == node["id"] } %>
+          <article class="app-run-step">
+            <div class="flex min-w-0 items-start gap-3">
+              <span class="status-pill shrink-0"><%= index + 1 %></span>
+              <div class="min-w-0 flex-1">
+                <div class="flex flex-wrap items-start justify-between gap-2">
+                  <div class="min-w-0">
+                    <h3 class="truncate text-sm font-semibold text-foreground"><%= node["label"] || action&.name || node["action_key"] %></h3>
+                    <p class="mt-1 text-xs text-muted-foreground">
+                      <%= action&.skill_definition&.name || "No skill" %> · <%= (action&.provider || "provider").to_s.tr("_", " ").titleize %>
+                    </p>
+                  </div>
+                  <span class="status-pill shrink-0"><%= next_edge&.fetch("condition", nil).presence || "next" %></span>
+                </div>
+                <% if action %>
+                  <div class="mt-3 grid gap-2 text-sm md:grid-cols-3">
+                    <div class="inbox-property"><span>Objective</span><strong><%= action.requires_objective? ? "Required" : "Optional" %></strong></div>
+                    <div class="inbox-property"><span>Plan</span><strong><%= action.plan_required_when_objective_unclear? ? "Fallback" : "Optional" %></strong></div>
+                    <div class="inbox-property"><span>Timeout</span><strong><%= action.timeout_seconds %>s</strong></div>
+                  </div>
+                <% end %>
+              </div>
+            </div>
+          </article>
+        <% end %>
+      </div>
+    </section>
+
+    <section class="linear-surface">
+      <div class="linear-toolbar">
+        <div>
+          <h3 class="linear-title">Recent scheduled runs</h3>
+          <p class="text-xs text-muted-foreground">Execution evidence tied back to this schedule target.</p>
+        </div>
+        <span class="linear-count"><%= @recent_runs.size %></span>
+      </div>
+
+      <div class="linear-list">
+        <% if @recent_runs.any? %>
+          <% @recent_runs.each do |run| %>
+            <%= link_to pipeline_run_path(run), class: "linear-row" do %>
+              <%= lucide_icon(run.status == "completed" ? "check" : "activity", class_name: "app-icon text-muted-foreground") %>
+              <span class="linear-row-main">
+                <span class="linear-row-title"><%= run.issue&.identifier || run.project&.title || "Workspace run" %></span>
+                <span class="linear-row-meta">
+                  <span><%= run.display_trigger %></span>
+                  <span><%= run.run_artifacts.first&.name || pluralize(run.run_artifacts.size, "artifact") %></span>
+                  <% if run.change_request.present? %>
+                    <span><%= run.change_request.branch_name %></span>
+                  <% end %>
+                  <span><%= time_ago_in_words(run.created_at) %> ago</span>
+                </span>
+              </span>
+              <span class="status-pill shrink-0"><%= run.display_status %></span>
+            <% end %>
+          <% end %>
+        <% else %>
+          <p class="linear-empty">No scheduled runs have matched this target yet.</p>
+        <% end %>
+      </div>
+    </section>
+  </main>
+
+  <aside class="linear-side">
+    <section class="linear-surface p-4">
+      <h3 class="font-medium text-foreground">Safety boundary</h3>
+      <div class="mt-3 space-y-1">
+        <% @safety_rows.each do |label, value| %>
+          <div class="app-flat-row rounded-md">
+            <p class="text-sm font-medium text-foreground"><%= label %></p>
+            <p class="mt-1 text-sm leading-6 text-muted-foreground"><%= value %></p>
+          </div>
+        <% end %>
+      </div>
+    </section>
+
+    <section class="linear-surface p-4">
+      <h3 class="font-medium text-foreground">Target context</h3>
+      <dl class="mt-3 grid gap-2 text-sm">
+        <div class="inbox-property"><dt>Target</dt><dd><strong><%= @target&.try(:title) || @target&.try(:name) || "Workspace" %></strong></dd></div>
+        <div class="inbox-property"><dt>Project</dt><dd><strong><%= @target_project&.title || "-" %></strong></dd></div>
+        <div class="inbox-property"><dt>Repository</dt><dd><strong><%= @target_project&.repository_url.presence || "-" %></strong></dd></div>
+        <div class="inbox-property"><dt>Pipeline key</dt><dd><strong><%= @pipeline.key %></strong></dd></div>
+      </dl>
+    </section>
+
+    <section class="linear-surface p-4">
+      <div class="flex items-center justify-between gap-3">
+        <h3 class="font-medium text-foreground">Change Requests</h3>
+        <span class="linear-count"><%= @change_requests.size %></span>
+      </div>
+      <div class="mt-3 space-y-1">
+        <% if @change_requests.any? %>
+          <% @change_requests.each do |change_request| %>
+            <%= link_to change_request_path(change_request), class: "app-flat-row flex items-center justify-between gap-4 rounded-md" do %>
+              <span class="min-w-0">
+                <span class="block truncate text-sm font-medium text-foreground"><%= change_request.title %></span>
+                <span class="mt-1 block truncate text-xs text-muted-foreground"><%= change_request.branch_name %></span>
+              </span>
+              <span class="status-pill shrink-0"><%= change_request.status.titleize %></span>
+            <% end %>
+          <% end %>
+        <% else %>
+          <p class="linear-empty px-0 py-4 text-left">No Change Requests have been produced by this schedule yet.</p>
+        <% end %>
+      </div>
+    </section>
+  </aside>
+</div>
