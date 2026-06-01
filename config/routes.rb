@@ -28,6 +28,7 @@ Rails.application.routes.draw do
   resources :events, only: %i[index show]
   resources :skills, controller: :skill_definitions, except: :destroy do
     collection do
+      get :import, action: :new_import
       post :import
     end
     member do
@@ -36,6 +37,7 @@ Rails.application.routes.draw do
   end
   resources :actions, controller: :action_definitions, except: :destroy do
     collection do
+      get :import, action: :new_import
       post :import
     end
     member do
@@ -44,6 +46,7 @@ Rails.application.routes.draw do
   end
   resources :pipelines, controller: :pipeline_definitions, except: :destroy do
     collection do
+      get :import, action: :new_import
       post :import
     end
     member do

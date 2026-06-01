@@ -1,0 +1,8 @@
+<% content_for :page_title, "Import skill" %>
+<%= render "shared/catalog_import_panel",
+      title: "Import skill",
+      eyebrow: "Skill management",
+      description: "Add a reusable team capability from a reviewed YAML definition.",
+      back_path: skills_path,
+      url: import_skills_path,
+      placeholder: "key: planning\nname: Story Planning\ncategory: planning\ninstructions: |\n  Make the objective explicit before implementation." %>

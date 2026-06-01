@@ -1,0 +1,8 @@
+<% content_for :page_title, "Import pipeline" %>
+<%= render "shared/catalog_import_panel",
+      title: "Import pipeline",
+      eyebrow: "Pipeline catalog",
+      description: "Add a reusable action sequence with required context, trigger policy, and run snapshot contract.",
+      back_path: pipelines_path,
+      url: import_pipelines_path,
+      placeholder: "key: implement-issue\nname: Implement Issue\ntriggers:\n  - manual\ngraph:\n  nodes:\n    - id: plan\n      action_key: plan-story" %>

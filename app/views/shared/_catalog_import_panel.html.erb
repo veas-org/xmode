@@ -1,0 +1,27 @@
+<% title = local_assigns.fetch(:title) %>
+<% eyebrow = local_assigns.fetch(:eyebrow) %>
+<% description = local_assigns.fetch(:description) %>
+<% back_path = local_assigns.fetch(:back_path) %>
+<% url = local_assigns.fetch(:url) %>
+<% placeholder = local_assigns.fetch(:placeholder) %>
+
+<%= render layout: "shared/side_panel",
+      locals: {
+        title: title,
+        eyebrow: eyebrow,
+        description: description,
+        back_path: back_path,
+        wide: true
+      } do %>
+  <%= form_with url: url, method: :post, class: "space-y-4" do %>
+    <div>
+      <%= label_tag :catalog_yaml, "Catalog YAML", class: "app-label" %>
+      <%= text_area_tag :catalog_yaml,
+            nil,
+            rows: 18,
+            placeholder: placeholder,
+            class: "app-textarea font-mono" %>
+    </div>
+    <%= submit_tag "Import", class: "app-btn app-btn-primary" %>
+  <% end %>
+<% end %>

@@ -13,6 +13,9 @@ class PipelineDefinitionsController < AuthenticatedController
     @pipeline_definition = current_workspace.pipeline_definitions.new(graph: { nodes: [], edges: [] })
   end
 
+  def new_import
+  end
+
   def create
     @pipeline_definition = current_workspace.pipeline_definitions.new(pipeline_params)
     if @pipeline_definition.save

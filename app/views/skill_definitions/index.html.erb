@@ -5,19 +5,6 @@
     <p class="app-eyebrow">Skill management</p>
     <p class="mt-1 max-w-2xl text-sm text-muted-foreground">Reusable team capabilities. Each skill defines how objectives, plans, evidence, and best practices should flow into executable actions.</p>
   </div>
-  <div class="flex flex-wrap items-center gap-2">
-    <details class="app-disclosure">
-      <summary>Import YAML</summary>
-      <%= form_with url: import_skills_path, method: :post, class: "mt-3 flex min-w-0 flex-wrap gap-2" do %>
-        <%= text_area_tag :catalog_yaml, nil, rows: 2, placeholder: "Paste skill YAML", class: "app-textarea w-64 max-w-full" %>
-        <%= submit_tag "Import", class: "app-btn app-btn-muted" %>
-      <% end %>
-    </details>
-    <%= link_to new_skill_path, class: "app-btn app-btn-primary" do %>
-      <%= lucide_icon("plus", class_name: "app-icon") %>
-      <span>Skill</span>
-    <% end %>
-  </div>
 </div>
 
 <section class="linear-surface">
@@ -27,7 +14,18 @@
       <h2 class="linear-title">Skills library</h2>
       <span class="linear-count"><%= @skills.size %></span>
     </div>
-    <span class="app-eyebrow">Objective and plan aware</span>
+    <% if permitted?(:manage_pipelines) %>
+      <div class="flex items-center gap-1.5">
+        <%= link_to import_skills_path, class: "app-icon-btn", title: "Import skill", aria: { label: "Import skill" } do %>
+          <%= lucide_icon("upload", class_name: "app-icon") %>
+        <% end %>
+        <%= link_to new_skill_path, class: "app-icon-btn", title: "New skill", aria: { label: "New skill" } do %>
+          <%= lucide_icon("plus", class_name: "app-icon") %>
+        <% end %>
+      </div>
+    <% else %>
+      <span class="app-eyebrow">Objective and plan aware</span>
+    <% end %>
   </div>
 
   <div class="grid gap-2 p-2 md:grid-cols-2 xl:grid-cols-3">
@@ -46,6 +44,17 @@
           <span class="status-pill"><%= skill.plan_template.present? ? "plan fallback" : "manual plan" %></span>
         </div>
       <% end %>
+    <% end %>
+    <% if @skills.empty? %>
+      <div class="linear-empty md:col-span-2 xl:col-span-3">
+        <p>No skills are defined for this workspace.</p>
+        <% if permitted?(:manage_pipelines) %>
+          <%= link_to new_skill_path, class: "app-btn app-btn-muted mt-4" do %>
+            <%= lucide_icon("plus", class_name: "app-icon") %>
+            <span>Add skill</span>
+          <% end %>
+        <% end %>
+      </div>
     <% end %>
   </div>
 </section>

@@ -14,6 +14,9 @@ class SkillDefinitionsController < AuthenticatedController
     @skill_definition = current_workspace.skill_definitions.new(category: "planning")
   end
 
+  def new_import
+  end
+
   def create
     @skill_definition = current_workspace.skill_definitions.new(skill_params)
     if @skill_definition.save

@@ -14,6 +14,9 @@ class ActionDefinitionsController < AuthenticatedController
     @action_definition = current_workspace.action_definitions.new(provider: "manual", category: "manual")
   end
 
+  def new_import
+  end
+
   def create
     @action_definition = current_workspace.action_definitions.new(action_params)
     if @action_definition.save
