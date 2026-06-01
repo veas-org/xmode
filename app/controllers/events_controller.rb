@@ -14,13 +14,19 @@ class EventsController < AuthenticatedController
   end
 
   def show
-    @rules = current_workspace.event_rules.select { |rule| rule.matches?(@event) }
+    @rules = current_workspace.event_rules.includes(:pipeline_definition).select { |rule| rule.matches?(@event) }
+    @runs = @event.pipeline_runs.includes(:pipeline_definition, :project, :issue, :change_request, :run_artifacts).order(created_at: :desc).limit(6)
+    @rule_rows = @rules.map { |rule| { rule: rule, condition_summary: condition_summary(rule) } }
+    @routing_rows = routing_rows
+    @timeline_rows = timeline_rows
+    @normalized_rows = event_properties(@event.normalized)
+    @payload_rows = event_properties(@event.payload)
   end
 
   private
 
   def set_event
-    @event = current_workspace.events.find(params[:id])
+    @event = current_workspace.events.includes(:project, :issue).find(params[:id])
   end
 
   def event_row(event)
@@ -45,5 +51,46 @@ class EventsController < AuthenticatedController
     parts << "type: #{rule.event_type}" if rule.event_type.present?
     rule.conditions.each { |key, value| parts << "#{key}: #{value}" }
     parts.presence || [ "all events" ]
+  end
+
+  def routing_rows
+    [
+      [ "Source", @event.source ],
+      [ "Type", @event.event_type ],
+      [ "Severity", @event.severity ],
+      [ "Status", @event.status ],
+      [ "Project", @event.project&.title || "Unassigned" ],
+      [ "Issue", @event.issue&.identifier || "Not linked" ],
+      [ "Matched rules", @rules.size ],
+      [ "Automation runs", @runs.size ]
+    ]
+  end
+
+  def timeline_rows
+    rows = [
+      [ "Received", helpers.time_ago_in_words(@event.created_at) + " ago" ],
+      [ "Normalized repository", @event.normalized["repository"].presence || "Not provided" ]
+    ]
+    rows << [ "Matched pipeline", @rules.map { |rule| rule.pipeline_definition&.name }.compact.to_sentence.presence || "No pipeline matched" ]
+    rows << [ "Issue routing", @event.issue ? "Linked to #{@event.issue.identifier}" : "Waiting for triage" ]
+    rows << [ "Run evidence", @runs.any? ? "#{@runs.size} run records" : "No run created yet" ]
+    rows
+  end
+
+  def event_properties(payload)
+    payload.to_h.sort.map do |key, value|
+      [ key.to_s.humanize, property_value(value) ]
+    end
+  end
+
+  def property_value(value)
+    case value
+    when Hash, Array
+      JSON.generate(value)
+    when TrueClass, FalseClass
+      value.to_s
+    else
+      value.presence || "-"
+    end
   end
 end

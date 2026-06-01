@@ -1,50 +1,187 @@
 <% content_for :page_title, @event.title %>
 
+<div class="app-page-actions">
+  <div>
+    <p class="app-eyebrow">Event intake</p>
+    <h2 class="text-2xl font-semibold text-foreground">Event operating record</h2>
+    <p class="mt-1 max-w-2xl text-sm text-muted-foreground">
+      Webhook input, normalized context, matched routing rules, and automation evidence for this event.
+    </p>
+  </div>
+  <div class="flex flex-wrap items-center gap-2">
+    <span class="status-pill"><%= @event.severity %></span>
+    <span class="status-pill"><%= @event.status %></span>
+  </div>
+</div>
+
 <div class="app-detail-grid">
-  <section class="linear-surface p-5">
-    <div class="flex flex-wrap items-start justify-between gap-3">
-      <div>
-        <p class="app-eyebrow"><%= @event.source %> · <%= @event.event_type %></p>
-        <h2 class="mt-2 text-2xl font-semibold text-foreground"><%= @event.title %></h2>
+  <div class="space-y-4">
+    <section class="linear-surface p-5">
+      <div class="flex flex-wrap items-start justify-between gap-4">
+        <div class="min-w-0">
+          <p class="app-eyebrow"><%= @event.source %> · <%= @event.event_type %></p>
+          <h3 class="mt-2 truncate text-xl font-semibold text-foreground"><%= @event.title %></h3>
+        </div>
+        <div class="flex items-center gap-2 text-xs text-muted-foreground">
+          <%= lucide_icon("radio-tower", class_name: "app-icon") %>
+          <span><%= time_ago_in_words(@event.created_at) %> ago</span>
+        </div>
       </div>
-      <div class="flex flex-wrap gap-2">
-        <span class="status-pill"><%= @event.severity %></span>
-        <span class="status-pill"><%= @event.status %></span>
+
+      <div class="mt-5 grid gap-x-5 gap-y-1 text-sm md:grid-cols-2">
+        <% @routing_rows.each do |label, value| %>
+          <div class="inbox-property">
+            <span><%= label %></span>
+            <strong><%= value %></strong>
+          </div>
+        <% end %>
       </div>
-    </div>
-    <div class="mt-5 grid gap-2 text-sm md:grid-cols-2">
-      <div class="inbox-property"><span>Project</span><strong><%= @event.project&.title || "-" %></strong></div>
-      <div class="inbox-property"><span>Linked issue</span><strong><%= @event.issue&.identifier || "-" %></strong></div>
-    </div>
-    <pre class="mt-5 overflow-auto rounded-md bg-background/70 p-4 text-xs text-muted-foreground"><%= JSON.pretty_generate(@event.payload) %></pre>
-  </section>
+    </section>
+
+    <section class="linear-surface">
+      <div class="linear-toolbar">
+        <div class="flex min-w-0 items-center gap-2">
+          <%= lucide_icon("workflow", class_name: "app-icon text-muted-foreground") %>
+          <h3 class="linear-title">Matched automation rules</h3>
+        </div>
+        <span class="linear-count"><%= pluralize(@rule_rows.size, "rule") %></span>
+      </div>
+
+      <div class="linear-list">
+        <% if @rule_rows.any? %>
+          <% @rule_rows.each do |row| %>
+            <% rule = row.fetch(:rule) %>
+            <div class="app-flat-row rounded-md px-3 py-3">
+              <div class="flex flex-wrap items-start justify-between gap-3">
+                <div class="min-w-0">
+                  <p class="font-medium text-foreground"><%= rule.name %></p>
+                  <p class="mt-1 text-xs text-muted-foreground"><%= rule.pipeline_definition&.name || "No pipeline attached" %></p>
+                </div>
+                <span class="status-pill"><%= rule.active? ? "active" : "paused" %></span>
+              </div>
+              <div class="mt-3 flex flex-wrap gap-1.5">
+                <% row.fetch(:condition_summary).each do |condition| %>
+                  <span class="app-badge"><%= condition %></span>
+                <% end %>
+              </div>
+            </div>
+          <% end %>
+        <% else %>
+          <p class="linear-empty">No active routing rule matched this event.</p>
+        <% end %>
+      </div>
+    </section>
+
+    <section class="linear-surface">
+      <div class="linear-toolbar">
+        <div class="flex min-w-0 items-center gap-2">
+          <%= lucide_icon("activity", class_name: "app-icon text-muted-foreground") %>
+          <h3 class="linear-title">Related automation runs</h3>
+        </div>
+        <span class="linear-count"><%= pluralize(@runs.size, "run") %></span>
+      </div>
+
+      <div class="linear-list">
+        <% if @runs.any? %>
+          <% @runs.each do |run| %>
+            <%= link_to pipeline_run_path(run), class: "app-flat-row block rounded-md px-3 py-3 transition-colors hover:bg-muted/45" do %>
+              <div class="flex flex-wrap items-center justify-between gap-3">
+                <div class="min-w-0">
+                  <p class="truncate font-medium text-foreground"><%= run.pipeline_definition&.name || "Pipeline run" %></p>
+                  <p class="mt-1 text-xs text-muted-foreground">
+                    <%= run.display_trigger %> · <%= run.project&.title || "workspace" %><% if run.issue %> · <%= run.issue.identifier %><% end %>
+                  </p>
+                </div>
+                <div class="flex items-center gap-2">
+                  <% if run.change_request %>
+                    <span class="app-badge">CR</span>
+                  <% end %>
+                  <span class="status-pill"><%= run.display_status %></span>
+                </div>
+              </div>
+            <% end %>
+          <% end %>
+        <% else %>
+          <p class="linear-empty">No pipeline run has been created from this event yet.</p>
+        <% end %>
+      </div>
+    </section>
+  </div>
+
   <aside class="space-y-4">
     <section class="linear-surface p-4">
-      <h3 class="font-medium text-foreground">Actions</h3>
-      <div class="mt-3 space-y-2">
+      <div class="flex items-center gap-2">
+        <%= lucide_icon("route", class_name: "app-icon text-muted-foreground") %>
+        <h3 class="font-medium text-foreground">Next action</h3>
+      </div>
+      <p class="mt-2 text-sm text-muted-foreground">
+        Triage this event into project work, or inspect the linked issue when triage is already complete.
+      </p>
+      <div class="mt-4">
         <% if @event.issue %>
-          <%= link_to issue_path(@event.issue), class: "app-btn app-btn-primary w-full" do %>
+          <%= link_to issue_path(@event.issue), class: "app-btn app-btn-muted w-full" do %>
             <%= lucide_icon("circle-dot", class_name: "app-icon") %>
             <span>Open linked issue</span>
           <% end %>
         <% else %>
-          <%= link_to new_issue_path(event_id: @event.id), class: "app-btn app-btn-primary w-full", data: side_panel_data do %>
+          <%= link_to new_issue_path(event_id: @event.id), class: "app-btn app-btn-muted w-full", data: side_panel_data do %>
             <%= lucide_icon("plus", class_name: "app-icon") %>
             <span>Add issue</span>
           <% end %>
         <% end %>
       </div>
     </section>
+
     <section class="linear-surface p-4">
-      <h3 class="font-medium text-foreground">Matched rules</h3>
-      <div class="mt-3 space-y-2 text-sm text-muted-foreground">
-        <% @rules.each do |rule| %>
-          <div class="app-flat-row">
-            <p class="font-medium text-foreground"><%= rule.name %></p>
-            <p class="mt-1 text-xs"><%= rule.pipeline_definition&.name || "No pipeline" %></p>
+      <div class="flex items-center gap-2">
+        <%= lucide_icon("list-filter", class_name: "app-icon text-muted-foreground") %>
+        <h3 class="font-medium text-foreground">Normalized fields</h3>
+      </div>
+      <div class="mt-3 space-y-1 text-sm">
+        <% if @normalized_rows.any? %>
+          <% @normalized_rows.each do |label, value| %>
+            <div class="inbox-property">
+              <span><%= label %></span>
+              <strong title="<%= value %>"><%= value %></strong>
+            </div>
+          <% end %>
+        <% else %>
+          <p class="text-sm text-muted-foreground">No normalized fields were captured.</p>
+        <% end %>
+      </div>
+    </section>
+
+    <section class="linear-surface p-4">
+      <div class="flex items-center gap-2">
+        <%= lucide_icon("terminal", class_name: "app-icon text-muted-foreground") %>
+        <h3 class="font-medium text-foreground">Payload fields</h3>
+      </div>
+      <div class="mt-3 space-y-1 text-sm">
+        <% if @payload_rows.any? %>
+          <% @payload_rows.each do |label, value| %>
+            <div class="inbox-property">
+              <span><%= label %></span>
+              <strong title="<%= value %>"><%= value %></strong>
+            </div>
+          <% end %>
+        <% else %>
+          <p class="text-sm text-muted-foreground">No payload fields were captured.</p>
+        <% end %>
+      </div>
+    </section>
+
+    <section class="linear-surface p-4">
+      <div class="flex items-center gap-2">
+        <%= lucide_icon("clock", class_name: "app-icon text-muted-foreground") %>
+        <h3 class="font-medium text-foreground">Routing timeline</h3>
+      </div>
+      <div class="mt-3 space-y-1 text-sm">
+        <% @timeline_rows.each do |label, value| %>
+          <div class="inbox-property">
+            <span><%= label %></span>
+            <strong><%= value %></strong>
           </div>
         <% end %>
-        <% if @rules.empty? %><p>No rules matched.</p><% end %>
       </div>
     </section>
   </aside>
