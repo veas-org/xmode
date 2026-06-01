@@ -34,6 +34,10 @@ RSpec.describe "Issues", type: :request do
     expect(response.body).not_to include("Run Implement Issue")
 
     doc = Nokogiri::HTML(response.body)
+    expect(doc.at_css(".record-layout")).to be_present
+    expect(doc.css(".record-panel .record-panel")).to be_empty
+    expect(doc.css(".record-point").size).to be >= 5
+    expect(doc.css(".status-icon-pill[aria-label]").size).to be >= 3
     expect(doc.at_css(%(a[href="#{edit_issue_path(issue)}"][data-turbo-frame="side_panel"][aria-label="Edit issue"]))).to be_present
     expect(doc.css("button.app-automation-button").size).to eq(3)
     expect(doc.css("button.app-btn-primary").select { |button| button.text.include?("Run") }).to be_empty

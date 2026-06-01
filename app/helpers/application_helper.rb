@@ -68,15 +68,15 @@ module ApplicationHelper
 
   def status_icon_name(value)
     case value.to_s.parameterize
-    when "done", "completed", "complete", "closed", "merged", "current", "active"
+    when "done", "completed", "complete", "closed", "merged", "current", "active", "ready", "isolated", "linked", "captured", "present", "passed", "approved", "saved"
       "check-circle"
     when "in-progress", "running", "processing", "open"
       "activity"
-    when "waiting-for-approval", "waiting", "pending", "approval"
+    when "waiting-for-approval", "waiting", "pending", "approval", "manual", "manual-package", "manual-change"
       "hand"
-    when "failed", "failure", "canceled", "cancelled", "rejected", "blocked", "critical", "urgent"
+    when "failed", "failure", "canceled", "cancelled", "rejected", "blocked", "critical", "urgent", "missing"
       "ban"
-    when "planned", "backlog", "todo", "new", "queued", "draft", "local-draft"
+    when "planned", "backlog", "todo", "new", "queued", "draft", "local-draft", "needed", "needs-base", "unassigned", "not-run", "not-opened", "none-captured"
       "circle-dot"
     when "high", "medium", "low", "info"
       "activity"
@@ -87,16 +87,20 @@ module ApplicationHelper
 
   def status_icon_tone(value)
     case value.to_s.parameterize
-    when "done", "completed", "complete", "closed", "merged", "current", "active"
+    when "done", "completed", "complete", "closed", "merged", "current", "active", "ready", "isolated", "linked", "captured", "present", "passed", "approved", "saved"
       "is-success"
     when "in-progress", "running", "processing", "open"
       "is-info"
-    when "waiting-for-approval", "waiting", "pending", "approval", "planned", "backlog", "queued", "draft", "local-draft"
+    when "waiting-for-approval", "waiting", "pending", "approval", "planned", "backlog", "queued", "draft", "local-draft", "manual", "manual-package", "manual-change"
       "is-muted"
-    when "failed", "failure", "canceled", "cancelled", "rejected", "blocked", "critical", "urgent"
+    when "failed", "failure", "canceled", "cancelled", "rejected", "blocked", "critical", "urgent", "missing"
       "is-danger"
-    when "high"
+    when "high", "needed", "needs-base", "unassigned", "not-run", "not-opened", "none-captured"
       "is-warning"
+    when "medium"
+      "is-info"
+    when "low"
+      "is-success"
     else
       "is-muted"
     end

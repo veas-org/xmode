@@ -4,7 +4,7 @@
     <% issues.each do |issue| %>
       <tr>
         <td><%= link_to "#{issue.identifier} #{issue.title}", issue_path(issue), class: "text-foreground hover:text-foreground" %></td>
-        <td><span class="status-pill"><%= issue.display_status %></span></td>
+        <td><%= status_icon_pill(issue.display_status, title: issue.display_status) %></td>
         <td><%= issue.project&.title || "-" %></td>
         <td><%= issue.assignee&.display_name || "-" %></td>
       </tr>

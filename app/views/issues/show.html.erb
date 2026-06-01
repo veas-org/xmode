@@ -2,210 +2,262 @@
 
 <div class="app-page-actions">
   <div class="min-w-0">
-    <p class="app-eyebrow"><%= @issue.identifier %> · <%= @issue.display_status %></p>
-    <p class="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
+    <p class="app-eyebrow">Issue record</p>
+    <h2 class="mt-1 truncate text-xl font-semibold text-foreground"><%= @issue.identifier %> <%= @issue.title %></h2>
+    <p class="mt-1 max-w-3xl text-sm leading-6 text-muted-foreground">
       Issue operating record for objective, plan context, agent runs, evidence, and Change Requests.
     </p>
   </div>
   <div class="flex items-center gap-1.5">
-    <span class="status-pill"><%= @issue.priority %></span>
+    <%= status_icon_pill(@issue.display_status, title: @issue.display_status) %>
+    <%= status_icon_pill(@issue.priority, title: "#{@issue.priority.titleize} priority") %>
     <%= link_to edit_issue_path(@issue), class: "app-icon-btn", title: "Edit issue", aria: { label: "Edit issue" }, data: side_panel_data do %>
       <%= lucide_icon("pencil", class_name: "app-icon") %>
     <% end %>
   </div>
 </div>
 
-<div class="app-detail-grid">
-  <div class="space-y-5">
-    <article class="linear-surface p-5 md:p-6">
-      <div class="flex flex-wrap items-center gap-2">
-        <span class="status-pill"><%= @issue.display_status %></span>
-        <span class="status-pill"><%= @issue.project&.title || "No project" %></span>
-        <% if @issue.cycle %>
-          <span class="status-pill"><%= @issue.cycle.name %></span>
-        <% end %>
-      </div>
-
-      <h2 class="mt-3 text-2xl font-semibold tracking-normal text-foreground"><%= @issue.title %></h2>
-      <div class="rich-markdown mt-5 max-w-4xl">
-        <%= render_markdown(@issue.description, empty: "No objective or description has been captured yet.") %>
-      </div>
-    </article>
-
-    <section class="linear-surface p-5">
-      <div class="flex flex-wrap items-center justify-between gap-3">
-        <div class="flex min-w-0 items-center gap-2">
-          <%= lucide_icon("check-circle", class_name: "app-icon text-muted-foreground") %>
-          <h2 class="font-semibold text-foreground">Readiness</h2>
+<div class="record-layout">
+  <main class="record-main">
+    <section class="record-panel">
+      <div class="record-header">
+        <div class="min-w-0">
+          <div class="flex flex-wrap items-center gap-2">
+            <%= status_icon_pill(@issue.display_status, title: @issue.display_status) %>
+            <%= status_icon_pill(@issue.priority, title: "#{@issue.priority.titleize} priority") %>
+            <span class="status-pill"><%= @issue.project&.title || "No project" %></span>
+            <% if @issue.cycle %>
+              <span class="status-pill"><%= @issue.cycle.name %></span>
+            <% end %>
+          </div>
+          <h2 class="record-title mt-3"><%= @issue.title %></h2>
         </div>
-        <span class="app-eyebrow">Objective to review</span>
       </div>
-      <div class="mt-4 grid gap-2 md:grid-cols-5">
-        <% @readiness_steps.each_with_index do |(label, value), index| %>
-          <article class="app-flat-row rounded-md px-3 py-3">
-            <span class="flex items-center gap-2">
-              <span class="status-pill"><%= index + 1 %></span>
-              <span class="app-eyebrow"><%= label %></span>
-            </span>
-            <p class="mt-2 truncate text-sm font-medium text-foreground"><%= value %></p>
-          </article>
-        <% end %>
+      <div class="record-body">
+        <div class="rich-markdown max-w-4xl">
+          <%= render_markdown(@issue.description, empty: "No objective or description has been captured yet.") %>
+        </div>
       </div>
     </section>
 
-    <section class="linear-surface">
-      <div class="linear-toolbar">
-        <div class="flex min-w-0 items-center gap-2">
+    <section class="record-panel">
+      <div class="record-header">
+        <div class="record-section-heading">
+          <%= lucide_icon("check-circle", class_name: "app-icon text-muted-foreground") %>
+          <span>Readiness</span>
+        </div>
+        <span class="linear-count">Objective to review</span>
+      </div>
+      <div class="record-body">
+        <div class="record-point-list">
+          <% @readiness_steps.each_with_index do |(label, value), index| %>
+            <% readiness_icon = case label
+              when "Objective" then "circle-dot"
+              when "Project" then "folder"
+              when "Plan" then "list"
+              when "Automation" then "workflow"
+              else "git-pull-request"
+            end %>
+            <% readiness_state = case label
+              when "Objective" then value == "captured" ? "captured" : "missing"
+              when "Project" then value == "unassigned" ? "unassigned" : "linked"
+              when "Plan" then value == "linked" ? "linked" : "needed"
+              when "Automation" then value == "not run" ? "not run" : "captured"
+              else value == "not opened" ? "not opened" : "captured"
+            end %>
+            <article class="record-point">
+              <span class="status-pill shrink-0"><%= index + 1 %></span>
+              <%= lucide_icon(readiness_icon, class_name: "app-icon text-muted-foreground") %>
+              <span class="record-point-main">
+                <span class="record-point-title"><%= label %></span>
+                <span class="record-point-meta"><%= value %></span>
+              </span>
+              <%= status_icon_pill(readiness_state, title: "#{label}: #{value}") %>
+            </article>
+          <% end %>
+        </div>
+      </div>
+    </section>
+
+    <section class="record-panel">
+      <div class="record-header">
+        <div class="record-section-heading">
           <%= lucide_icon("activity", class_name: "app-icon text-muted-foreground") %>
-          <h2 class="linear-title">Run history</h2>
+          <span>Run history</span>
           <span class="linear-count"><%= @runs.size %></span>
         </div>
         <span class="app-eyebrow">Frozen snapshots</span>
       </div>
-      <div class="linear-list">
-        <% @runs.each do |run| %>
-          <%= link_to pipeline_run_path(run), class: "linear-row" do %>
-            <span class="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-muted/45 text-muted-foreground">
-              <%= lucide_icon(run.status == "completed" ? "check-circle" : "activity", class_name: "app-icon") %>
-            </span>
-            <span class="linear-row-main">
-              <span class="linear-row-title"><%= run.pipeline_definition&.name || "Pipeline run" %></span>
-              <span class="linear-row-meta">
-                <span><%= run.display_trigger %></span>
-                <span><%= run.display_status %></span>
-                <span><%= pluralize(run.approvals.size, "approval") %></span>
-                <span><%= pluralize(run.run_artifacts.size, "artifact") %></span>
-                <% if run.change_request %>
-                  <span><%= run.change_request.branch_name %></span>
-                <% end %>
+      <div class="record-body">
+        <div class="record-point-list">
+          <% @runs.each do |run| %>
+            <%= link_to pipeline_run_path(run), class: "record-point" do %>
+              <%= status_icon_pill(run.status, title: run.display_status) %>
+              <span class="record-point-main">
+                <span class="record-point-title"><%= run.pipeline_definition&.name || "Pipeline run" %></span>
+                <span class="record-point-meta">
+                  <span><%= run.display_trigger %></span>
+                  <span><%= pluralize(run.approvals.size, "approval") %></span>
+                  <span><%= pluralize(run.run_artifacts.size, "artifact") %></span>
+                  <% if run.change_request %>
+                    <span class="break-all"><%= run.change_request.branch_name %></span>
+                  <% end %>
+                </span>
               </span>
-            </span>
-            <span class="status-pill shrink-0"><%= time_ago_in_words(run.created_at) %> ago</span>
+              <span class="linear-count shrink-0"><%= time_ago_in_words(run.created_at) %> ago</span>
+            <% end %>
           <% end %>
-        <% end %>
-        <% if @runs.empty? %>
-          <div class="linear-empty">
-            <p>No automation has run for this issue yet. Start from a clear objective and pick a pipeline when the team is ready.</p>
+          <% if @runs.empty? %>
+            <div class="linear-empty px-0 py-6">
+              <p>No automation has run for this issue yet. Start from a clear objective and pick a pipeline when the team is ready.</p>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <aside class="record-side">
+    <section class="record-panel">
+      <div class="record-body">
+        <div class="record-side-group">
+          <div class="record-section-heading">
+            <%= lucide_icon("list-filter", class_name: "app-icon text-muted-foreground") %>
+            <span>Details</span>
+          </div>
+          <dl class="record-point-list mt-3">
+            <div class="record-key-value"><dt>Project</dt><dd><strong><%= @issue.project&.title || "-" %></strong></dd></div>
+            <div class="record-key-value"><dt>Cycle</dt><dd><strong><%= @issue.cycle&.name || "-" %></strong></dd></div>
+            <div class="record-key-value"><dt>Assignee</dt><dd><strong><%= @issue.assignee&.display_name || "-" %></strong></dd></div>
+            <div class="record-key-value"><dt>Estimate</dt><dd><strong><%= @issue.estimate || "-" %></strong></dd></div>
+            <div class="record-key-value"><dt>Due</dt><dd><strong><%= @issue.due_on&.strftime("%b %-d, %Y") || "-" %></strong></dd></div>
+          </dl>
+          <% if @issue.labels.any? %>
+            <div class="mt-3 flex flex-wrap gap-2">
+              <% @issue.labels.each do |label| %>
+                <span class="status-pill"><%= label.name %></span>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+
+        <div class="record-side-group">
+          <div class="flex items-center justify-between gap-3">
+            <div class="record-section-heading">
+              <%= lucide_icon("workflow", class_name: "app-icon text-muted-foreground") %>
+              <span>Start automation</span>
+            </div>
+            <span class="linear-count"><%= @pipeline_count %> total</span>
+          </div>
+          <p class="mt-2 text-sm leading-6 text-muted-foreground">Recommended pipelines keep the issue page focused. The full catalog remains reusable across projects.</p>
+          <div class="mt-3 space-y-2">
+            <% @recommended_pipelines.each do |pipeline| %>
+              <%= button_to run_pipeline_path(pipeline, issue_id: @issue.id),
+                    method: :post,
+                    form: { class: "contents" },
+                    class: "app-automation-button" do %>
+                <span class="app-view-icon">
+                  <%= lucide_icon("workflow", class_name: "app-icon") %>
+                </span>
+                <span class="min-w-0 flex-1 text-left">
+                  <span class="block truncate text-sm font-medium text-foreground"><%= pipeline.name %></span>
+                  <span class="mt-1 block truncate text-xs text-muted-foreground"><%= pipeline.required_context.keys.presence&.join(", ") || "issue context" %></span>
+                </span>
+                <span class="status-pill shrink-0">Start</span>
+              <% end %>
+            <% end %>
+          </div>
+        </div>
+
+        <div class="record-side-group">
+          <div class="flex items-center justify-between gap-3">
+            <div class="record-section-heading">
+              <%= lucide_icon("git-pull-request", class_name: "app-icon text-muted-foreground") %>
+              <span>Change Requests</span>
+            </div>
+            <span class="linear-count"><%= @change_requests.size %></span>
+          </div>
+          <div class="record-point-list mt-3">
+            <% @change_requests.each do |change_request| %>
+              <%= link_to change_request_path(change_request), class: "record-point" do %>
+                <%= status_icon_pill(change_request.status, title: change_request.status.to_s.titleize) %>
+                <span class="record-point-main">
+                  <span class="record-point-title"><%= change_request.title %></span>
+                  <span class="record-point-meta">
+                    <span><%= change_request.repository_connection.full_name.presence || change_request.repository_connection.name %></span>
+                    <span class="break-all"><%= change_request.branch_name %></span>
+                  </span>
+                </span>
+              <% end %>
+            <% end %>
+            <% if @change_requests.empty? %>
+              <p class="linear-empty px-0 py-4">No Change Request has been opened for this issue yet.</p>
+            <% end %>
+          </div>
+        </div>
+
+        <div class="record-side-group">
+          <div class="record-section-heading">
+            <%= lucide_icon("route", class_name: "app-icon text-muted-foreground") %>
+            <span>Objective, plan, goal</span>
+          </div>
+          <div class="record-point-list mt-3">
+            <% @context_objectives.each do |objective| %>
+              <article class="record-point">
+                <%= lucide_icon("circle-dot", class_name: "app-icon text-muted-foreground") %>
+                <span class="record-point-main">
+                  <span class="app-eyebrow">Objective</span>
+                  <span class="record-point-title mt-1 block"><%= objective.title %></span>
+                </span>
+              </article>
+            <% end %>
+            <% @context_plans.each do |plan| %>
+              <article class="record-point">
+                <%= status_icon_pill(plan.status, title: "Plan #{plan.status}") %>
+                <span class="record-point-main">
+                  <span class="app-eyebrow">Plan</span>
+                  <span class="record-point-title mt-1 block"><%= plan.title %></span>
+                </span>
+              </article>
+            <% end %>
+            <% @context_goals.each do |goal| %>
+              <article class="record-point">
+                <%= status_icon_pill(goal.status, title: "Goal #{goal.status}") %>
+                <span class="record-point-main">
+                  <span class="app-eyebrow">Goal</span>
+                  <span class="record-point-title mt-1 block"><%= goal.title %></span>
+                </span>
+              </article>
+            <% end %>
+            <% if @context_objectives.empty? && @context_plans.empty? && @context_goals.empty? %>
+              <p class="linear-empty px-0 py-4">No objective, plan, or goal context has been linked yet.</p>
+            <% end %>
+          </div>
+        </div>
+
+        <% if @events.any? %>
+          <div class="record-side-group">
+            <div class="record-section-heading">
+              <%= lucide_icon("radio-tower", class_name: "app-icon text-muted-foreground") %>
+              <span>Source events</span>
+            </div>
+            <div class="record-point-list mt-3">
+              <% @events.each do |event| %>
+                <%= link_to event_path(event), class: "record-point" do %>
+                  <%= status_icon_pill(event.status, title: event.status.to_s.titleize) %>
+                  <span class="record-point-main">
+                    <span class="record-point-title"><%= event.title %></span>
+                    <span class="record-point-meta">
+                      <span><%= event.source %></span>
+                      <span><%= event.severity %></span>
+                    </span>
+                  </span>
+                <% end %>
+              <% end %>
+            </div>
           </div>
         <% end %>
       </div>
     </section>
-  </div>
-
-  <aside class="space-y-4">
-    <section class="linear-surface p-4">
-      <h3 class="font-medium text-foreground">Details</h3>
-      <dl class="mt-3 grid gap-2 text-sm">
-        <div class="inbox-property"><dt>Project</dt><dd><strong><%= @issue.project&.title || "-" %></strong></dd></div>
-        <div class="inbox-property"><dt>Cycle</dt><dd><strong><%= @issue.cycle&.name || "-" %></strong></dd></div>
-        <div class="inbox-property"><dt>Assignee</dt><dd><strong><%= @issue.assignee&.display_name || "-" %></strong></dd></div>
-        <div class="inbox-property"><dt>Estimate</dt><dd><strong><%= @issue.estimate || "-" %></strong></dd></div>
-        <div class="inbox-property"><dt>Due</dt><dd><strong><%= @issue.due_on&.strftime("%b %-d, %Y") || "-" %></strong></dd></div>
-      </dl>
-      <% if @issue.labels.any? %>
-        <div class="mt-4 flex flex-wrap gap-2">
-          <% @issue.labels.each do |label| %>
-            <span class="status-pill"><%= label.name %></span>
-          <% end %>
-        </div>
-      <% end %>
-    </section>
-
-    <section class="linear-surface p-4">
-      <div class="flex items-center justify-between gap-3">
-        <h3 class="font-medium text-foreground">Start automation</h3>
-        <span class="linear-count"><%= @pipeline_count %> total</span>
-      </div>
-      <p class="mt-2 text-sm leading-6 text-muted-foreground">Recommended pipelines keep the issue page focused. The full catalog remains reusable across projects.</p>
-      <div class="mt-3 space-y-2">
-        <% @recommended_pipelines.each do |pipeline| %>
-          <%= button_to run_pipeline_path(pipeline, issue_id: @issue.id),
-                method: :post,
-                form: { class: "contents" },
-                class: "app-automation-button" do %>
-            <span class="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-muted/45 text-muted-foreground">
-              <%= lucide_icon("workflow", class_name: "app-icon") %>
-            </span>
-            <span class="min-w-0 flex-1 text-left">
-              <span class="block truncate text-sm font-medium text-foreground"><%= pipeline.name %></span>
-              <span class="mt-1 block truncate text-xs text-muted-foreground"><%= pipeline.required_context.keys.presence&.join(", ") || "issue context" %></span>
-            </span>
-            <span class="status-pill shrink-0">Start</span>
-          <% end %>
-        <% end %>
-      </div>
-    </section>
-
-    <section class="linear-surface p-4">
-      <div class="flex items-center justify-between gap-3">
-        <h3 class="font-medium text-foreground">Change Requests</h3>
-        <span class="linear-count"><%= @change_requests.size %></span>
-      </div>
-      <div class="mt-3 space-y-2">
-        <% @change_requests.each do |change_request| %>
-          <%= link_to change_request_path(change_request), class: "app-flat-row block rounded-md px-3 py-2 transition-colors hover:bg-muted/45" do %>
-            <span class="flex min-w-0 items-start justify-between gap-3">
-              <span class="min-w-0">
-                <span class="block text-sm font-medium text-foreground"><%= change_request.title %></span>
-                <span class="linear-row-meta">
-                  <%= lucide_icon("git-pull-request", class_name: "app-icon") %>
-                  <span><%= change_request.repository_connection.full_name.presence || change_request.repository_connection.name %></span>
-                  <span class="break-all"><%= change_request.branch_name %></span>
-                </span>
-              </span>
-              <span class="status-pill shrink-0"><%= change_request.status.to_s.titleize %></span>
-            </span>
-          <% end %>
-        <% end %>
-        <% if @change_requests.empty? %>
-          <p class="linear-empty px-0 py-4">No Change Request has been opened for this issue yet.</p>
-        <% end %>
-      </div>
-    </section>
-
-    <section class="linear-surface p-4">
-      <h3 class="font-medium text-foreground">Objective, plan, goal</h3>
-      <div class="mt-3 space-y-2">
-        <% @context_objectives.each do |objective| %>
-          <article class="app-flat-row rounded-md px-3 py-2">
-            <p class="app-eyebrow">Objective</p>
-            <p class="mt-1 text-sm font-medium text-foreground"><%= objective.title %></p>
-          </article>
-        <% end %>
-        <% @context_plans.each do |plan| %>
-          <article class="app-flat-row rounded-md px-3 py-2">
-            <p class="app-eyebrow">Plan · <%= plan.status %></p>
-            <p class="mt-1 text-sm font-medium text-foreground"><%= plan.title %></p>
-          </article>
-        <% end %>
-        <% @context_goals.each do |goal| %>
-          <article class="app-flat-row rounded-md px-3 py-2">
-            <p class="app-eyebrow">Goal · <%= goal.status %></p>
-            <p class="mt-1 text-sm font-medium text-foreground"><%= goal.title %></p>
-          </article>
-        <% end %>
-        <% if @context_objectives.empty? && @context_plans.empty? && @context_goals.empty? %>
-          <p class="linear-empty px-0 py-4">No objective, plan, or goal context has been linked yet.</p>
-        <% end %>
-      </div>
-    </section>
-
-    <% if @events.any? %>
-      <section class="linear-surface p-4">
-        <h3 class="font-medium text-foreground">Source events</h3>
-        <div class="mt-3 space-y-2">
-          <% @events.each do |event| %>
-            <%= link_to event_path(event), class: "app-flat-row block rounded-md px-3 py-2 transition-colors hover:bg-muted/45" do %>
-              <span class="block text-sm font-medium text-foreground"><%= event.title %></span>
-              <span class="linear-row-meta">
-                <span><%= event.source %></span>
-                <span><%= event.severity %></span>
-                <span><%= event.status %></span>
-              </span>
-            <% end %>
-          <% end %>
-        </div>
-      </section>
-    <% end %>
   </aside>
 </div>

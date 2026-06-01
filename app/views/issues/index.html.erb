@@ -50,7 +50,7 @@ end %>
       <div class="inbox-list">
         <% @issues.each do |issue| %>
           <%= link_to issue_path(issue), class: "inbox-row #{'is-selected' if issue == @selected_issue}" do %>
-            <span class="inbox-row-indicator"></span>
+            <%= status_icon_pill(issue.display_status, title: issue.display_status) %>
             <div class="min-w-0 flex-1">
               <div class="flex min-w-0 items-center gap-2">
                 <span class="font-mono text-xs text-muted-foreground"><%= issue.identifier %></span>
@@ -58,12 +58,11 @@ end %>
               </div>
               <div class="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                 <span><%= issue.project&.title || "No project" %></span>
-                <span><%= issue.display_status %></span>
                 <span><%= issue.assignee&.display_name || "Unassigned" %></span>
                 <span><%= time_ago_in_words(issue.updated_at) %> ago</span>
               </div>
             </div>
-            <span class="status-pill shrink-0"><%= issue.priority %></span>
+            <%= status_icon_pill(issue.priority, title: "#{issue.priority.titleize} priority") %>
           <% end %>
         <% end %>
 
@@ -83,7 +82,10 @@ end %>
             <p class="app-eyebrow"><%= @selected_issue.identifier %></p>
             <h2 class="mt-1 truncate text-base font-semibold text-foreground"><%= @selected_issue.title %></h2>
           </div>
-          <span class="status-pill"><%= @selected_issue.display_status %></span>
+          <div class="flex items-center gap-1.5">
+            <%= status_icon_pill(@selected_issue.display_status, title: @selected_issue.display_status) %>
+            <%= status_icon_pill(@selected_issue.priority, title: "#{@selected_issue.priority.titleize} priority") %>
+          </div>
         </div>
 
         <div class="space-y-4 p-4">
@@ -94,7 +96,7 @@ end %>
           <div class="grid gap-2 text-sm">
             <div class="inbox-property"><span>Project</span><strong><%= @selected_issue.project&.title || "-" %></strong></div>
             <div class="inbox-property"><span>Assignee</span><strong><%= @selected_issue.assignee&.display_name || "Unassigned" %></strong></div>
-            <div class="inbox-property"><span>Priority</span><strong><%= @selected_issue.priority %></strong></div>
+            <div class="inbox-property"><span>Priority</span><strong class="inline-flex items-center justify-end"><%= status_icon_pill(@selected_issue.priority, title: "#{@selected_issue.priority.titleize} priority") %></strong></div>
             <div class="inbox-property"><span>Updated</span><strong><%= time_ago_in_words(@selected_issue.updated_at) %> ago</strong></div>
           </div>
 

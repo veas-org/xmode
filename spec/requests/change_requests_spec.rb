@@ -25,6 +25,10 @@ RSpec.describe "Change Requests", type: :request do
     expect(response.body).to include("OPS-3")
 
     doc = Nokogiri::HTML(response.body)
+    expect(doc.at_css(".record-layout")).to be_present
+    expect(doc.css(".record-panel .record-panel")).to be_empty
+    expect(doc.css(".record-point").size).to be >= 4
+    expect(doc.css(".status-icon-pill[aria-label]").size).to be >= 4
     expect(doc.css("pre")).to be_empty
     expect(doc.css("a.app-btn-primary").map(&:text).join).not_to include("Open")
   end
