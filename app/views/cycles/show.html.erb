@@ -1,24 +1,188 @@
 <% content_for :page_title, @cycle.name %>
 
 <div class="app-page-actions">
-  <div>
+  <div class="min-w-0">
     <p class="app-eyebrow"><%= @cycle.team.name %> · <%= @cycle.status %></p>
-    <p class="mt-1 text-sm text-muted-foreground"><%= [ @cycle.starts_on || "No start", @cycle.ends_on || "No end" ].join(" - ") %></p>
+    <p class="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
+      Sprint operating surface for committed issues, objective context, automation evidence, and Change Requests.
+    </p>
   </div>
-  <%= link_to edit_cycle_path(@cycle), class: "app-btn app-btn-muted", data: side_panel_data do %>
-    <%= lucide_icon("pencil", class_name: "app-icon") %>
-    <span>Edit</span>
-  <% end %>
+  <div class="flex items-center gap-1.5">
+    <span class="status-pill"><%= @cycle_window_label %></span>
+    <%= link_to edit_cycle_path(@cycle), class: "app-icon-btn", title: "Edit cycle", aria: { label: "Edit cycle" }, data: side_panel_data do %>
+      <%= lucide_icon("pencil", class_name: "app-icon") %>
+    <% end %>
+  </div>
 </div>
 
-<section class="linear-surface">
-  <div class="linear-toolbar">
-    <div class="flex min-w-0 items-center gap-2">
-      <%= lucide_icon("calendar", class_name: "app-icon text-muted-foreground") %>
-      <h2 class="linear-title">Cycle issues</h2>
-      <span class="linear-count"><%= @issues.size %></span>
-    </div>
-    <%= link_to "New issue", new_issue_path(cycle_id: @cycle.id), class: "linear-tab", data: side_panel_data %>
+<div class="app-detail-grid">
+  <div class="space-y-5">
+    <section class="linear-surface p-5">
+      <div class="flex flex-wrap items-start justify-between gap-4">
+        <div class="min-w-0">
+          <p class="app-eyebrow">Cycle brief</p>
+          <h2 class="mt-1 text-xl font-semibold tracking-normal text-foreground"><%= @cycle.name %></h2>
+          <p class="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
+            <%= pluralize(@issue_total, "committed issue") %>, <%= pluralize(@estimate_total, "point") %>, and <%= @cycle_completion %>% complete.
+          </p>
+        </div>
+        <span class="status-pill"><%= @cycle.status.to_s.titleize %></span>
+      </div>
+
+      <div class="mt-5 cycle-progress" aria-label="Cycle completion">
+        <span style="width: <%= @cycle_completion %>%"></span>
+      </div>
+
+      <dl class="mt-5 grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-4">
+        <div class="inbox-property"><dt>Committed</dt><dd><strong><%= @issue_total %></strong></dd></div>
+        <div class="inbox-property"><dt>Completed</dt><dd><strong><%= @completed_issues %></strong></dd></div>
+        <div class="inbox-property"><dt>Estimate</dt><dd><strong><%= @estimate_total %></strong></dd></div>
+        <div class="inbox-property">
+          <dt>Remaining</dt>
+          <dd><strong><%= @days_remaining.nil? ? "-" : pluralize([ @days_remaining, 0 ].max, "day") %></strong></dd>
+        </div>
+      </dl>
+    </section>
+
+    <section class="linear-surface">
+      <div class="linear-toolbar">
+        <div class="flex min-w-0 items-center gap-2">
+          <%= lucide_icon("calendar", class_name: "app-icon text-muted-foreground") %>
+          <h2 class="linear-title">Cycle work</h2>
+          <span class="linear-count"><%= @issue_total %></span>
+        </div>
+        <%= link_to new_issue_path(cycle_id: @cycle.id), class: "app-icon-btn", title: "New issue", aria: { label: "New issue" }, data: side_panel_data do %>
+          <%= lucide_icon("plus", class_name: "app-icon") %>
+        <% end %>
+      </div>
+
+      <div class="linear-list">
+        <% @issues.each do |issue| %>
+          <%= link_to issue_path(issue), class: "linear-row" do %>
+            <span class="inbox-row-indicator"></span>
+            <span class="font-mono text-xs text-muted-foreground"><%= issue.identifier %></span>
+            <span class="linear-row-main">
+              <span class="linear-row-title"><%= issue.title %></span>
+              <span class="linear-row-meta">
+                <span><%= issue.project&.title || "No project" %></span>
+                <span><%= issue.assignee&.display_name || "Unassigned" %></span>
+                <span><%= issue.priority %></span>
+                <span><%= issue.estimate ? "#{issue.estimate} pts" : "No estimate" %></span>
+                <% if issue.due_on.present? %>
+                  <span>Due <%= issue.due_on.strftime("%b %-d") %></span>
+                <% end %>
+              </span>
+            </span>
+            <span class="hidden shrink-0 items-center gap-1.5 md:flex">
+              <% if issue.pipeline_runs.any? %>
+                <span class="status-pill"><%= pluralize(issue.pipeline_runs.size, "run") %></span>
+              <% end %>
+              <% if issue.change_requests.any? %>
+                <span class="status-pill"><%= pluralize(issue.change_requests.size, "CR") %></span>
+              <% end %>
+              <span class="status-pill"><%= issue.display_status %></span>
+            </span>
+          <% end %>
+        <% end %>
+        <% if @issues.empty? %>
+          <div class="linear-empty">
+            <p>No committed issues yet. Add work here once the team has a clear objective for this cycle.</p>
+          </div>
+        <% end %>
+      </div>
+    </section>
   </div>
-  <%= render "issues/table", issues: @issues %>
-</section>
+
+  <aside class="space-y-4">
+    <section class="linear-surface p-4">
+      <h3 class="font-medium text-foreground">Cycle health</h3>
+      <dl class="mt-3 grid gap-2 text-sm">
+        <% @status_rows.each do |name, category, count| %>
+          <div class="inbox-property"><dt><%= name %></dt><dd><strong><%= count %> · <%= category %></strong></dd></div>
+        <% end %>
+        <% if @status_rows.empty? %>
+          <div class="linear-empty px-0 py-4">No status mix yet.</div>
+        <% end %>
+      </dl>
+      <% if @priority_counts.any? %>
+        <div class="mt-4 flex flex-wrap gap-2">
+          <% @priority_counts.each do |priority, count| %>
+            <span class="status-pill"><%= priority %> <%= count %></span>
+          <% end %>
+        </div>
+      <% end %>
+    </section>
+
+    <section class="linear-surface p-4">
+      <h3 class="font-medium text-foreground">Objective, plan, goal</h3>
+      <div class="mt-3 space-y-2">
+        <% @cycle_objectives.each do |objective| %>
+          <article class="app-flat-row rounded-md px-3 py-2">
+            <p class="app-eyebrow">Objective</p>
+            <p class="mt-1 text-sm font-medium text-foreground"><%= objective.title %></p>
+          </article>
+        <% end %>
+        <% @cycle_plans.each do |plan| %>
+          <article class="app-flat-row rounded-md px-3 py-2">
+            <p class="app-eyebrow">Plan · <%= plan.status %></p>
+            <p class="mt-1 text-sm font-medium text-foreground"><%= plan.title %></p>
+          </article>
+        <% end %>
+        <% @cycle_goals.each do |goal| %>
+          <article class="app-flat-row rounded-md px-3 py-2">
+            <p class="app-eyebrow">Goal · <%= goal.status %></p>
+            <p class="mt-1 text-sm font-medium text-foreground"><%= goal.title %></p>
+            <% if goal.metric.present? %>
+              <p class="mt-1 text-xs text-muted-foreground"><%= goal.metric %>: <%= goal.current_value.presence || "-" %> / <%= goal.target_value.presence || "-" %></p>
+            <% end %>
+          </article>
+        <% end %>
+        <% if @cycle_objectives.empty? && @cycle_plans.empty? && @cycle_goals.empty? %>
+          <p class="linear-empty px-0 py-4">No objective, plan, or goal has been linked through this cycle's projects yet.</p>
+        <% end %>
+      </div>
+    </section>
+
+    <section class="linear-surface p-4">
+      <div class="flex items-center justify-between gap-3">
+        <h3 class="font-medium text-foreground">Automation evidence</h3>
+        <span class="linear-count"><%= @cycle_runs.size + @cycle_change_requests.size %></span>
+      </div>
+      <div class="mt-3 space-y-2">
+        <% @cycle_runs.each do |run| %>
+          <%= link_to pipeline_run_path(run), class: "app-flat-row block rounded-md px-3 py-2 transition-colors hover:bg-muted/45" do %>
+            <span class="flex min-w-0 items-start justify-between gap-3">
+              <span class="min-w-0">
+                <span class="block text-sm font-medium text-foreground"><%= run.pipeline_definition&.name || "Pipeline run" %></span>
+                <span class="linear-row-meta">
+                  <%= lucide_icon(run.status == "completed" ? "check" : "activity", class_name: "app-icon") %>
+                  <span><%= run.issue&.identifier || "Cycle" %></span>
+                  <span><%= run.display_status %></span>
+                </span>
+              </span>
+              <span class="status-pill shrink-0"><%= run.display_trigger %></span>
+            </span>
+          <% end %>
+        <% end %>
+        <% @cycle_change_requests.each do |change_request| %>
+          <%= link_to change_request_path(change_request), class: "app-flat-row block rounded-md px-3 py-2 transition-colors hover:bg-muted/45" do %>
+            <span class="flex min-w-0 items-start justify-between gap-3">
+              <span class="min-w-0">
+                <span class="block text-sm font-medium text-foreground"><%= change_request.title %></span>
+                <span class="linear-row-meta">
+                  <%= lucide_icon("git-pull-request", class_name: "app-icon") %>
+                  <span><%= change_request.issue&.identifier || "No issue" %></span>
+                  <span class="break-all"><%= change_request.branch_name %></span>
+                </span>
+              </span>
+              <span class="status-pill shrink-0"><%= change_request.status.to_s.titleize %></span>
+            </span>
+          <% end %>
+        <% end %>
+        <% if @cycle_runs.empty? && @cycle_change_requests.empty? %>
+          <p class="linear-empty px-0 py-4">No automation evidence has landed for this cycle yet.</p>
+        <% end %>
+      </div>
+    </section>
+  </aside>
+</div>

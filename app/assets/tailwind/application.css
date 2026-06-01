@@ -907,6 +907,17 @@
     background: linear-gradient(90deg, rgba(255, 255, 255, 0.026), transparent 82%);
   }
 
+  .cycle-progress {
+    @apply h-2 overflow-hidden rounded-md bg-muted/45;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.035);
+  }
+
+  .cycle-progress span {
+    @apply block h-full rounded-md;
+    background: linear-gradient(90deg, rgba(125, 211, 252, 0.92), rgba(45, 212, 191, 0.78));
+    box-shadow: 0 0 18px rgba(125, 211, 252, 0.28);
+  }
+
   .operating-map > *,
   .linear-page > *,
   .inbox-shell > *,
