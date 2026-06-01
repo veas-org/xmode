@@ -1,13 +1,13 @@
-<% content_for :page_title, "Home" %>
+<% content_for :page_title, "Command Center" %>
 
 <section class="operating-map">
   <div class="linear-surface p-5">
     <div class="flex flex-wrap items-start justify-between gap-3">
       <div>
         <p class="app-eyebrow"><%= current_workspace&.name %> operating model</p>
-        <h2 class="mt-1 text-base font-semibold text-foreground">How planning, skills, automation, and review fit together</h2>
+        <h2 class="mt-1 text-base font-semibold text-foreground">One governed loop from objective to Change Request</h2>
+        <p class="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">Every automation run should make the intended outcome, approved plan, execution evidence, and review package visible to the team.</p>
       </div>
-      <%= link_to "View pipelines", pipelines_path, class: "linear-tab" %>
     </div>
     <div class="operating-map-steps mt-5">
       <% [
@@ -28,17 +28,19 @@
       <% end %>
     </div>
   </div>
-  <aside class="linear-surface p-5">
+  <aside class="linear-surface p-5 home-decision-panel">
     <p class="app-eyebrow">Next decision</p>
-    <% approval_run = @runs.find { |run| run.status == "waiting_for_approval" } %>
-    <% if approval_run %>
-      <h2 class="mt-2 text-sm font-semibold text-foreground"><%= approval_run.pipeline_definition&.name || "Pipeline run" %></h2>
-      <p class="mt-2 text-sm leading-6 text-muted-foreground"><%= approval_run.issue&.title || approval_run.input_context["objective"] || "Review the pending automation decision." %></p>
-      <%= link_to "Review run", pipeline_run_path(approval_run), class: "app-btn app-btn-primary mt-4 w-full" %>
+    <% if @approval_run %>
+      <h2 class="mt-2 text-sm font-semibold text-foreground"><%= @approval_run.pipeline_definition&.name || "Pipeline run" %></h2>
+      <p class="mt-2 text-sm leading-6 text-muted-foreground"><%= @approval_run.issue&.title || @approval_run.input_context["objective"] || "Review the pending automation decision." %></p>
+      <div class="home-decision-meta">
+        <span>Waiting for approval</span>
+        <strong><%= time_ago_in_words(@approval_run.created_at) %> ago</strong>
+      </div>
+      <%= link_to "Review run", pipeline_run_path(@approval_run), class: "app-btn app-btn-primary mt-4 w-full" %>
     <% else %>
       <h2 class="mt-2 text-sm font-semibold text-foreground">No pending approvals</h2>
       <p class="mt-2 text-sm leading-6 text-muted-foreground">Create or run a pipeline when the team has a clear objective ready for automation.</p>
-      <%= link_to "New issue", new_issue_path, class: "app-btn app-btn-muted mt-4 w-full" %>
     <% end %>
   </aside>
 </section>
@@ -85,7 +87,6 @@
           <h2 class="linear-title">Projects</h2>
           <span class="linear-count"><%= @projects.size %></span>
         </div>
-        <%= link_to "New project", new_project_path, class: "app-btn app-btn-muted" %>
       </div>
 
       <div class="linear-list">
@@ -111,19 +112,24 @@
 
   <aside class="linear-side">
     <% if current_workspace.demo? && @demo_agent_pipeline %>
-      <section class="linear-surface">
+      <section class="linear-surface home-demo-panel">
         <div class="linear-toolbar">
           <div>
             <p class="app-eyebrow">Planet Express demo</p>
-            <h2 class="linear-title mt-1">Simulated agent run</h2>
+            <h2 class="linear-title mt-1">Governed agent scenario</h2>
           </div>
         </div>
-        <%= form_with url: run_pipeline_path(@demo_agent_pipeline), method: :post, class: "space-y-3 p-4" do %>
-          <p class="text-sm leading-6 text-muted-foreground">Creates a real demo run with planning, logs, artifacts, and a Change Request trail.</p>
+        <%= form_with url: run_pipeline_path(@demo_agent_pipeline), method: :post, class: "space-y-4 p-4" do %>
+          <p class="text-sm leading-6 text-muted-foreground">Launch a realistic Implement Issue run: objective capture, plan verification, sandboxed agent execution, test evidence, and a Change Request trail.</p>
+          <div class="home-pipeline-brief" aria-label="Demo pipeline steps">
+            <% [ "Plan", "Approve", "Code", "Test", "Change Request" ].each_with_index do |step, index| %>
+              <span><%= index + 1 %>. <%= step %></span>
+            <% end %>
+          </div>
           <div>
             <%= label_tag "input_context_objective", "Objective", class: "app-label" %>
             <%= text_field_tag "input_context[objective]",
-                  "Implement retry handling for failed delivery webhooks",
+                  @demo_agent_objective,
                   id: "input_context_objective",
                   class: "app-input",
                   required: true %>
@@ -145,7 +151,6 @@
           <h2 class="linear-title">Automation queue</h2>
           <span class="linear-count"><%= @runs.size %></span>
         </div>
-        <%= link_to "Pipelines", pipelines_path, class: "linear-tab" %>
       </div>
 
       <div class="linear-list">
@@ -173,7 +178,6 @@
           <h2 class="linear-title">Event inbox</h2>
           <span class="linear-count"><%= @events.size %></span>
         </div>
-        <%= link_to "Events", events_path, class: "linear-tab" %>
       </div>
 
       <div class="linear-list">

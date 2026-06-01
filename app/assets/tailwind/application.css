@@ -633,6 +633,33 @@
     @apply text-[11px] font-medium text-sky-300;
   }
 
+  .home-decision-panel {
+    @apply flex min-h-0 flex-col;
+  }
+
+  .home-decision-meta {
+    @apply mt-4 flex items-center justify-between gap-3 rounded-md bg-muted/25 px-3 py-2 text-xs text-muted-foreground;
+  }
+
+  .home-decision-meta strong {
+    @apply font-medium text-foreground;
+  }
+
+  .home-demo-panel {
+    background:
+      radial-gradient(circle at 18% 0%, rgba(125, 211, 252, 0.1), transparent 16rem),
+      linear-gradient(180deg, rgba(18, 23, 33, 0.66), rgba(11, 15, 23, 0.78));
+  }
+
+  .home-pipeline-brief {
+    @apply grid gap-1.5 rounded-md bg-muted/20 p-2 text-xs text-muted-foreground;
+  }
+
+  .home-pipeline-brief span {
+    @apply rounded-[5px] px-2 py-1;
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.035), transparent 82%);
+  }
+
   .app-view-card {
     @apply block rounded-md bg-muted/25 p-4 transition-colors hover:bg-muted/45;
   }

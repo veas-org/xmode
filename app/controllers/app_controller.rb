@@ -4,6 +4,7 @@ class AppController < AuthenticatedController
     @projects = current_workspace.projects.includes(:team, :issues).order(updated_at: :desc).limit(6)
     @runs = current_workspace.pipeline_runs.order(created_at: :desc).limit(6)
     @events = current_workspace.events.order(created_at: :desc).limit(6)
+    @approval_run = @runs.find { |run| run.status == "waiting_for_approval" }
     @operating_counts = {
       objectives: current_workspace.objectives.count,
       plans: current_workspace.plan_records.count,
@@ -14,5 +15,6 @@ class AppController < AuthenticatedController
     }
     @demo_agent_pipeline = current_workspace.pipeline_definitions.find_by(key: "implement-issue") if current_workspace.demo?
     @demo_agent_projects = current_workspace.projects.order(:title) if current_workspace.demo?
+    @demo_agent_objective = "Implement retry handling for failed delivery webhooks" if current_workspace.demo?
   end
 end
