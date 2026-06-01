@@ -1,20 +1,116 @@
 <% content_for :page_title, "Billing" %>
 
+<div class="app-page-actions">
+  <div class="min-w-0">
+    <p class="app-eyebrow">Workspace commercial model</p>
+    <h2 class="mt-1 text-xl font-semibold text-foreground"><%= current_workspace.name %> billing boundary</h2>
+    <p class="mt-1 max-w-3xl text-sm leading-6 text-muted-foreground">The open-source app stays usable in community mode. Hosted SaaS adds metering, billing, managed operations, and support around the same governed automation loop.</p>
+  </div>
+  <span class="status-pill"><%= @subscription.status.to_s.titleize %></span>
+</div>
+
 <div class="app-detail-grid">
-  <section class="linear-surface p-6">
-    <p class="app-eyebrow">Workspace plan</p>
-    <h2 class="mt-2 text-3xl font-semibold text-foreground"><%= @subscription.plan.titleize %></h2>
-    <p class="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">Billing is intentionally isolated from the open-source app core: self-hosted teams can run community mode, while hosted workspaces can attach Stripe subscriptions and usage tracking.</p>
-    <dl class="mt-6 grid gap-2 text-sm md:grid-cols-3">
-      <div class="inbox-property"><dt>Status</dt><dd><strong><%= @subscription.status %></strong></dd></div>
-      <div class="inbox-property"><dt>Seats</dt><dd><strong><%= @subscription.seats %></strong></dd></div>
-      <div class="inbox-property"><dt>Automation minutes</dt><dd><strong><%= @subscription.automation_minutes_used %></strong></dd></div>
-    </dl>
-  </section>
-  <aside class="space-y-4">
+  <main class="min-w-0 space-y-4">
+    <section class="linear-surface p-5">
+      <div class="flex flex-wrap items-start justify-between gap-4">
+        <div class="min-w-0">
+          <p class="app-eyebrow">Current plan</p>
+          <h2 class="mt-2 text-2xl font-semibold text-foreground"><%= @subscription.plan.titleize %></h2>
+          <p class="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">Plan state is recorded per workspace so self-hosted installations and future hosted SaaS accounts can share one product model without hiding the core workflow.</p>
+        </div>
+        <span class="status-pill"><%= current_workspace.billing_plan.titleize %> workspace</span>
+      </div>
+
+      <dl class="mt-5 grid gap-2 text-sm md:grid-cols-3">
+        <div class="inbox-property"><dt>Seats</dt><dd><strong><%= @seat_count %>/<%= @subscription.seats %></strong></dd></div>
+        <div class="inbox-property"><dt>Billing admins</dt><dd><strong><%= @billing_admin_count %></strong></dd></div>
+        <div class="inbox-property"><dt>Active runs</dt><dd><strong><%= @active_run_count %></strong></dd></div>
+        <div class="inbox-property"><dt>Automation runs</dt><dd><strong><%= @run_count %></strong></dd></div>
+        <div class="inbox-property"><dt>Change Requests</dt><dd><strong><%= @change_request_count %></strong></dd></div>
+        <div class="inbox-property"><dt>Repositories</dt><dd><strong><%= @repository_count %></strong></dd></div>
+      </dl>
+    </section>
+
+    <section class="linear-surface p-5">
+      <div class="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h3 class="font-medium text-foreground">Automation usage</h3>
+          <p class="mt-1 text-sm leading-6 text-muted-foreground">Metering tracks hosted runner consumption while leaving the AGPL workflow visible and auditable.</p>
+        </div>
+        <span class="status-pill">
+          <% if @usage_limit.present? %>
+            <%= @subscription.automation_minutes_used %>/<%= @usage_limit %> minutes
+          <% else %>
+            Custom allowance
+          <% end %>
+        </span>
+      </div>
+      <div class="cycle-progress mt-5" aria-label="Automation usage">
+        <span style="width: <%= @usage_percent %>%"></span>
+      </div>
+      <div class="mt-4 grid gap-2 text-sm md:grid-cols-3">
+        <div class="inbox-property"><span>Used</span><strong><%= @subscription.automation_minutes_used %> minutes</strong></div>
+        <div class="inbox-property"><span>Allowance</span><strong><%= @usage_limit || "Custom" %></strong></div>
+        <div class="inbox-property"><span>Utilization</span><strong><%= @usage_limit.present? ? "#{@usage_percent}%" : "Negotiated" %></strong></div>
+      </div>
+    </section>
+
+    <section class="linear-surface">
+      <div class="linear-toolbar">
+        <div>
+          <h3 class="linear-title">Plan policy</h3>
+          <p class="text-xs text-muted-foreground">How xmode separates open-source adoption from hosted commercialization.</p>
+        </div>
+        <span class="linear-count"><%= @plan_rows.size %></span>
+      </div>
+
+      <div class="linear-list">
+        <% @plan_rows.each do |name, description, boundary| %>
+          <article class="linear-row">
+            <span class="status-pill shrink-0"><%= boundary %></span>
+            <div class="linear-row-main">
+              <p class="linear-row-title"><%= name %></p>
+              <p class="mt-1 text-sm leading-6 text-muted-foreground"><%= description %></p>
+            </div>
+            <% if @subscription.plan == name.downcase %>
+              <span class="status-pill shrink-0">Current</span>
+            <% end %>
+          </article>
+        <% end %>
+      </div>
+    </section>
+  </main>
+
+  <aside class="linear-side">
+    <section class="linear-surface p-4">
+      <h3 class="font-medium text-foreground">Hosted readiness</h3>
+      <div class="mt-3 space-y-1">
+        <% @readiness_rows.each do |label, value| %>
+          <div class="app-flat-row flex items-center justify-between gap-4 rounded-md">
+            <span class="truncate text-sm text-muted-foreground"><%= label %></span>
+            <strong class="truncate text-right text-sm font-medium text-foreground"><%= value %></strong>
+          </div>
+        <% end %>
+      </div>
+    </section>
+
     <section class="linear-surface p-4">
       <h3 class="font-medium text-foreground">Commercial boundary</h3>
-      <p class="mt-3 text-sm leading-6 text-muted-foreground">The AGPL app keeps the product workflow open. Hosted SaaS billing, Stripe webhooks, and metering can be enabled without changing the core project management and automation model.</p>
+      <div class="mt-3 space-y-1">
+        <div class="app-flat-row rounded-md">
+          <p class="text-sm font-medium text-foreground">Open-source core</p>
+          <p class="mt-1 text-sm leading-6 text-muted-foreground">Issues, cycles, skills, actions, pipelines, runs, logs, artifacts, and Change Requests remain part of the AGPL product.</p>
+        </div>
+        <div class="app-flat-row rounded-md">
+          <p class="text-sm font-medium text-foreground">Hosted SaaS</p>
+          <p class="mt-1 text-sm leading-6 text-muted-foreground">Billing, managed runner capacity, usage enforcement, support, and private deployment services are commercial surfaces.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="linear-surface p-4">
+      <h3 class="font-medium text-foreground">Next billing work</h3>
+      <p class="mt-3 text-sm leading-6 text-muted-foreground">Stripe webhooks update subscription state. The remaining hosted work is invoice history, checkout/portal sessions, usage enforcement, and admin-facing account controls.</p>
     </section>
   </aside>
 </div>
