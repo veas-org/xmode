@@ -2,7 +2,15 @@ class PipelineRunsController < AuthenticatedController
   before_action :set_run, only: %i[show approve reject resume cancel]
 
   def index
-    @runs = current_workspace.pipeline_runs.includes(:pipeline_definition, :issue, :project).order(created_at: :desc)
+    @runs = current_workspace.pipeline_runs
+      .includes(:pipeline_definition, :issue, :project, :event, :change_request, :approvals, :run_artifacts)
+      .order(created_at: :desc)
+    @run_counts = {
+      waiting: @runs.count { |run| run.status == "waiting_for_approval" },
+      active: @runs.count { |run| run.status.in?(%w[queued running]) },
+      completed: @runs.count { |run| run.status == "completed" },
+      failed: @runs.count { |run| run.status.in?(%w[failed canceled]) }
+    }
   end
 
   def show

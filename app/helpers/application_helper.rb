@@ -227,6 +227,12 @@ module ApplicationHelper
         tag.path(d: "M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"),
         tag.path(d: "m15 5 4 4")
       ]
+    when "pause-circle"
+      [
+        tag.circle(cx: 12, cy: 12, r: 10),
+        tag.line(x1: 10, x2: 10, y1: 15, y2: 9),
+        tag.line(x1: 14, x2: 14, y1: 15, y2: 9)
+      ]
     when "plug"
       [
         tag.path(d: "M12 22v-5"),
@@ -244,6 +250,15 @@ module ApplicationHelper
         tag.path(d: "M3 21c3 0 7-1 7-8V5c0-1.25-.75-2-2-2H4c-1.25 0-2 .75-2 2v6c0 1.25.75 2 2 2h3c0 2-1 4-4 4v4Z"),
         tag.path(d: "M15 21c3 0 7-1 7-8V5c0-1.25-.75-2-2-2h-4c-1.25 0-2 .75-2 2v6c0 1.25.75 2 2 2h3c0 2-1 4-4 4v4Z")
       ]
+    when "radio-tower"
+      [
+        tag.path(d: "M4.9 16.1C1 12.2 1 5.8 4.9 1.9"),
+        tag.path(d: "M7.8 13.2a4.5 4.5 0 0 1 0-6.4"),
+        tag.circle(cx: 12, cy: 10, r: 2),
+        tag.path(d: "M16.2 13.2a4.5 4.5 0 0 0 0-6.4"),
+        tag.path(d: "M19.1 16.1c3.9-3.9 3.9-10.3 0-14.2"),
+        tag.path(d: "M12 12v10")
+      ]
     when "repeat"
       [
         tag.path(d: "m17 2 4 4-4 4"),
@@ -260,6 +275,12 @@ module ApplicationHelper
       [
         tag.path(d: "M21 12a9 9 0 1 1-2.64-6.36L21 8"),
         tag.path(d: "M21 3v5h-5")
+      ]
+    when "route"
+      [
+        tag.circle(cx: 6, cy: 19, r: 3),
+        tag.path(d: "M9 19h8.5a3.5 3.5 0 0 0 0-7H6.5a3.5 3.5 0 0 1 0-7H15"),
+        tag.circle(cx: 18, cy: 5, r: 3)
       ]
     when "search"
       [

@@ -18,6 +18,8 @@ RSpec.describe Demo::PlanetExpressSeeder do
     expect(workspace.events.find_by(title: "Critical moon delivery failed")).to be_present
     expect(workspace.schedules.where(kind: "recurring").count).to eq(1)
     expect(workspace.pipeline_runs.where(trigger: "demo").count).to eq(1)
+    expect(workspace.pipeline_runs.where(trigger: "schedule", status: "completed").count).to eq(1)
+    expect(workspace.change_requests.find_by(branch_name: "xmode/ship-dependencies-demo")).to be_present
     expect(workspace.change_requests.find_by(branch_name: "xmode/ops-4-demo")).to be_present
   end
 end

@@ -3,39 +3,100 @@
 <div class="app-page-actions">
   <div>
     <p class="app-eyebrow">Automation queue</p>
-    <p class="mt-1 max-w-2xl text-sm text-muted-foreground">Every run is a frozen snapshot of a pipeline definition with logs, artifacts, approvals, and Change Request evidence.</p>
+    <p class="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">Every run is a frozen pipeline snapshot with objective context, approvals, logs, artifacts, and Change Request evidence. This is the operating record employees review before trusting agent work.</p>
   </div>
-  <%= link_to pipelines_path, class: "app-btn app-btn-muted" do %>
-    <%= lucide_icon("workflow", class_name: "app-icon") %>
-    <span>Pipelines</span>
-  <% end %>
+  <div class="flex flex-wrap justify-end gap-2">
+    <span class="status-pill"><%= @run_counts.fetch(:waiting) %> waiting</span>
+    <span class="status-pill"><%= @run_counts.fetch(:active) %> active</span>
+    <span class="status-pill"><%= @run_counts.fetch(:completed) %> complete</span>
+  </div>
 </div>
 
-<section class="linear-surface">
-  <div class="linear-toolbar">
-    <div class="flex min-w-0 items-center gap-2">
-      <%= lucide_icon("activity", class_name: "app-icon text-muted-foreground") %>
-      <h2 class="linear-title">Runs</h2>
-      <span class="linear-count"><%= @runs.size %></span>
+<div class="app-detail-grid">
+  <section class="linear-surface">
+    <div class="linear-toolbar">
+      <div class="flex min-w-0 items-center gap-2">
+        <%= lucide_icon("activity", class_name: "app-icon text-muted-foreground") %>
+        <h2 class="linear-title">Run ledger</h2>
+        <span class="linear-count"><%= @runs.size %></span>
+      </div>
+      <span class="app-eyebrow">Newest first</span>
     </div>
-  </div>
-  <div class="linear-list">
-    <% @runs.each do |run| %>
-      <%= link_to pipeline_run_path(run), class: "linear-row" do %>
-        <span class="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-muted/45 text-muted-foreground">
-          <%= lucide_icon(run.status == "completed" ? "check" : "activity", class_name: "app-icon") %>
-        </span>
-        <div class="linear-row-main">
-          <p class="linear-row-title"><%= run.pipeline_definition&.name || "Run ##{run.id}" %></p>
-          <div class="linear-row-meta">
-            <span><%= run.display_trigger %></span>
-            <span><%= run.issue&.identifier || run.project&.title || run.event&.title || "Workspace" %></span>
-            <span><%= run.started_at ? "#{time_ago_in_words(run.started_at)} ago" : "#{time_ago_in_words(run.created_at)} ago" %></span>
+    <div class="linear-list">
+      <% @runs.each do |run| %>
+        <% run_target = run.issue&.identifier || run.project&.title || run.event&.title || "Workspace" %>
+        <% run_icon = case run.status
+          when "completed" then "check-circle"
+          when "waiting_for_approval" then "hand"
+          when "failed", "canceled" then "ban"
+          else "activity"
+        end %>
+        <%= link_to pipeline_run_path(run), class: "linear-row" do %>
+          <span class="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-muted/45 text-muted-foreground">
+            <%= lucide_icon(run_icon, class_name: "app-icon") %>
+          </span>
+          <div class="linear-row-main">
+            <div class="flex min-w-0 flex-wrap items-center gap-2">
+              <p class="linear-row-title"><%= run.pipeline_definition&.name || "Run ##{run.id}" %></p>
+              <% if run.change_request %>
+                <span class="app-badge"><%= run.change_request.status %> CR</span>
+              <% end %>
+              <% if run.approvals.any? %>
+                <span class="app-badge"><%= pluralize(run.approvals.size, "approval") %></span>
+              <% end %>
+            </div>
+            <div class="linear-row-meta">
+              <span><%= run.display_trigger %></span>
+              <span><%= run_target %></span>
+              <% if run.change_request %>
+                <span><%= run.change_request.branch_name %></span>
+              <% end %>
+              <span><%= run.started_at ? "#{time_ago_in_words(run.started_at)} ago" : "#{time_ago_in_words(run.created_at)} ago" %></span>
+              <span><%= pluralize(run.run_artifacts.size, "artifact") %></span>
+            </div>
+            <% if run.input_context["objective"].present? %>
+              <p class="mt-2 line-clamp-2 text-xs leading-5 text-muted-foreground"><%= run.input_context["objective"] %></p>
+            <% end %>
           </div>
-        </div>
-        <span class="status-pill"><%= run.display_status %></span>
+          <span class="status-pill shrink-0"><%= run.display_status %></span>
+        <% end %>
       <% end %>
-    <% end %>
-    <% if @runs.empty? %><p class="linear-empty">No runs yet.</p><% end %>
-  </div>
-</section>
+      <% if @runs.empty? %>
+        <div class="linear-empty">
+          <%= lucide_icon("activity", class_name: "mx-auto mb-3 h-5 w-5 text-muted-foreground") %>
+          <p>No runs yet. Runs appear here after a pipeline is started from a project, issue, schedule, event, or manual trigger.</p>
+        </div>
+      <% end %>
+    </div>
+  </section>
+
+  <aside class="space-y-4">
+    <section class="linear-surface p-4">
+      <h3 class="font-medium text-foreground">Queue health</h3>
+      <dl class="mt-3 grid gap-2 text-sm">
+        <div class="inbox-property"><dt>Waiting approval</dt><dd><strong><%= @run_counts.fetch(:waiting) %></strong></dd></div>
+        <div class="inbox-property"><dt>Queued or running</dt><dd><strong><%= @run_counts.fetch(:active) %></strong></dd></div>
+        <div class="inbox-property"><dt>Completed</dt><dd><strong><%= @run_counts.fetch(:completed) %></strong></dd></div>
+        <div class="inbox-property"><dt>Failed or canceled</dt><dd><strong><%= @run_counts.fetch(:failed) %></strong></dd></div>
+      </dl>
+    </section>
+
+    <section class="linear-surface p-4">
+      <h3 class="font-medium text-foreground">Evidence chain</h3>
+      <div class="mt-3 space-y-2 text-sm text-muted-foreground">
+        <% [ "Objective captured", "Plan verified", "Steps executed", "Logs and artifacts attached", "Change Request linked" ].each_with_index do |item, index| %>
+          <div class="app-flat-row flex items-center gap-3 rounded-md px-3 py-2">
+            <span class="status-pill shrink-0"><%= index + 1 %></span>
+            <span><%= item %></span>
+          </div>
+        <% end %>
+      </div>
+      <p class="mt-3 text-sm leading-6 text-muted-foreground">A run is trusted only when the team can follow this chain from the original objective to reviewable code or a non-code artifact.</p>
+    </section>
+
+    <section class="linear-surface p-4">
+      <h3 class="font-medium text-foreground">Trigger sources</h3>
+      <p class="mt-3 text-sm leading-6 text-muted-foreground">Runs can start manually, from a schedule, from an event rule, or from a project pipeline. Code-changing runs always isolate work on a branch and package review in a Change Request.</p>
+    </section>
+  </aside>
+</div>

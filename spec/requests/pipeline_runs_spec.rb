@@ -1,6 +1,23 @@
 require "rails_helper"
 
 RSpec.describe "Pipeline run detail", type: :request do
+  it "shows the automation queue as an operating ledger" do
+    Demo::PlanetExpressSeeder.call
+    user = User.find_by!(email: Demo::PlanetExpressSeeder::BENDER_EMAIL)
+
+    post login_path, params: { email: user.email, password: Demo::PlanetExpressSeeder::PASSWORD }
+    get pipeline_runs_path
+
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include("Run ledger")
+    expect(response.body).to include("Queue health")
+    expect(response.body).to include("Evidence chain")
+    expect(response.body).to include("Run weekly dependency maintenance")
+    expect(response.body).to include("xmode/ship-dependencies-demo")
+    expect(response.body).to include("Objective captured")
+    expect(Nokogiri::HTML(response.body).css("a.app-btn[href='/pipelines']")).to be_empty
+  end
+
   it "shows approvals, snapshots, logs, artifacts, and Change Request context" do
     Demo::PlanetExpressSeeder.call
     workspace = Workspace.find_by!(slug: "planet-express")

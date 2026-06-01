@@ -1,3 +1,5 @@
+require "fileutils"
+
 module Demo
   class PlanetExpressSeeder
     BENDER_EMAIL = ENV.fetch("DEMO_BENDER_EMAIL", "bender.demo@xmode.local")
@@ -156,6 +158,7 @@ module Demo
         seed_event_rule_and_event!
         seed_schedule!
         seed_demo_run!
+        seed_completed_maintenance_run!
         seed_change_request!
       end
 
@@ -374,6 +377,81 @@ module Demo
       Pipelines::Runner.call(run)
     end
 
+    def seed_completed_maintenance_run!
+      pipeline = workspace.pipeline_definitions.find_by!(key: "update-dependencies")
+      project = workspace.projects.find_by!(key: "ship-reliability")
+      issue = workspace.issues.find_by!(identifier: "OPS-3")
+      repository = workspace.repository_connections.find_by!(url: project.repository_url)
+      branch_name = "xmode/ship-dependencies-demo"
+
+      workspace.change_requests.where(branch_name: branch_name).destroy_all
+      workspace.pipeline_runs.where(trigger: "schedule", pipeline_definition: pipeline, project: project).find_each(&:destroy!)
+
+      run = workspace.pipeline_runs.create!(
+        pipeline_definition: pipeline,
+        user: user,
+        project: project,
+        issue: issue,
+        trigger: "schedule",
+        status: "completed",
+        started_at: 3.hours.ago,
+        finished_at: 2.hours.ago,
+        input_context: {
+          "objective" => "Run weekly dependency maintenance for ship services with reviewable test evidence."
+        }
+      )
+
+      pipeline.graph.fetch("nodes", []).each_with_index do |node, index|
+        action = workspace.action_definitions.find_by(key: node["action_key"])
+        step = run.action_run_steps.create!(
+          action_definition: action,
+          name: node["label"].presence || action&.name || "Action",
+          position: index,
+          status: "completed",
+          started_at: run.started_at + index.minutes,
+          finished_at: run.started_at + (index + 1).minutes,
+          input_json: action&.input_context_for(run) || run.input_context,
+          output_json: completed_maintenance_output_for(node["action_key"])
+        )
+        run.append_log("#{step.name} completed with demo evidence.", step: step)
+      end
+
+      report_path = write_demo_artifact(
+        "update-dependencies-report.md",
+        <<~MARKDOWN
+          ## Weekly Dependency Maintenance
+
+          **Project:** Ship Reliability
+          **Branch:** #{branch_name}
+
+          ## Evidence
+
+          - Patch-level dependency update completed.
+          - Targeted service checks passed.
+          - Change Request opened for review.
+        MARKDOWN
+      )
+      run.run_artifacts.create!(
+        action_run_step: run.action_run_steps.order(:position).last,
+        name: "update-dependencies-report.md",
+        path: report_path.to_s,
+        content_type: "text/markdown",
+        byte_size: report_path.size
+      )
+
+      workspace.change_requests.create!(
+        repository_connection: repository,
+        pipeline_run: run,
+        issue: issue,
+        provider: repository.provider,
+        branch_name: branch_name,
+        title: "#{issue.identifier}: Weekly ship service dependency maintenance",
+        status: "ready",
+        url: "https://github.com/planet-express/ship-reliability/pull/new/#{branch_name}",
+        checks: { "tests" => "passed", "artifact" => "update-dependencies-report.md" }
+      )
+    end
+
     def seed_change_request!
       project = workspace.projects.find_by!(key: "delivery-automation")
       issue = workspace.issues.find_by!(identifier: "OPS-4")
@@ -400,6 +478,27 @@ module Demo
 
     def status(name)
       primary_team.issue_statuses.find_by!(name: name)
+    end
+
+    def completed_maintenance_output_for(action_key)
+      case action_key
+      when "update-dependencies"
+        { "status" => "completed", "summary" => "Patch-level dependencies updated in an isolated branch.", "changed_files_count" => 3 }
+      when "run-tests"
+        { "status" => "completed", "summary" => "Targeted ship service checks passed.", "changed_files_count" => 0 }
+      when "open-change-request"
+        { "status" => "completed", "summary" => "Change Request prepared with dependency and test evidence.", "changed_files_count" => 0 }
+      else
+        { "status" => "completed", "summary" => "Demo step completed.", "changed_files_count" => 0 }
+      end
+    end
+
+    def write_demo_artifact(name, content)
+      directory = Rails.root.join("storage", "runs", "demo", "planet-express")
+      FileUtils.mkdir_p(directory)
+      path = directory.join(name)
+      path.write(content)
+      path
     end
   end
 end
