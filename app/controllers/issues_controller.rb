@@ -16,8 +16,19 @@ class IssuesController < AuthenticatedController
   end
 
   def show
-    @runs = @issue.pipeline_runs.order(created_at: :desc)
-    @change_requests = @issue.change_requests.order(updated_at: :desc)
+    @runs = @issue.pipeline_runs
+      .includes(:pipeline_definition, :change_request, :approvals, :run_artifacts)
+      .order(created_at: :desc)
+    @change_requests = @issue.change_requests
+      .includes(:repository_connection, :pipeline_run)
+      .order(updated_at: :desc)
+    @events = @issue.events.order(updated_at: :desc).limit(5)
+    @context_objectives = issue_context_records(:objectives)
+    @context_plans = issue_context_records(:plan_records)
+    @context_goals = issue_context_records(:goals)
+    @recommended_pipelines = prioritized_issue_pipelines(current_workspace.pipeline_definitions.order(:name).to_a).first(3)
+    @pipeline_count = current_workspace.pipeline_definitions.count
+    @readiness_steps = issue_readiness_steps
   end
 
   def new
@@ -95,5 +106,26 @@ class IssuesController < AuthenticatedController
       my: base_scope.where(assignee: current_user).count,
       active_cycle: current_team ? base_scope.where(cycle: current_team.cycles.where(status: "active")).count : 0
     }
+  end
+
+  def issue_context_records(association_name)
+    records = @issue.public_send(association_name).order(updated_at: :desc).to_a
+    records.concat(@issue.project.public_send(association_name).order(updated_at: :desc).to_a) if @issue.project
+    records.uniq { |record| "#{record.class.name}-#{record.id}" }.first(4)
+  end
+
+  def prioritized_issue_pipelines(pipelines)
+    priority = %w[implement-issue fix-failing-build update-dependencies handle-production-event review-change-request release-project]
+    pipelines.sort_by { |pipeline| [ priority.index(pipeline.key) || priority.size, pipeline.name ] }
+  end
+
+  def issue_readiness_steps
+    [
+      [ "Objective", @issue.description.present? ? "captured" : "missing" ],
+      [ "Project", @issue.project.present? ? @issue.project.title : "unassigned" ],
+      [ "Plan", @context_plans.any? ? "linked" : "needed" ],
+      [ "Automation", @runs.any? ? "#{@runs.size} #{'run'.pluralize(@runs.size)}" : "not run" ],
+      [ "Change Request", @change_requests.any? ? "#{@change_requests.size} CR" : "not opened" ]
+    ]
   end
 end
