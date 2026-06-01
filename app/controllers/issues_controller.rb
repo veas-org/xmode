@@ -21,7 +21,7 @@ class IssuesController < AuthenticatedController
   end
 
   def new
-    @issue = current_workspace.issues.new(team: current_team, project_id: params[:project_id])
+    @issue = current_workspace.issues.new(team: current_team, project_id: params[:project_id], cycle_id: params[:cycle_id])
     apply_event_defaults(@issue) if @event_context
   end
 

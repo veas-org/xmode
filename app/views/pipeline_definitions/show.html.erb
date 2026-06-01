@@ -7,7 +7,7 @@
     </p>
   </div>
   <div class="flex flex-wrap gap-2">
-    <%= link_to edit_pipeline_path(@pipeline), class: "app-btn app-btn-muted" do %>
+    <%= link_to edit_pipeline_path(@pipeline), class: "app-btn app-btn-muted", data: side_panel_data do %>
       <%= lucide_icon("workflow", class_name: "app-icon") %>
       <span>Edit graph</span>
     <% end %>
@@ -15,7 +15,7 @@
       <%= lucide_icon("download", class_name: "app-icon") %>
       <span>YAML</span>
     <% end %>
-    <%= link_to new_schedule_path(pipeline_definition_id: @pipeline.id), class: "app-btn app-btn-muted" do %>
+    <%= link_to new_schedule_path(pipeline_definition_id: @pipeline.id), class: "app-btn app-btn-muted", data: side_panel_data do %>
       <%= lucide_icon("clock", class_name: "app-icon") %>
       <span>Schedule</span>
     <% end %>
@@ -121,7 +121,13 @@
           <% end %>
         <% end %>
         <% if @schedules.empty? %>
-          <p class="linear-empty">No schedules use this pipeline yet.</p>
+          <div class="linear-empty">
+            <p>No schedules use this pipeline yet.</p>
+            <%= link_to new_schedule_path(pipeline_definition_id: @pipeline.id), class: "app-btn app-btn-muted mt-4", data: side_panel_data do %>
+              <%= lucide_icon("clock", class_name: "app-icon") %>
+              <span>Add schedule</span>
+            <% end %>
+          </div>
         <% end %>
       </div>
     </section>

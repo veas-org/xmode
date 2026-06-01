@@ -16,10 +16,10 @@
     </div>
     <% if permitted?(:manage_pipelines) %>
       <div class="flex items-center gap-1.5">
-        <%= link_to import_actions_path, class: "app-icon-btn", title: "Import action", aria: { label: "Import action" } do %>
+        <%= link_to import_actions_path, class: "app-icon-btn", title: "Import action", aria: { label: "Import action" }, data: side_panel_data do %>
           <%= lucide_icon("upload", class_name: "app-icon") %>
         <% end %>
-        <%= link_to new_action_path, class: "app-icon-btn", title: "New action", aria: { label: "New action" } do %>
+        <%= link_to new_action_path, class: "app-icon-btn", title: "New action", aria: { label: "New action" }, data: side_panel_data do %>
           <%= lucide_icon("plus", class_name: "app-icon") %>
         <% end %>
       </div>
@@ -54,7 +54,7 @@
       <div class="linear-empty">
         <p>No actions are defined for this workspace.</p>
         <% if permitted?(:manage_pipelines) %>
-          <%= link_to new_action_path, class: "app-btn app-btn-muted mt-4" do %>
+          <%= link_to new_action_path, class: "app-btn app-btn-muted mt-4", data: side_panel_data do %>
             <%= lucide_icon("plus", class_name: "app-icon") %>
             <span>Add action</span>
           <% end %>

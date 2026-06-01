@@ -5,7 +5,7 @@
     <p class="app-eyebrow"><%= @cycle.team.name %> · <%= @cycle.status %></p>
     <p class="mt-1 text-sm text-muted-foreground"><%= [ @cycle.starts_on || "No start", @cycle.ends_on || "No end" ].join(" - ") %></p>
   </div>
-  <%= link_to edit_cycle_path(@cycle), class: "app-btn app-btn-muted" do %>
+  <%= link_to edit_cycle_path(@cycle), class: "app-btn app-btn-muted", data: side_panel_data do %>
     <%= lucide_icon("pencil", class_name: "app-icon") %>
     <span>Edit</span>
   <% end %>
@@ -18,7 +18,7 @@
       <h2 class="linear-title">Cycle issues</h2>
       <span class="linear-count"><%= @issues.size %></span>
     </div>
-    <%= link_to "New issue", new_issue_path, class: "linear-tab" %>
+    <%= link_to "New issue", new_issue_path(cycle_id: @cycle.id), class: "linear-tab", data: side_panel_data %>
   </div>
   <%= render "issues/table", issues: @issues %>
 </section>

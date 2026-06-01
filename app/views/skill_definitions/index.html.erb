@@ -16,10 +16,10 @@
     </div>
     <% if permitted?(:manage_pipelines) %>
       <div class="flex items-center gap-1.5">
-        <%= link_to import_skills_path, class: "app-icon-btn", title: "Import skill", aria: { label: "Import skill" } do %>
+        <%= link_to import_skills_path, class: "app-icon-btn", title: "Import skill", aria: { label: "Import skill" }, data: side_panel_data do %>
           <%= lucide_icon("upload", class_name: "app-icon") %>
         <% end %>
-        <%= link_to new_skill_path, class: "app-icon-btn", title: "New skill", aria: { label: "New skill" } do %>
+        <%= link_to new_skill_path, class: "app-icon-btn", title: "New skill", aria: { label: "New skill" }, data: side_panel_data do %>
           <%= lucide_icon("plus", class_name: "app-icon") %>
         <% end %>
       </div>
@@ -49,7 +49,7 @@
       <div class="linear-empty md:col-span-2 xl:col-span-3">
         <p>No skills are defined for this workspace.</p>
         <% if permitted?(:manage_pipelines) %>
-          <%= link_to new_skill_path, class: "app-btn app-btn-muted mt-4" do %>
+          <%= link_to new_skill_path, class: "app-btn app-btn-muted mt-4", data: side_panel_data do %>
             <%= lucide_icon("plus", class_name: "app-icon") %>
             <span>Add skill</span>
           <% end %>

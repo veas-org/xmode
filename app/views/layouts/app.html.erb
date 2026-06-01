@@ -39,6 +39,9 @@
         <main class="app-content">
           <%= yield %>
         </main>
+        <% unless content_for?(:side_panel_response) %>
+          <%= turbo_frame_tag side_panel_frame, class: "app-side-panel-frame" %>
+        <% end %>
       </section>
     </div>
     <%= render "shared/flash" %>

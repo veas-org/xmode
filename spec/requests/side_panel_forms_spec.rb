@@ -36,10 +36,70 @@ RSpec.describe "Side panel forms", type: :request do
       get path
 
       expect(response).to have_http_status(:ok), path
+      doc = Nokogiri::HTML(response.body)
+
       expect(response.body).to include("data-side-panel=\"true\""), path
+      expect(doc.at_css("turbo-frame#side_panel")).to be_present, path
       expect(response.body).to include("app-side-panel"), path
       expect(response.body).to include("app-side-panel-body"), path
     end
+  end
+
+  it "opens app add edit and import links in the side panel frame" do
+    Demo::PlanetExpressSeeder.call
+    workspace = Workspace.find_by!(slug: "planet-express")
+    user = User.find_by!(email: Demo::PlanetExpressSeeder::BENDER_EMAIL)
+    project = workspace.projects.first
+    selected_issue = workspace.issues.order(updated_at: :desc).first
+    cycle = workspace.cycles.first
+    pipeline = workspace.pipeline_definitions.first
+    schedule = workspace.schedules.first
+    repository = workspace.repository_connections.first
+
+    post login_path, params: { email: user.email, password: Demo::PlanetExpressSeeder::PASSWORD }
+
+    expected_panel_links = {
+      projects_path => [ new_project_path ],
+      project_path(project) => [ edit_project_path(project), new_issue_path(project_id: project.id) ],
+      issues_path(view: "inbox") => [ new_issue_path, edit_issue_path(selected_issue) ],
+      issue_path(selected_issue) => [ edit_issue_path(selected_issue) ],
+      cycles_path => [ new_cycle_path ],
+      cycle_path(cycle) => [ edit_cycle_path(cycle), new_issue_path(cycle_id: cycle.id) ],
+      schedules_path => [ new_schedule_path ],
+      schedule_path(schedule) => [ edit_schedule_path(schedule) ],
+      skills_path => [ import_skills_path, new_skill_path ],
+      actions_path => [ import_actions_path, new_action_path ],
+      pipelines_path => [ import_pipelines_path, new_pipeline_path ],
+      pipeline_path(pipeline) => [ edit_pipeline_path(pipeline), new_schedule_path(pipeline_definition_id: pipeline.id) ],
+      integrations_path => [ new_integration_path, new_repository_connection_path, edit_repository_connection_path(repository) ]
+    }
+
+    expected_panel_links.each do |page_path, panel_links|
+      get page_path
+      doc = Nokogiri::HTML(response.body)
+
+      panel_links.each do |panel_link|
+        selector = %(a[href="#{panel_link}"][data-turbo-frame="side_panel"])
+        expect(doc.at_css(selector)).to be_present, "#{page_path} should open #{panel_link} in the side panel"
+      end
+    end
+  end
+
+  it "preselects cycle context when adding an issue from a cycle panel action" do
+    Demo::PlanetExpressSeeder.call
+    workspace = Workspace.find_by!(slug: "planet-express")
+    user = User.find_by!(email: Demo::PlanetExpressSeeder::BENDER_EMAIL)
+    cycle = workspace.cycles.first
+
+    post login_path, params: { email: user.email, password: Demo::PlanetExpressSeeder::PASSWORD }
+
+    get new_issue_path(cycle_id: cycle.id)
+
+    doc = Nokogiri::HTML(response.body)
+    selected = doc.at_css(%(select[name="issue[cycle_id]"] option[selected]))
+
+    expect(selected).to be_present
+    expect(selected["value"]).to eq(cycle.id.to_s)
   end
 
   it "uses the issue side panel when adding work from an event" do
@@ -58,6 +118,7 @@ RSpec.describe "Side panel forms", type: :request do
     get new_issue_path(event_id: event.id)
 
     expect(response).to have_http_status(:ok)
+    expect(Nokogiri::HTML(response.body).at_css("turbo-frame#side_panel")).to be_present
     expect(response.body).to include("app-side-panel")
     expect(response.body).to include("app-side-panel-body")
     expect(response.body).to include(event.title)

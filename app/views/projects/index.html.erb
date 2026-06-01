@@ -1,7 +1,7 @@
 <% content_for :page_title, "Projects" %>
 <div class="app-page-actions">
   <p class="text-sm text-muted-foreground">Track delivery work, repositories, and automation defaults.</p>
-  <%= link_to new_project_path, class: "app-btn app-btn-primary" do %>
+  <%= link_to new_project_path, class: "app-btn app-btn-primary", data: side_panel_data do %>
     <%= lucide_icon("plus", class_name: "app-icon") %>
     <span>Project</span>
   <% end %>

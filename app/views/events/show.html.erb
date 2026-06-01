@@ -28,7 +28,7 @@
             <span>Open linked issue</span>
           <% end %>
         <% else %>
-          <%= link_to new_issue_path(event_id: @event.id), class: "app-btn app-btn-primary w-full" do %>
+          <%= link_to new_issue_path(event_id: @event.id), class: "app-btn app-btn-primary w-full", data: side_panel_data do %>
             <%= lucide_icon("plus", class_name: "app-icon") %>
             <span>Add issue</span>
           <% end %>

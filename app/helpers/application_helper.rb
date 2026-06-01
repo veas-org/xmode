@@ -1,8 +1,17 @@
 module ApplicationHelper
+  SIDE_PANEL_FRAME = "side_panel".freeze
   MARKDOWN_TAGS = %w[
     a blockquote br code del em h1 h2 h3 h4 h5 h6 hr li ol p pre strong table tbody td th thead tr ul
   ].freeze
   MARKDOWN_ATTRIBUTES = %w[href title class id rel target].freeze
+
+  def side_panel_frame
+    SIDE_PANEL_FRAME
+  end
+
+  def side_panel_data(data = {})
+    (data || {}).to_h.merge(turbo_frame: side_panel_frame)
+  end
 
   def lucide_icon(name, class_name: "app-icon", title: nil)
     svg_children = []

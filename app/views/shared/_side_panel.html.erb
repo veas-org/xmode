@@ -3,26 +3,29 @@
 <% description = local_assigns.fetch(:description, nil) %>
 <% back_path = local_assigns.fetch(:back_path, app_path) %>
 <% wide = local_assigns.fetch(:wide, false) %>
+<% content_for :side_panel_response, true %>
 
-<section class="app-side-panel-page <%= 'is-wide' if wide %>" data-side-panel="true">
-  <aside class="app-side-panel <%= 'app-side-panel-wide' if wide %>">
-    <header class="app-side-panel-header">
-      <div class="min-w-0">
-        <% if eyebrow.present? %>
-          <p class="app-eyebrow"><%= eyebrow %></p>
+<%= turbo_frame_tag side_panel_frame, target: "_top", class: "app-side-panel-inline" do %>
+  <section class="app-side-panel-page <%= 'is-wide' if wide %>" data-side-panel="true">
+    <aside class="app-side-panel <%= 'app-side-panel-wide' if wide %>">
+      <header class="app-side-panel-header">
+        <div class="min-w-0">
+          <% if eyebrow.present? %>
+            <p class="app-eyebrow"><%= eyebrow %></p>
+          <% end %>
+          <h2><%= title %></h2>
+          <% if description.present? %>
+            <p><%= description %></p>
+          <% end %>
+        </div>
+        <%= link_to back_path, class: "app-icon-btn shrink-0", title: "Close panel", aria: { label: "Close panel" } do %>
+          <%= lucide_icon("x", class_name: "app-icon") %>
         <% end %>
-        <h2><%= title %></h2>
-        <% if description.present? %>
-          <p><%= description %></p>
-        <% end %>
+      </header>
+
+      <div class="app-side-panel-body">
+        <%= yield %>
       </div>
-      <%= link_to back_path, class: "app-icon-btn shrink-0", title: "Close panel", aria: { label: "Close panel" } do %>
-        <%= lucide_icon("x", class_name: "app-icon") %>
-      <% end %>
-    </header>
-
-    <div class="app-side-panel-body">
-      <%= yield %>
-    </div>
-  </aside>
-</section>
+    </aside>
+  </section>
+<% end %>

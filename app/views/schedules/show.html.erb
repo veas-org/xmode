@@ -15,7 +15,7 @@
     <div class="inbox-property"><dt>Status</dt><dd><strong><%= @schedule.status %></strong></dd></div>
   </dl>
   <div class="mt-5 flex flex-wrap gap-2">
-    <%= link_to edit_schedule_path(@schedule), class: "app-btn app-btn-muted" do %>
+    <%= link_to edit_schedule_path(@schedule), class: "app-btn app-btn-muted", data: side_panel_data do %>
       <%= lucide_icon("pencil", class_name: "app-icon") %>
       <span>Edit</span>
     <% end %>

@@ -19,7 +19,7 @@ end %>
           <p class="mt-1 text-xs text-muted-foreground">Review incoming work and decide what needs action.</p>
         </div>
         <div class="flex items-center gap-1.5">
-          <%= link_to new_issue_path, class: "app-icon-btn", title: "New issue", aria: { label: "New issue" } do %>
+          <%= link_to new_issue_path, class: "app-icon-btn", title: "New issue", aria: { label: "New issue" }, data: side_panel_data do %>
             <%= lucide_icon("plus", class_name: "app-icon") %>
           <% end %>
         </div>
@@ -103,7 +103,7 @@ end %>
               <%= lucide_icon("check-circle", class_name: "app-icon") %>
               <span>Open</span>
             <% end %>
-            <%= link_to edit_issue_path(@selected_issue), class: "app-btn app-btn-muted" do %>
+            <%= link_to edit_issue_path(@selected_issue), class: "app-btn app-btn-muted", data: side_panel_data do %>
               <%= lucide_icon("pencil", class_name: "app-icon") %>
               <span>Edit</span>
             <% end %>
@@ -125,7 +125,7 @@ end %>
       <%= link_to "Active Cycle", issues_path(view: "active_cycle"), class: "linear-tab #{'is-active' if @view == 'active_cycle'}" %>
       <%= link_to "Backlog", issues_path(view: "backlog"), class: "linear-tab #{'is-active' if @view == 'backlog'}" %>
     </nav>
-    <%= link_to new_issue_path, class: "app-btn app-btn-primary" do %>
+    <%= link_to new_issue_path, class: "app-btn app-btn-primary", data: side_panel_data do %>
       <%= lucide_icon("plus", class_name: "app-icon") %>
       <span>Issue</span>
     <% end %>

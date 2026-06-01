@@ -346,6 +346,29 @@
     scrollbar-width: thin;
   }
 
+  .app-side-panel-frame {
+    @apply fixed inset-0 z-50 block;
+    pointer-events: none;
+  }
+
+  .app-side-panel-frame:not(:empty) {
+    pointer-events: auto;
+  }
+
+  .app-side-panel-frame:not(:empty) .app-side-panel-page {
+    @apply min-h-screen items-start justify-end px-3 py-3 md:px-6 md:py-5;
+    background: rgba(5, 8, 14, 0.54);
+    backdrop-filter: blur(12px);
+  }
+
+  .app-side-panel-frame:not(:empty) .app-side-panel {
+    max-height: calc(100dvh - 2.5rem);
+  }
+
+  .app-side-panel-inline {
+    @apply block;
+  }
+
   .app-side-panel-page {
     @apply flex min-h-[calc(100dvh-5.5rem)] items-start justify-end;
   }

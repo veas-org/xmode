@@ -5,7 +5,7 @@
     <p class="app-eyebrow">Automation schedules</p>
     <p class="mt-1 max-w-2xl text-sm text-muted-foreground">Time-based automation for recurring maintenance and one-off pipeline runs. Code-changing schedules still create isolated branches and Change Requests.</p>
   </div>
-  <%= link_to new_schedule_path, class: "app-btn app-btn-primary" do %>
+  <%= link_to new_schedule_path, class: "app-btn app-btn-primary", data: side_panel_data do %>
     <%= lucide_icon("plus", class_name: "app-icon") %>
     <span>Schedule</span>
   <% end %>

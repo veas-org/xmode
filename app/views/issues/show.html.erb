@@ -11,7 +11,7 @@
       <%= render_markdown(@issue.description, empty: "No description.") %>
     </div>
     <div class="mt-6 flex flex-wrap items-center gap-2">
-      <%= link_to edit_issue_path(@issue), class: "app-btn app-btn-muted" do %>
+      <%= link_to edit_issue_path(@issue), class: "app-btn app-btn-muted", data: side_panel_data do %>
         <%= lucide_icon("pencil", class_name: "app-icon") %>
         <span>Edit</span>
       <% end %>

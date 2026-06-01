@@ -16,7 +16,7 @@
         <span class="linear-count"><%= @integrations.size %></span>
       </div>
       <% if permitted?(:manage_integrations) %>
-        <%= link_to new_integration_path, class: "app-icon-btn", title: "New integration", aria: { label: "New integration" } do %>
+        <%= link_to new_integration_path, class: "app-icon-btn", title: "New integration", aria: { label: "New integration" }, data: side_panel_data do %>
           <%= lucide_icon("plus", class_name: "app-icon") %>
         <% end %>
       <% end %>
@@ -48,14 +48,14 @@
         <span class="linear-count"><%= @repositories.size %></span>
       </div>
       <% if permitted?(:manage_integrations) %>
-        <%= link_to new_repository_connection_path, class: "app-icon-btn", title: "New repository", aria: { label: "New repository" } do %>
+        <%= link_to new_repository_connection_path, class: "app-icon-btn", title: "New repository", aria: { label: "New repository" }, data: side_panel_data do %>
           <%= lucide_icon("plus", class_name: "app-icon") %>
         <% end %>
       <% end %>
     </div>
     <div class="linear-list">
       <% @repositories.each do |repo| %>
-        <%= link_to edit_repository_connection_path(repo), class: "linear-row" do %>
+        <%= link_to edit_repository_connection_path(repo), class: "linear-row", data: side_panel_data do %>
           <span class="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-muted/45 text-muted-foreground">
             <%= lucide_icon("folder-git-2", class_name: "app-icon") %>
           </span>
@@ -76,7 +76,7 @@
         <div class="linear-empty">
           <p>Attach the repository that automation should branch from and open Change Requests against.</p>
           <% if permitted?(:manage_integrations) %>
-            <%= link_to new_repository_connection_path, class: "app-btn app-btn-muted mt-4" do %>
+            <%= link_to new_repository_connection_path, class: "app-btn app-btn-muted mt-4", data: side_panel_data do %>
               <%= lucide_icon("folder-plus", class_name: "app-icon") %>
               <span>Add repository</span>
             <% end %>

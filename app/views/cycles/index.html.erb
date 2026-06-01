@@ -5,7 +5,7 @@
     <p class="app-eyebrow">Sprint planning</p>
     <p class="mt-1 max-w-2xl text-sm text-muted-foreground">Time-boxed delivery windows that connect issues, priorities, owners, and automation runs.</p>
   </div>
-  <%= link_to new_cycle_path, class: "app-btn app-btn-primary" do %>
+  <%= link_to new_cycle_path, class: "app-btn app-btn-primary", data: side_panel_data do %>
     <%= lucide_icon("plus", class_name: "app-icon") %>
     <span>Cycle</span>
   <% end %>
