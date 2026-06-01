@@ -1,31 +1,203 @@
 <% content_for :page_title, @change_request.title %>
 
-<div class="app-detail-grid">
-  <section class="linear-surface p-5">
-    <div class="flex flex-wrap items-start justify-between gap-3">
-      <div>
-        <p class="app-eyebrow"><%= @change_request.provider %> · <%= @change_request.repository_connection.full_name.presence || @change_request.repository_connection.name %></p>
-        <h2 class="mt-2 text-2xl font-semibold text-foreground"><%= @change_request.title %></h2>
-      </div>
-      <span class="status-pill"><%= @change_request.status %></span>
-    </div>
-    <dl class="mt-5 grid gap-2 text-sm md:grid-cols-2">
-      <div class="inbox-property"><dt>Branch</dt><dd><strong><%= @change_request.branch_name %></strong></dd></div>
-      <div class="inbox-property"><dt>Issue</dt><dd><strong><%= @change_request.issue&.identifier || "-" %></strong></dd></div>
-      <div class="inbox-property"><dt>Run</dt><dd><strong><%= @change_request.pipeline_run ? "##{@change_request.pipeline_run.id}" : "-" %></strong></dd></div>
-      <div class="inbox-property"><dt>External id</dt><dd><strong><%= @change_request.external_id.presence || "-" %></strong></dd></div>
-    </dl>
+<div class="app-page-actions">
+  <div class="min-w-0">
+    <p class="app-eyebrow">Change Request</p>
+    <h2 class="mt-1 truncate text-xl font-semibold text-foreground">Review package</h2>
+    <p class="mt-1 max-w-3xl text-sm leading-6 text-muted-foreground">Branch, checks, run evidence, and linked issue context before merge.</p>
+  </div>
+  <div class="flex flex-wrap items-center gap-2">
+    <span class="status-pill"><%= @change_request.status.to_s.titleize %></span>
     <% if @change_request.url.present? %>
-      <%= link_to @change_request.url, class: "app-btn app-btn-primary mt-5", target: "_blank", rel: "noopener" do %>
+      <%= link_to @change_request.url, class: "app-btn app-btn-muted", target: "_blank", rel: "noopener" do %>
         <%= lucide_icon("external-link", class_name: "app-icon") %>
-        <span>Open Change Request</span>
+        <span>Open provider</span>
       <% end %>
     <% end %>
-  </section>
-  <aside class="space-y-4">
-    <section class="linear-surface p-4">
-      <h3 class="font-medium text-foreground">Checks</h3>
-      <pre class="mt-3 max-h-96 overflow-auto rounded-md bg-background/70 p-3 text-xs text-muted-foreground"><%= JSON.pretty_generate(@change_request.checks) %></pre>
+  </div>
+</div>
+
+<div class="app-detail-grid">
+  <main class="min-w-0 space-y-4">
+    <section class="linear-surface p-5">
+      <div class="flex flex-wrap items-start justify-between gap-3">
+        <div class="min-w-0">
+          <p class="app-eyebrow"><%= @change_request.provider %> · <%= @repository.full_name.presence || @repository.name %></p>
+          <h2 class="mt-2 truncate text-2xl font-semibold text-foreground"><%= @change_request.title %></h2>
+          <p class="mt-2 text-sm leading-6 text-muted-foreground">
+            <%= @repository.default_branch %> to <span class="text-foreground"><%= @change_request.branch_name %></span>
+          </p>
+        </div>
+        <span class="status-pill"><%= @change_request.external_id.presence || "local draft" %></span>
+      </div>
+
+      <dl class="mt-5 grid gap-2 text-sm md:grid-cols-2">
+        <div class="inbox-property"><dt>Repository</dt><dd><strong><%= @repository.full_name.presence || @repository.name %></strong></dd></div>
+        <div class="inbox-property"><dt>Base</dt><dd><strong><%= @repository.default_branch %></strong></dd></div>
+        <div class="inbox-property"><dt>Branch</dt><dd><strong><%= @change_request.branch_name %></strong></dd></div>
+        <div class="inbox-property"><dt>Issue</dt><dd><strong><%= @issue&.identifier || "Manual" %></strong></dd></div>
+        <div class="inbox-property"><dt>Run</dt><dd><strong><%= @run ? "##{@run.id}" : "Manual" %></strong></dd></div>
+        <div class="inbox-property"><dt>Updated</dt><dd><strong><%= time_ago_in_words(@change_request.updated_at) %> ago</strong></dd></div>
+      </dl>
     </section>
+
+    <section class="linear-surface p-5">
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <h3 class="font-medium text-foreground">Review readiness</h3>
+          <p class="mt-1 text-sm leading-6 text-muted-foreground">The minimum operating record xmode expects before a code-changing run is merged.</p>
+        </div>
+        <span class="status-pill"><%= @review_steps.count { |_label, _value, status| status != "missing" } %>/<%= @review_steps.size %></span>
+      </div>
+
+      <div class="mt-4 space-y-1">
+        <% @review_steps.each do |label, value, status| %>
+          <div class="app-flat-row flex items-center justify-between gap-4 rounded-md">
+            <div class="min-w-0">
+              <p class="text-sm font-medium text-foreground"><%= label %></p>
+              <p class="truncate text-xs text-muted-foreground"><%= value %></p>
+            </div>
+            <span class="status-pill shrink-0"><%= status %></span>
+          </div>
+        <% end %>
+      </div>
+    </section>
+
+    <section class="linear-surface">
+      <div class="linear-toolbar">
+        <div>
+          <h3 class="linear-title">Run evidence</h3>
+          <p class="text-xs text-muted-foreground"><%= @run&.pipeline_definition&.name || "Manual Change Request" %></p>
+        </div>
+        <span class="linear-count"><%= pluralize(@steps.size, "step") %></span>
+      </div>
+
+      <div class="linear-list">
+        <% if @steps.any? %>
+          <% @steps.each do |step| %>
+            <article class="app-run-step">
+              <div class="flex min-w-0 items-start justify-between gap-3">
+                <div class="min-w-0">
+                  <p class="linear-row-title"><%= step.name %></p>
+                  <div class="linear-row-meta">
+                    <span><%= step.action_definition&.key || step.action_snapshot["key"] || "snapshot" %></span>
+                    <% if step.started_at.present? %>
+                      <span><%= time_ago_in_words(step.started_at) %> ago</span>
+                    <% end %>
+                  </div>
+                </div>
+                <span class="status-pill shrink-0"><%= step.display_status %></span>
+              </div>
+
+              <% if step.output_json.present? || step.error_message.present? %>
+                <dl class="mt-3 grid gap-2 text-sm md:grid-cols-3">
+                  <% if step.output_json["summary"].present? %>
+                    <div class="inbox-property"><dt>Output</dt><dd><strong><%= step.output_json["summary"] %></strong></dd></div>
+                  <% end %>
+                  <% if step.output_json["status"].present? %>
+                    <div class="inbox-property"><dt>Result</dt><dd><strong><%= step.output_json["status"].to_s.tr("_", " ").titleize %></strong></dd></div>
+                  <% end %>
+                  <% if step.output_json.key?("changed_files_count") %>
+                    <div class="inbox-property"><dt>Changed files</dt><dd><strong><%= step.output_json["changed_files_count"] %></strong></dd></div>
+                  <% end %>
+                  <% if step.error_message.present? %>
+                    <div class="inbox-property md:col-span-3"><dt>Error</dt><dd><strong><%= step.error_message %></strong></dd></div>
+                  <% end %>
+                </dl>
+              <% end %>
+            </article>
+          <% end %>
+        <% else %>
+          <p class="linear-empty">No run evidence is attached yet. Manual Change Requests can still link a branch, checks, and reviewer notes.</p>
+        <% end %>
+      </div>
+    </section>
+  </main>
+
+  <aside class="linear-side">
+    <section class="linear-surface p-4">
+      <div class="flex items-center justify-between gap-3">
+        <h3 class="font-medium text-foreground">Checks</h3>
+        <span class="linear-count"><%= @checks.size %></span>
+      </div>
+      <div class="mt-3 space-y-1">
+        <% if @checks.any? %>
+          <% @checks.each do |key, value| %>
+            <div class="app-flat-row flex items-center justify-between gap-4 rounded-md">
+              <span class="truncate text-sm text-muted-foreground"><%= key.to_s.humanize %></span>
+              <strong class="max-w-[55%] truncate text-right text-sm font-medium text-foreground">
+                <%= value.is_a?(Array) || value.is_a?(Hash) ? JSON.generate(value) : value.to_s %>
+              </strong>
+            </div>
+          <% end %>
+        <% else %>
+          <p class="linear-empty px-0 py-4 text-left">No checks captured yet.</p>
+        <% end %>
+      </div>
+    </section>
+
+    <section class="linear-surface p-4">
+      <div class="flex items-center justify-between gap-3">
+        <h3 class="font-medium text-foreground">Artifacts</h3>
+        <span class="linear-count"><%= @artifacts.size %></span>
+      </div>
+      <div class="mt-3 space-y-1">
+        <% if @artifacts.any? %>
+          <% @artifacts.each do |artifact| %>
+            <div class="app-flat-row rounded-md">
+              <div class="flex min-w-0 items-center justify-between gap-3">
+                <span class="truncate text-sm font-medium text-foreground"><%= artifact.name %></span>
+                <span class="status-pill shrink-0"><%= artifact.byte_size.present? ? number_to_human_size(artifact.byte_size) : "saved" %></span>
+              </div>
+              <p class="mt-1 truncate text-xs text-muted-foreground"><%= artifact.content_type.presence || "artifact" %></p>
+            </div>
+          <% end %>
+        <% else %>
+          <p class="linear-empty px-0 py-4 text-left">No artifacts attached.</p>
+        <% end %>
+      </div>
+    </section>
+
+    <section class="linear-surface p-4">
+      <h3 class="font-medium text-foreground">Linked context</h3>
+      <div class="mt-3 space-y-1">
+        <% if @issue.present? %>
+          <%= link_to issue_path(@issue), class: "app-flat-row flex items-center justify-between gap-4 rounded-md" do %>
+            <span class="truncate text-sm text-muted-foreground">Issue</span>
+            <strong class="truncate text-right text-sm font-medium text-foreground"><%= @issue.identifier %></strong>
+          <% end %>
+        <% end %>
+        <% if @run.present? %>
+          <%= link_to pipeline_run_path(@run), class: "app-flat-row flex items-center justify-between gap-4 rounded-md" do %>
+            <span class="truncate text-sm text-muted-foreground">Pipeline run</span>
+            <strong class="truncate text-right text-sm font-medium text-foreground">#<%= @run.id %></strong>
+          <% end %>
+        <% end %>
+        <div class="app-flat-row flex items-center justify-between gap-4 rounded-md">
+          <span class="truncate text-sm text-muted-foreground">Provider</span>
+          <strong class="truncate text-right text-sm font-medium text-foreground"><%= @change_request.provider %></strong>
+        </div>
+        <% if @issue.blank? && @run.blank? %>
+          <p class="linear-empty px-0 py-4 text-left">No issue or run linked yet.</p>
+        <% end %>
+      </div>
+    </section>
+
+    <% if @logs.any? %>
+      <section class="linear-surface p-4">
+        <h3 class="font-medium text-foreground">Recent logs</h3>
+        <div class="mt-3 space-y-1">
+          <% @logs.each do |log| %>
+            <div class="app-flat-row rounded-md">
+              <div class="flex items-center justify-between gap-3">
+                <span class="status-pill"><%= log.level %></span>
+                <span class="text-xs text-muted-foreground"><%= time_ago_in_words(log.created_at) %> ago</span>
+              </div>
+              <p class="mt-2 text-sm leading-6 text-muted-foreground"><%= log.message %></p>
+            </div>
+          <% end %>
+        </div>
+      </section>
+    <% end %>
   </aside>
 </div>

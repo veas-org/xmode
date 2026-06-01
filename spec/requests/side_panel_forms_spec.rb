@@ -85,6 +85,47 @@ RSpec.describe "Side panel forms", type: :request do
     end
   end
 
+  it "does not expose direct add edit or import links inside authenticated app pages" do
+    Demo::PlanetExpressSeeder.call
+    workspace = Workspace.find_by!(slug: "planet-express")
+    user = User.find_by!(email: Demo::PlanetExpressSeeder::BENDER_EMAIL)
+
+    pages = [
+      app_path,
+      projects_path,
+      project_path(workspace.projects.first),
+      issues_path(view: "inbox"),
+      issue_path(workspace.issues.first),
+      cycles_path,
+      cycle_path(workspace.cycles.first),
+      schedules_path,
+      schedule_path(workspace.schedules.first),
+      skills_path,
+      actions_path,
+      pipelines_path,
+      pipeline_path(workspace.pipeline_definitions.first),
+      events_path,
+      event_path(workspace.events.first),
+      integrations_path
+    ]
+
+    post login_path, params: { email: user.email, password: Demo::PlanetExpressSeeder::PASSWORD }
+
+    pages.each do |page_path|
+      get page_path
+      doc = Nokogiri::HTML(response.body)
+
+      mutation_links = doc.css("a[href]").select do |link|
+        href = link["href"].to_s
+        href.match?(%r{/(new|import)(\?|$)}) || href.match?(%r{/edit(\?|$)})
+      end
+
+      mutation_links.each do |link|
+        expect(link["data-turbo-frame"]).to eq("side_panel"), "#{page_path} exposes #{link["href"]} outside the side panel"
+      end
+    end
+  end
+
   it "preselects cycle context when adding an issue from a cycle panel action" do
     Demo::PlanetExpressSeeder.call
     workspace = Workspace.find_by!(slug: "planet-express")
