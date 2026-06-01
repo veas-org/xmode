@@ -496,12 +496,12 @@
   }
 
   .markdown-editor {
-    @apply rounded-lg bg-muted/20 p-3;
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.035);
+    @apply space-y-2;
   }
 
   .markdown-toolbar {
-    @apply inline-flex items-center gap-0.5 rounded-md bg-background/70 p-0.5;
+    @apply inline-flex items-center gap-0.5 rounded-md bg-muted/45 p-0.5;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.035);
   }
 
   .markdown-tool-btn {
@@ -512,8 +512,12 @@
     @apply bg-muted text-foreground;
   }
 
+  .markdown-tool-btn[aria-pressed="true"] {
+    @apply bg-muted text-foreground;
+  }
+
   .tiptap-surface {
-    @apply min-h-40 rounded-md bg-background/70 px-3 py-2.5 text-sm leading-6 text-foreground shadow-sm outline-none;
+    @apply min-h-40 rounded-md bg-background/55 px-3 py-2.5 text-sm leading-6 text-foreground shadow-sm outline-none;
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.035);
   }
 
@@ -530,7 +534,7 @@
   }
 
   .markdown-preview {
-    @apply rounded-md bg-background/70 p-3;
+    @apply rounded-md bg-muted/20 p-3;
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.035);
   }
 

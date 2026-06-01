@@ -8,7 +8,7 @@ class MarkdownRenderer
   }.freeze
 
   def self.call(markdown)
-    renderer.render(markdown.to_s)
+    renderer.render(normalize(markdown.to_s))
   end
 
   def self.renderer
@@ -16,5 +16,22 @@ class MarkdownRenderer
       Redcarpet::Render::HTML.new(filter_html: true, hard_wrap: false),
       OPTIONS
     )
+  end
+
+  def self.normalize(markdown)
+    fenced = false
+
+    markdown.lines.map do |line|
+      stripped = line.strip
+      fenced = !fenced if stripped.start_with?("```", "~~~")
+
+      if fenced
+        line
+      else
+        line
+          .sub(/^(\s*[-*])\s{2,}/, "\\1 ")
+          .sub(/^(\s*\d+\.)\s{2,}/, "\\1 ")
+      end
+    end.join
   end
 end

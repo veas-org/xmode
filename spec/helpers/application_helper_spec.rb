@@ -17,5 +17,19 @@ RSpec.describe ApplicationHelper, type: :helper do
       expect(html).to include("<a href=\"https://example.com\">xmode</a>")
       expect(html).not_to include("<script>")
     end
+
+    it "renders markdown emitted by the Tiptap round trip" do
+      html = helper.render_markdown(<<~MARKDOWN)
+        ## Objective
+
+        -   Add backoff
+        -   Add telemetry
+      MARKDOWN
+
+      expect(html).to include("<h2>Objective</h2>")
+      expect(html).to include("<ul>")
+      expect(html).to include("<li>Add backoff</li>")
+      expect(html).to include("<li>Add telemetry</li>")
+    end
   end
 end

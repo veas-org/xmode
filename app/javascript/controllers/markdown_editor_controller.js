@@ -1,11 +1,12 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = ["button", "editor", "input", "preview"]
+  static targets = ["button", "editor", "input", "preview", "previewButton", "sourceButton"]
   static values = { placeholder: String }
 
   connect() {
     this.sourceMode = false
+    this.previewVisible = this.hasPreviewTarget && !this.previewTarget.classList.contains("hidden")
     this.tiptapReady = false
     this.refresh()
     this.bootTiptap()
@@ -61,11 +62,15 @@ export default class extends Controller {
       })
 
       this.tiptapReady = true
+      this.element.dataset.markdownEditorMode = "rich"
       this.editorTarget.classList.remove("hidden")
       this.inputTarget.classList.add("hidden")
       this.updateToolbar()
     } catch {
       this.tiptapReady = false
+      this.element.dataset.markdownEditorMode = "source"
+      this.sourceMode = true
+      this.updateToolbar()
     }
   }
 
@@ -132,10 +137,12 @@ export default class extends Controller {
 
     this.sourceMode = !this.sourceMode
     if (this.sourceMode) {
+      this.element.dataset.markdownEditorMode = "source"
       this.inputTarget.classList.remove("hidden")
       this.editorTarget.classList.add("hidden")
       this.inputTarget.focus()
     } else {
+      this.element.dataset.markdownEditorMode = "rich"
       this.editor.commands.setContent(this.markdownToHtml(this.inputTarget.value), false)
       this.inputTarget.classList.add("hidden")
       this.editorTarget.classList.remove("hidden")
@@ -146,14 +153,15 @@ export default class extends Controller {
   }
 
   togglePreview() {
-    this.previewTarget.classList.toggle("hidden")
+    this.previewVisible = this.previewTarget.classList.toggle("hidden") === false
     this.refresh()
+    this.updateToolbar()
   }
 
   refresh() {
     if (!this.hasPreviewTarget) return
 
-    this.previewTarget.innerHTML = this.renderMarkdown(this.inputTarget.value)
+    this.previewTarget.innerHTML = this.renderPreview(this.inputTarget.value)
   }
 
   runCommand(callback) {
@@ -165,12 +173,23 @@ export default class extends Controller {
   }
 
   updateToolbar() {
+    if (this.hasSourceButtonTarget) {
+      this.sourceButtonTarget.classList.toggle("is-active", this.sourceMode)
+      this.sourceButtonTarget.setAttribute("aria-pressed", this.sourceMode.toString())
+    }
+
+    if (this.hasPreviewButtonTarget) {
+      this.previewButtonTarget.classList.toggle("is-active", this.previewVisible)
+      this.previewButtonTarget.setAttribute("aria-pressed", this.previewVisible.toString())
+    }
+
     if (!this.tiptapReady || !this.hasButtonTarget) return
 
     this.buttonTargets.forEach((button) => {
       const format = button.dataset.format
-      const active = this.formatActive(format)
+      const active = !this.sourceMode && this.formatActive(format)
       button.classList.toggle("is-active", active)
+      button.setAttribute("aria-pressed", active.toString())
     })
   }
 
@@ -212,6 +231,7 @@ export default class extends Controller {
 
     input.setRangeText(replacement, start, end, "select")
     input.focus()
+    input.dispatchEvent(new Event("input", { bubbles: true }))
     this.refresh()
   }
 
@@ -227,6 +247,7 @@ export default class extends Controller {
 
     input.setRangeText(replacement, start, end, "select")
     input.focus()
+    input.dispatchEvent(new Event("input", { bubbles: true }))
     this.refresh()
   }
 
@@ -242,7 +263,12 @@ export default class extends Controller {
 
     input.setRangeText(replacement, start, end, "select")
     input.focus()
+    input.dispatchEvent(new Event("input", { bubbles: true }))
     this.refresh()
+  }
+
+  renderPreview(markdown) {
+    return this.sanitizeHtml(this.markdownToHtml(markdown))
   }
 
   renderMarkdown(markdown) {
@@ -253,17 +279,18 @@ export default class extends Controller {
   renderBlock(block) {
     if (!block) return ""
     if (block.startsWith("```")) return `<pre><code>${block.replace(/^```[a-z]*\n?/i, "").replace(/```$/, "")}</code></pre>`
-    if (block.startsWith("# ")) return `<h1>${this.inline(block.slice(2))}</h1>`
-    if (block.startsWith("## ")) return `<h2>${this.inline(block.slice(3))}</h2>`
-    if (block.startsWith("### ")) return `<h3>${this.inline(block.slice(4))}</h3>`
-    if (block.split("\n").every((line) => line.startsWith("- "))) {
-      return `<ul>${block.split("\n").map((line) => `<li>${this.inline(line.slice(2))}</li>`).join("")}</ul>`
+    if (/^#\s+/.test(block)) return `<h1>${this.inline(block.replace(/^#\s+/, ""))}</h1>`
+    if (/^##\s+/.test(block)) return `<h2>${this.inline(block.replace(/^##\s+/, ""))}</h2>`
+    if (/^###\s+/.test(block)) return `<h3>${this.inline(block.replace(/^###\s+/, ""))}</h3>`
+    if (/^####\s+/.test(block)) return `<h4>${this.inline(block.replace(/^####\s+/, ""))}</h4>`
+    if (block.split("\n").every((line) => /^[-*]\s+/.test(line))) {
+      return `<ul>${block.split("\n").map((line) => `<li>${this.inline(line.replace(/^[-*]\s+/, ""))}</li>`).join("")}</ul>`
     }
-    if (block.split("\n").every((line) => line.match(/^\d+\.\s/))) {
-      return `<ol>${block.split("\n").map((line) => `<li>${this.inline(line.replace(/^\d+\.\s/, ""))}</li>`).join("")}</ol>`
+    if (block.split("\n").every((line) => /^\d+\.\s+/.test(line))) {
+      return `<ol>${block.split("\n").map((line) => `<li>${this.inline(line.replace(/^\d+\.\s+/, ""))}</li>`).join("")}</ol>`
     }
-    if (block.split("\n").every((line) => line.startsWith("> "))) {
-      return `<blockquote>${block.split("\n").map((line) => this.inline(line.slice(2))).join("<br>")}</blockquote>`
+    if (block.split("\n").every((line) => /^>\s?/.test(line))) {
+      return `<blockquote>${block.split("\n").map((line) => this.inline(line.replace(/^>\s?/, ""))).join("<br>")}</blockquote>`
     }
 
     return `<p>${this.inline(block).replace(/\n/g, "<br>")}</p>`
@@ -284,5 +311,51 @@ export default class extends Controller {
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&#39;")
+  }
+
+  sanitizeHtml(html) {
+    const template = document.createElement("template")
+    template.innerHTML = html
+    const allowedTags = new Set([
+      "A", "BLOCKQUOTE", "BR", "CODE", "DEL", "EM", "H1", "H2", "H3", "H4", "H5", "H6", "HR", "LI", "OL", "P", "PRE", "STRONG", "TABLE", "TBODY", "TD", "TH", "THEAD", "TR", "UL"
+    ])
+    const allowedAttributes = new Set(["href", "rel", "target", "title"])
+
+    const clean = (node) => {
+      Array.from(node.childNodes).forEach(clean)
+
+      if (node.nodeType !== Node.ELEMENT_NODE) return
+
+      if (!allowedTags.has(node.tagName)) {
+        node.replaceWith(...Array.from(node.childNodes))
+        return
+      }
+
+      Array.from(node.attributes).forEach((attribute) => {
+        if (!allowedAttributes.has(attribute.name) || !this.safeAttribute(node, attribute)) {
+          node.removeAttribute(attribute.name)
+        }
+      })
+
+      if (node.tagName === "A" && node.getAttribute("target") === "_blank") {
+        node.setAttribute("rel", "noopener noreferrer")
+      }
+    }
+
+    clean(template.content)
+    return template.innerHTML
+  }
+
+  safeAttribute(node, attribute) {
+    if (attribute.name !== "href") return true
+
+    const value = attribute.value.toString().trim()
+    if (value.startsWith("#")) return true
+
+    try {
+      return ["http:", "https:", "mailto:"].includes(new URL(value, window.location.origin).protocol)
+    } catch {
+      return false
+    }
   }
 }
