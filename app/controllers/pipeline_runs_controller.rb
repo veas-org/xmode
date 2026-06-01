@@ -10,6 +10,11 @@ class PipelineRunsController < AuthenticatedController
     @logs = @run.run_logs.order(:created_at)
     @artifacts = @run.run_artifacts.order(:created_at)
     @approvals = @run.approvals.order(:created_at)
+    @pending_approval = @approvals.find { |approval| approval.status == "pending" }
+    @change_request = @run.change_request
+    @snapshot_nodes = @run.pipeline_snapshot.dig("graph", "nodes") || []
+    @can_resume = @run.status.in?(%w[queued failed])
+    @can_cancel = @run.status.in?(%w[queued running waiting_for_approval])
   end
 
   def approve

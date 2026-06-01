@@ -1,11 +1,16 @@
 <% content_for :page_title, "Run ##{@run.id}" %>
 <div class="app-page-actions">
-  <div class="flex flex-wrap items-center gap-2">
-    <span class="status-pill"><%= @run.status %></span>
-    <span class="app-eyebrow"><%= @run.pipeline_definition&.name || "Pipeline run" %></span>
+  <div class="min-w-0">
+    <div class="flex flex-wrap items-center gap-2">
+      <span class="status-pill"><%= @run.status %></span>
+      <span class="app-eyebrow"><%= @run.pipeline_definition&.name || "Pipeline run" %></span>
+    </div>
+    <p class="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+      Frozen automation record for <%= @run.issue&.identifier || @run.project&.title || @run.event&.title || "workspace run" %>, including the captured pipeline definition, approvals, logs, artifacts, and Change Request evidence.
+    </p>
   </div>
-  <div class="flex gap-2">
-    <% if @run.status == "waiting_for_approval" %>
+  <div class="flex flex-wrap gap-2">
+    <% if @pending_approval %>
       <%= button_to approve_pipeline_run_path(@run), method: :post, class: "app-btn app-btn-primary" do %>
         <%= lucide_icon("check", class_name: "app-icon") %>
         <span>Approve</span>
@@ -15,24 +20,37 @@
         <span>Reject</span>
       <% end %>
     <% end %>
-    <%= button_to resume_pipeline_run_path(@run), method: :post, class: "app-btn app-btn-muted" do %>
-      <%= lucide_icon("rotate-cw", class_name: "app-icon") %>
-      <span>Resume</span>
+    <% if @can_resume %>
+      <%= button_to resume_pipeline_run_path(@run), method: :post, class: "app-btn app-btn-muted" do %>
+        <%= lucide_icon("rotate-cw", class_name: "app-icon") %>
+        <span>Resume</span>
+      <% end %>
     <% end %>
-    <%= button_to cancel_pipeline_run_path(@run), method: :post, class: "app-btn app-btn-danger" do %>
-      <%= lucide_icon("ban", class_name: "app-icon") %>
-      <span>Cancel</span>
+    <% if @can_cancel %>
+      <%= button_to cancel_pipeline_run_path(@run), method: :post, class: "app-btn app-btn-danger" do %>
+        <%= lucide_icon("ban", class_name: "app-icon") %>
+        <span>Cancel</span>
+      <% end %>
     <% end %>
   </div>
 </div>
 <div class="app-run-grid">
   <section class="linear-surface p-5">
-    <h2 class="font-semibold text-foreground">Steps</h2>
-    <div class="mt-4 space-y-3">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <p class="app-eyebrow">Execution timeline</p>
+        <h2 class="mt-1 font-semibold text-foreground">Steps</h2>
+      </div>
+      <span class="linear-count"><%= pluralize(@steps.size, "step") %></span>
+    </div>
+    <div class="mt-4 space-y-0">
       <% @steps.each do |step| %>
         <article class="app-run-step">
-          <div class="flex items-center justify-between">
-            <p class="font-medium text-foreground"><%= step.position + 1 %>. <%= step.name %></p>
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <p class="font-medium text-foreground"><%= step.position + 1 %>. <%= step.name %></p>
+              <p class="mt-1 text-xs text-muted-foreground"><%= step.action_definition&.provider || step.action_snapshot["provider"] || "provider" %></p>
+            </div>
             <span class="status-pill"><%= step.status %></span>
           </div>
           <% input = step.input_json || {} %>
@@ -49,6 +67,19 @@
               <% end %>
             </div>
           <% end %>
+          <% if step.output_json.present? %>
+            <div class="mt-3 grid gap-2 text-sm">
+              <% if step.output_json["summary"].present? %>
+                <div class="inbox-property"><span>Output</span><strong><%= step.output_json["summary"] %></strong></div>
+              <% end %>
+              <% if step.output_json["status"].present? %>
+                <div class="inbox-property"><span>Result</span><strong><%= step.output_json["status"] %></strong></div>
+              <% end %>
+              <% if step.output_json["changed_files_count"].present? %>
+                <div class="inbox-property"><span>Changed files</span><strong><%= step.output_json["changed_files_count"] %></strong></div>
+              <% end %>
+            </div>
+          <% end %>
           <% if step.error_message.present? %><p class="mt-2 text-sm text-red-200"><%= step.error_message %></p><% end %>
         </article>
       <% end %>
@@ -56,9 +87,56 @@
   </section>
   <aside class="space-y-4">
     <section class="linear-surface p-4">
+      <h3 class="font-medium text-foreground">Run contract</h3>
+      <dl class="mt-3 grid gap-2 text-sm">
+        <div class="inbox-property"><dt>Trigger</dt><dd><strong><%= @run.trigger %></strong></dd></div>
+        <div class="inbox-property"><dt>Project</dt><dd><strong><%= @run.project&.title || "-" %></strong></dd></div>
+        <div class="inbox-property"><dt>Issue</dt><dd><strong><%= @run.issue&.identifier || "-" %></strong></dd></div>
+        <div class="inbox-property"><dt>Event</dt><dd><strong><%= @run.event&.title || "-" %></strong></dd></div>
+        <div class="inbox-property"><dt>Snapshot</dt><dd><strong><%= pluralize(@snapshot_nodes.size, "step") %></strong></dd></div>
+      </dl>
+    </section>
+
+    <section class="linear-surface p-4">
+      <h3 class="font-medium text-foreground">Approvals</h3>
+      <div class="mt-3 space-y-2 text-sm text-muted-foreground">
+        <% @approvals.each do |approval| %>
+          <article class="app-flat-row">
+            <div class="flex items-center justify-between gap-3">
+              <p class="font-medium text-foreground"><%= approval.action_run_step&.name || "Approval" %></p>
+              <span class="status-pill"><%= approval.status %></span>
+            </div>
+            <p class="mt-1 text-xs"><%= approval.user&.display_name || "No reviewer recorded" %></p>
+            <% if approval.notes.present? %>
+              <p class="mt-2 text-xs leading-5"><%= approval.notes %></p>
+            <% end %>
+          </article>
+        <% end %>
+        <% if @approvals.empty? %><p>No approval gates were reached.</p><% end %>
+      </div>
+    </section>
+
+    <section class="linear-surface p-4">
+      <h3 class="font-medium text-foreground">Change Request</h3>
+      <% if @change_request %>
+        <div class="mt-3 space-y-2 text-sm text-muted-foreground">
+          <div class="inbox-property"><span>Status</span><strong><%= @change_request.status %></strong></div>
+          <div class="inbox-property"><span>Branch</span><strong><%= @change_request.branch_name %></strong></div>
+          <%= link_to change_request_path(@change_request), class: "app-btn app-btn-muted mt-3 w-full" do %>
+            <%= lucide_icon("git-pull-request", class_name: "app-icon") %>
+            <span>Open Change Request</span>
+          <% end %>
+        </div>
+      <% else %>
+        <p class="mt-3 text-sm leading-6 text-muted-foreground">No Change Request has been recorded for this run yet. Code-changing runs create one after branch and artifact evidence exists.</p>
+      <% end %>
+    </section>
+
+    <section class="linear-surface p-4">
       <h3 class="font-medium text-foreground">Logs</h3>
       <div class="mt-3 max-h-80 space-y-2 overflow-auto text-xs text-muted-foreground">
         <% @logs.each do |log| %><p><span class="text-muted-foreground"><%= log.level %></span> <%= log.message %></p><% end %>
+        <% if @logs.empty? %><p>No logs recorded.</p><% end %>
       </div>
     </section>
     <section class="linear-surface p-4">
@@ -80,7 +158,7 @@
             <% end %>
           </article>
         <% end %>
-        <% if @artifacts.empty? %><p>No artifacts.</p><% end %>
+        <% if @artifacts.empty? %><p>No artifacts recorded yet.</p><% end %>
       </div>
     </section>
   </aside>
