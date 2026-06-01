@@ -1,0 +1,10 @@
+<% content_for :page_title, "Edit #{@repository_connection.full_name.presence || @repository_connection.name}" %>
+<%= render layout: "shared/side_panel",
+      locals: {
+        title: "Edit #{@repository_connection.full_name.presence || @repository_connection.name}",
+        eyebrow: "Change Request target",
+        description: "Keep repository provider, branch, and account context aligned with project automation.",
+        back_path: integrations_path
+      } do %>
+  <%= render "form", repository_connection: @repository_connection %>
+<% end %>

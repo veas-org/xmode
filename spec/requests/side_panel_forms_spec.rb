@@ -24,6 +24,8 @@ RSpec.describe "Side panel forms", type: :request do
       new_schedule_path,
       edit_schedule_path(workspace.schedules.first),
       new_integration_path,
+      new_repository_connection_path,
+      edit_repository_connection_path(workspace.repository_connections.first),
       new_workspace_path
     ]
 

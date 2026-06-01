@@ -5,10 +5,6 @@
     <p class="app-eyebrow">Provider connections</p>
     <p class="mt-1 max-w-2xl text-sm text-muted-foreground">Connect GitHub, GitLab, and repository contexts used by actions, pipeline runs, and Change Request creation.</p>
   </div>
-  <%= link_to new_integration_path, class: "app-btn app-btn-primary" do %>
-    <%= lucide_icon("plus", class_name: "app-icon") %>
-    <span>Integration</span>
-  <% end %>
 </div>
 
 <div class="grid gap-5 lg:grid-cols-2">
@@ -19,6 +15,11 @@
         <h2 class="linear-title">Accounts</h2>
         <span class="linear-count"><%= @integrations.size %></span>
       </div>
+      <% if permitted?(:manage_integrations) %>
+        <%= link_to new_integration_path, class: "app-icon-btn", title: "New integration", aria: { label: "New integration" } do %>
+          <%= lucide_icon("plus", class_name: "app-icon") %>
+        <% end %>
+      <% end %>
     </div>
     <div class="linear-list">
       <% @integrations.each do |integration| %>
@@ -46,10 +47,15 @@
         <h2 class="linear-title">Repositories</h2>
         <span class="linear-count"><%= @repositories.size %></span>
       </div>
+      <% if permitted?(:manage_integrations) %>
+        <%= link_to new_repository_connection_path, class: "app-icon-btn", title: "New repository", aria: { label: "New repository" } do %>
+          <%= lucide_icon("plus", class_name: "app-icon") %>
+        <% end %>
+      <% end %>
     </div>
     <div class="linear-list">
       <% @repositories.each do |repo| %>
-        <article class="linear-row">
+        <%= link_to edit_repository_connection_path(repo), class: "linear-row" do %>
           <span class="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-muted/45 text-muted-foreground">
             <%= lucide_icon("folder-git-2", class_name: "app-icon") %>
           </span>
@@ -58,12 +64,25 @@
             <div class="linear-row-meta">
               <span><%= repo.provider %></span>
               <span><%= repo.default_branch %></span>
+              <% if repo.integration_account %>
+                <span><%= repo.integration_account.name %></span>
+              <% end %>
               <span><%= repo.url %></span>
             </div>
           </div>
-        </article>
+        <% end %>
       <% end %>
-      <% if @repositories.empty? %><p class="linear-empty">Repository sync comes after provider credentials are added.</p><% end %>
+      <% if @repositories.empty? %>
+        <div class="linear-empty">
+          <p>Attach the repository that automation should branch from and open Change Requests against.</p>
+          <% if permitted?(:manage_integrations) %>
+            <%= link_to new_repository_connection_path, class: "app-btn app-btn-muted mt-4" do %>
+              <%= lucide_icon("folder-plus", class_name: "app-icon") %>
+              <span>Add repository</span>
+            <% end %>
+          <% end %>
+        </div>
+      <% end %>
     </div>
   </section>
 </div>

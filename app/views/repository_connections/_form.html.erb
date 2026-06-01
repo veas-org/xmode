@@ -1,0 +1,42 @@
+<%= form_with model: repository_connection, class: "space-y-4" do |form| %>
+  <%= render "shared/form_errors", object: repository_connection %>
+
+  <div class="grid gap-4 sm:grid-cols-2">
+    <div>
+      <%= form.label :provider, class: "app-label" %>
+      <%= form.select :provider, RepositoryConnection::PROVIDERS, {}, class: "app-input" %>
+    </div>
+    <div>
+      <%= form.label :integration_account_id, "Provider account", class: "app-label" %>
+      <%= form.collection_select :integration_account_id,
+            @integration_accounts,
+            :id,
+            :name,
+            { include_blank: "No token yet" },
+            class: "app-input" %>
+    </div>
+  </div>
+
+  <div>
+    <%= form.label :url, "Repository URL", class: "app-label" %>
+    <%= form.url_field :url, class: "app-input", required: true, placeholder: "https://github.com/acme/app" %>
+  </div>
+
+  <div class="grid gap-4 sm:grid-cols-2">
+    <div>
+      <%= form.label :full_name, "Full name", class: "app-label" %>
+      <%= form.text_field :full_name, class: "app-input", placeholder: "acme/app" %>
+    </div>
+    <div>
+      <%= form.label :name, class: "app-label" %>
+      <%= form.text_field :name, class: "app-input", placeholder: "app" %>
+    </div>
+  </div>
+
+  <div>
+    <%= form.label :default_branch, class: "app-label" %>
+    <%= form.text_field :default_branch, class: "app-input", required: true, placeholder: "main" %>
+  </div>
+
+  <%= form.submit class: "app-btn app-btn-primary" %>
+<% end %>

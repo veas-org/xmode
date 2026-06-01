@@ -1,0 +1,10 @@
+<% content_for :page_title, "New repository" %>
+<%= render layout: "shared/side_panel",
+      locals: {
+        title: "New repository",
+        eyebrow: "Change Request target",
+        description: "Attach the repository where code-changing automation creates branches, artifacts, and Change Requests.",
+        back_path: integrations_path
+      } do %>
+  <%= render "form", repository_connection: @repository_connection %>
+<% end %>

@@ -62,6 +62,7 @@ Rails.application.routes.draw do
   resources :schedules, except: :destroy
   resources :change_requests, only: %i[index show]
   resources :integrations, only: %i[index new create]
+  resources :repository_connections, path: "repositories", only: %i[new create edit update]
   resource :billing, only: :show
   post "stripe/webhooks", to: "stripe_webhooks#create"
 
