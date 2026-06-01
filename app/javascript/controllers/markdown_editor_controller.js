@@ -80,6 +80,14 @@ export default class extends Controller {
     this.wrapSelection("**", "**", "bold text")
   }
 
+  undo() {
+    if (this.runCommand((editor) => editor.chain().focus().undo().run())) return
+  }
+
+  redo() {
+    if (this.runCommand((editor) => editor.chain().focus().redo().run())) return
+  }
+
   italic() {
     if (this.runCommand((editor) => editor.chain().focus().toggleItalic().run())) return
 
@@ -114,6 +122,19 @@ export default class extends Controller {
     if (this.runCommand((editor) => editor.chain().focus().toggleCodeBlock().run())) return
 
     this.wrapSelection("```\n", "\n```", "code")
+  }
+
+  horizontalRule() {
+    if (this.runCommand((editor) => editor.chain().focus().setHorizontalRule().run())) return
+
+    this.insertMarkdown("---")
+  }
+
+  snippet(event) {
+    const markdown = this.templateFor(event.currentTarget.dataset.template)
+    if (!markdown) return
+
+    this.insertMarkdown(markdown)
   }
 
   link() {
@@ -170,6 +191,44 @@ export default class extends Controller {
     callback(this.editor)
     this.updateToolbar()
     return true
+  }
+
+  insertMarkdown(markdown) {
+    if (this.tiptapReady && !this.sourceMode) {
+      this.editor.chain().focus().insertContent(this.markdownToHtml(markdown)).run()
+      this.inputTarget.value = this.htmlToMarkdown(this.editor.getHTML())
+      this.inputTarget.dispatchEvent(new Event("input", { bubbles: true }))
+      this.refresh()
+      this.updateToolbar()
+      return
+    }
+
+    const input = this.inputTarget
+    const start = input.selectionStart
+    const end = input.selectionEnd
+    const before = input.value.slice(0, start)
+    const after = input.value.slice(end)
+    const prefix = before.length > 0 && !before.endsWith("\n\n") ? before.endsWith("\n") ? "\n" : "\n\n" : ""
+    const suffix = after.length > 0 && !after.startsWith("\n\n") ? after.startsWith("\n") ? "\n" : "\n\n" : ""
+    const replacement = `${prefix}${markdown.trim()}${suffix}`
+
+    input.setRangeText(replacement, start, end, "end")
+    input.focus()
+    input.dispatchEvent(new Event("input", { bubbles: true }))
+    this.refresh()
+  }
+
+  templateFor(template) {
+    switch (template) {
+      case "objective":
+        return "## Objective\n\nDescribe the target outcome, constraints, and evidence for done."
+      case "plan":
+        return "## Plan\n\n1. Confirm the context and required inputs.\n2. Execute the smallest safe change.\n3. Verify the result and capture evidence."
+      case "acceptance":
+        return "## Acceptance\n\n- Behavior is verified.\n- Evidence is attached.\n- Follow-up risk is captured."
+      default:
+        return null
+    }
   }
 
   updateToolbar() {
@@ -279,6 +338,7 @@ export default class extends Controller {
   renderBlock(block) {
     if (!block) return ""
     if (block.startsWith("```")) return `<pre><code>${block.replace(/^```[a-z]*\n?/i, "").replace(/```$/, "")}</code></pre>`
+    if (/^(-{3,}|\*{3,}|_{3,})$/.test(block)) return "<hr>"
     if (/^#\s+/.test(block)) return `<h1>${this.inline(block.replace(/^#\s+/, ""))}</h1>`
     if (/^##\s+/.test(block)) return `<h2>${this.inline(block.replace(/^##\s+/, ""))}</h2>`
     if (/^###\s+/.test(block)) return `<h3>${this.inline(block.replace(/^###\s+/, ""))}</h3>`

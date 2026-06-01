@@ -36,6 +36,7 @@ RSpec.describe "Side panel forms", type: :request do
       get path
 
       expect(response).to have_http_status(:ok), path
+      expect(response.body).to include("data-side-panel=\"true\""), path
       expect(response.body).to include("app-side-panel"), path
       expect(response.body).to include("app-side-panel-body"), path
     end

@@ -347,41 +347,11 @@
   }
 
   .app-side-panel-page {
-    @apply grid min-h-[calc(100dvh-6rem)] items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(420px,620px)];
-  }
-
-  .app-side-panel-page.is-wide {
-    @apply lg:grid-cols-1;
-  }
-
-  .app-side-panel-context {
-    @apply hidden min-w-0 py-8 pr-4 lg:block;
-  }
-
-  .app-side-panel-page.is-wide .app-side-panel-context {
-    @apply hidden;
-  }
-
-  @media (min-width: 96rem) {
-    .app-side-panel-page.is-wide {
-      grid-template-columns: minmax(280px, 0.62fr) minmax(680px, 900px);
-    }
-
-    .app-side-panel-page.is-wide .app-side-panel-context {
-      display: block;
-    }
-  }
-
-  .app-side-panel-context h2 {
-    @apply mt-3 max-w-xl text-2xl font-semibold tracking-tight text-foreground;
-  }
-
-  .app-side-panel-context p:not(.app-eyebrow) {
-    @apply mt-3 max-w-lg text-sm leading-6 text-muted-foreground;
+    @apply flex min-h-[calc(100dvh-5.5rem)] items-start justify-end;
   }
 
   .app-side-panel {
-    @apply flex min-h-0 w-full flex-col justify-self-end overflow-hidden rounded-lg bg-card text-card-foreground shadow-sm;
+    @apply flex min-h-0 w-full flex-col overflow-hidden rounded-lg bg-card text-card-foreground shadow-sm;
     backdrop-filter: blur(18px);
     background:
       radial-gradient(circle at 12% 0%, rgba(56, 189, 248, 0.08), transparent 18rem),
@@ -389,20 +359,20 @@
       linear-gradient(180deg, rgba(18, 23, 33, 0.68), rgba(11, 15, 23, 0.78));
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.045), 0 20px 56px rgba(0, 0, 0, 0.18);
     min-height: calc(100dvh - 6rem);
+    max-width: 620px;
     position: relative;
   }
 
   .app-side-panel-wide {
-    @apply w-full justify-self-end;
-    max-width: 900px;
+    max-width: 960px;
   }
 
   @media (min-width: 64rem) {
     .app-side-panel {
-      max-height: calc(100dvh - 6rem);
+      max-height: calc(100dvh - 5.5rem);
       min-height: 0;
       position: sticky;
-      top: 4.5rem;
+      top: 4rem;
     }
   }
 
@@ -499,6 +469,14 @@
     @apply space-y-2;
   }
 
+  .markdown-editor-head {
+    @apply flex flex-wrap items-start justify-between gap-2;
+  }
+
+  .markdown-tool-groups {
+    @apply flex min-w-0 flex-wrap items-center justify-end gap-1.5;
+  }
+
   .markdown-toolbar {
     @apply inline-flex items-center gap-0.5 rounded-md bg-muted/45 p-0.5;
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.035);
@@ -514,6 +492,15 @@
 
   .markdown-tool-btn[aria-pressed="true"] {
     @apply bg-muted text-foreground;
+  }
+
+  .markdown-template-bar {
+    @apply inline-flex min-w-0 flex-wrap items-center gap-1 rounded-md bg-muted/30 p-0.5;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+  }
+
+  .markdown-template-btn {
+    @apply inline-flex h-7 items-center gap-1.5 rounded-[5px] px-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground;
   }
 
   .tiptap-surface {

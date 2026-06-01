@@ -203,6 +203,10 @@ module ApplicationHelper
         tag.path(d: "M4 10h2"),
         tag.path(d: "M6 18H4c0-1 2-2 2-3 0-.5-.5-1-1-1s-1 .5-1 1")
       ]
+    when "minus"
+      [
+        tag.path(d: "M5 12h14")
+      ]
     when "link"
       [
         tag.path(d: "M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"),
@@ -247,6 +251,11 @@ module ApplicationHelper
         tag.path(d: "m7 22-4-4 4-4"),
         tag.path(d: "M21 13v1a4 4 0 0 1-4 4H3")
       ]
+    when "redo-2"
+      [
+        tag.path(d: "m15 14 5-5-5-5"),
+        tag.path(d: "M20 9H9.5A5.5 5.5 0 0 0 4 14.5v0A5.5 5.5 0 0 0 9.5 20H13")
+      ]
     when "rotate-cw"
       [
         tag.path(d: "M21 12a9 9 0 1 1-2.64-6.36L21 8"),
@@ -266,6 +275,11 @@ module ApplicationHelper
       [
         tag.polyline(points: "4 17 10 11 4 5"),
         tag.line(x1: 12, x2: 20, y1: 19, y2: 19)
+      ]
+    when "undo-2"
+      [
+        tag.path(d: "M9 14 4 9l5-5"),
+        tag.path(d: "M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11")
       ]
     when "eye"
       [

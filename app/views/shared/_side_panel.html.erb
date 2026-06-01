@@ -4,15 +4,7 @@
 <% back_path = local_assigns.fetch(:back_path, app_path) %>
 <% wide = local_assigns.fetch(:wide, false) %>
 
-<section class="app-side-panel-page <%= 'is-wide' if wide %>">
-  <div class="app-side-panel-context">
-    <p class="app-eyebrow"><%= eyebrow.presence || "Side panel" %></p>
-    <h2><%= title %></h2>
-    <% if description.present? %>
-      <p><%= description %></p>
-    <% end %>
-  </div>
-
+<section class="app-side-panel-page <%= 'is-wide' if wide %>" data-side-panel="true">
   <aside class="app-side-panel <%= 'app-side-panel-wide' if wide %>">
     <header class="app-side-panel-header">
       <div class="min-w-0">

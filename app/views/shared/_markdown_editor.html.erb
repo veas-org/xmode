@@ -6,19 +6,33 @@
 <div class="markdown-editor <%= classes %>"
      data-controller="markdown-editor"
      data-markdown-editor-placeholder-value="<%= placeholder %>">
-  <div class="flex flex-wrap items-center justify-between gap-2">
+  <div class="markdown-editor-head">
     <%= form.label field, label, class: "app-label mb-0" %>
-    <div class="markdown-toolbar" aria-label="<%= label %> formatting">
-      <button type="button" class="markdown-tool-btn" data-markdown-editor-target="button" data-format="bold" data-action="markdown-editor#bold" title="Bold" aria-label="Bold" aria-pressed="false"><%= lucide_icon("bold", class_name: "app-icon") %></button>
-      <button type="button" class="markdown-tool-btn" data-markdown-editor-target="button" data-format="italic" data-action="markdown-editor#italic" title="Italic" aria-label="Italic" aria-pressed="false"><%= lucide_icon("italic", class_name: "app-icon") %></button>
-      <button type="button" class="markdown-tool-btn" data-markdown-editor-target="button" data-format="heading" data-action="markdown-editor#heading" title="Heading" aria-label="Heading" aria-pressed="false"><%= lucide_icon("heading-2", class_name: "app-icon") %></button>
-      <button type="button" class="markdown-tool-btn" data-markdown-editor-target="button" data-format="bulletList" data-action="markdown-editor#list" title="Bullet list" aria-label="Bullet list" aria-pressed="false"><%= lucide_icon("list", class_name: "app-icon") %></button>
-      <button type="button" class="markdown-tool-btn" data-markdown-editor-target="button" data-format="orderedList" data-action="markdown-editor#orderedList" title="Numbered list" aria-label="Numbered list" aria-pressed="false"><%= lucide_icon("list-ordered", class_name: "app-icon") %></button>
-      <button type="button" class="markdown-tool-btn" data-markdown-editor-target="button" data-format="blockquote" data-action="markdown-editor#quote" title="Quote" aria-label="Quote" aria-pressed="false"><%= lucide_icon("quote", class_name: "app-icon") %></button>
-      <button type="button" class="markdown-tool-btn" data-markdown-editor-target="button" data-format="codeBlock" data-action="markdown-editor#code" title="Code block" aria-label="Code block" aria-pressed="false"><%= lucide_icon("code", class_name: "app-icon") %></button>
-      <button type="button" class="markdown-tool-btn" data-markdown-editor-target="button" data-format="link" data-action="markdown-editor#link" title="Link" aria-label="Link" aria-pressed="false"><%= lucide_icon("link", class_name: "app-icon") %></button>
-      <button type="button" class="markdown-tool-btn" data-markdown-editor-target="sourceButton" data-action="markdown-editor#toggleSource" title="Markdown source" aria-label="Markdown source" aria-pressed="false"><%= lucide_icon("terminal", class_name: "app-icon") %></button>
-      <button type="button" class="markdown-tool-btn" data-markdown-editor-target="previewButton" data-action="markdown-editor#togglePreview" title="Preview" aria-label="Preview" aria-pressed="false"><%= lucide_icon("eye", class_name: "app-icon") %></button>
+    <div class="markdown-tool-groups">
+      <div class="markdown-toolbar" aria-label="<%= label %> history">
+        <button type="button" class="markdown-tool-btn" data-action="markdown-editor#undo" title="Undo" aria-label="Undo"><%= lucide_icon("undo-2", class_name: "app-icon") %></button>
+        <button type="button" class="markdown-tool-btn" data-action="markdown-editor#redo" title="Redo" aria-label="Redo"><%= lucide_icon("redo-2", class_name: "app-icon") %></button>
+      </div>
+      <div class="markdown-toolbar" aria-label="<%= label %> formatting">
+        <button type="button" class="markdown-tool-btn" data-markdown-editor-target="button" data-format="bold" data-action="markdown-editor#bold" title="Bold" aria-label="Bold" aria-pressed="false"><%= lucide_icon("bold", class_name: "app-icon") %></button>
+        <button type="button" class="markdown-tool-btn" data-markdown-editor-target="button" data-format="italic" data-action="markdown-editor#italic" title="Italic" aria-label="Italic" aria-pressed="false"><%= lucide_icon("italic", class_name: "app-icon") %></button>
+        <button type="button" class="markdown-tool-btn" data-markdown-editor-target="button" data-format="heading" data-action="markdown-editor#heading" title="Heading" aria-label="Heading" aria-pressed="false"><%= lucide_icon("heading-2", class_name: "app-icon") %></button>
+        <button type="button" class="markdown-tool-btn" data-markdown-editor-target="button" data-format="bulletList" data-action="markdown-editor#list" title="Bullet list" aria-label="Bullet list" aria-pressed="false"><%= lucide_icon("list", class_name: "app-icon") %></button>
+        <button type="button" class="markdown-tool-btn" data-markdown-editor-target="button" data-format="orderedList" data-action="markdown-editor#orderedList" title="Numbered list" aria-label="Numbered list" aria-pressed="false"><%= lucide_icon("list-ordered", class_name: "app-icon") %></button>
+        <button type="button" class="markdown-tool-btn" data-markdown-editor-target="button" data-format="blockquote" data-action="markdown-editor#quote" title="Quote" aria-label="Quote" aria-pressed="false"><%= lucide_icon("quote", class_name: "app-icon") %></button>
+        <button type="button" class="markdown-tool-btn" data-markdown-editor-target="button" data-format="codeBlock" data-action="markdown-editor#code" title="Code block" aria-label="Code block" aria-pressed="false"><%= lucide_icon("code", class_name: "app-icon") %></button>
+        <button type="button" class="markdown-tool-btn" data-markdown-editor-target="button" data-format="link" data-action="markdown-editor#link" title="Link" aria-label="Link" aria-pressed="false"><%= lucide_icon("link", class_name: "app-icon") %></button>
+        <button type="button" class="markdown-tool-btn" data-action="markdown-editor#horizontalRule" title="Horizontal rule" aria-label="Horizontal rule"><%= lucide_icon("minus", class_name: "app-icon") %></button>
+      </div>
+      <div class="markdown-toolbar" aria-label="<%= label %> modes">
+        <button type="button" class="markdown-tool-btn" data-markdown-editor-target="sourceButton" data-action="markdown-editor#toggleSource" title="Markdown source" aria-label="Markdown source" aria-pressed="false"><%= lucide_icon("terminal", class_name: "app-icon") %></button>
+        <button type="button" class="markdown-tool-btn" data-markdown-editor-target="previewButton" data-action="markdown-editor#togglePreview" title="Preview" aria-label="Preview" aria-pressed="false"><%= lucide_icon("eye", class_name: "app-icon") %></button>
+      </div>
+      <div class="markdown-template-bar" aria-label="<%= label %> templates">
+        <button type="button" class="markdown-template-btn" data-action="markdown-editor#snippet" data-template="objective" title="Insert objective section" aria-label="Insert objective section"><%= lucide_icon("sparkles", class_name: "app-icon") %><span>Objective</span></button>
+        <button type="button" class="markdown-template-btn" data-action="markdown-editor#snippet" data-template="plan" title="Insert plan section" aria-label="Insert plan section"><%= lucide_icon("list-ordered", class_name: "app-icon") %><span>Plan</span></button>
+        <button type="button" class="markdown-template-btn" data-action="markdown-editor#snippet" data-template="acceptance" title="Insert acceptance section" aria-label="Insert acceptance section"><%= lucide_icon("check-circle", class_name: "app-icon") %><span>Acceptance</span></button>
+      </div>
     </div>
   </div>
   <div class="tiptap-surface mt-2 hidden" data-markdown-editor-target="editor"></div>
