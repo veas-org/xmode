@@ -11,6 +11,7 @@ RSpec.describe "Operational shell", type: :request do
     expect(response.body).to include("One governed loop from objective to Change Request")
     expect(response.body).to include("Governed agent scenario")
     expect(response.body).to include("Run demo agent")
+    expect(response.body).not_to include('href="/issues/new"')
     expect(response.body).not_to include("View pipelines")
     expect(response.body).not_to include("New project")
     expect(response.body).not_to include("Fake agent")

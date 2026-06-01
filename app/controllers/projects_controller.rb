@@ -8,6 +8,8 @@ class ProjectsController < AuthenticatedController
   def show
     @issues = @project.issues.includes(:issue_status, :assignee).order(updated_at: :desc)
     @runs = @project.pipeline_runs.order(created_at: :desc).limit(10)
+    @schedules = current_workspace.schedules.includes(:pipeline_definition).where(schedulable: @project).order(updated_at: :desc)
+    @change_requests = current_workspace.change_requests.includes(:issue, :repository_connection).where(issue: @issues).order(updated_at: :desc).limit(5)
   end
 
   def new
