@@ -7,6 +7,12 @@ class PipelineDefinitionsController < AuthenticatedController
   end
 
   def show
+    @nodes = @pipeline.graph.fetch("nodes", [])
+    @edges = @pipeline.graph.fetch("edges", [])
+    @actions_by_key = current_workspace.action_definitions.includes(:skill_definition).index_by(&:key)
+    @runs = @pipeline.pipeline_runs.order(created_at: :desc).limit(5)
+    @schedules = @pipeline.schedules.order(updated_at: :desc)
+    @event_rules = @pipeline.event_rules.order(:name)
   end
 
   def new

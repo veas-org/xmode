@@ -7,6 +7,11 @@ class ActionDefinitionsController < AuthenticatedController
   end
 
   def show
+    @linked_pipelines = current_workspace.pipeline_definitions.order(:name).select do |pipeline|
+      pipeline.graph.fetch("nodes", []).any? do |node|
+        node["action_key"] == @action.key || node["action_id"].to_i == @action.id
+      end
+    end
   end
 
   def new

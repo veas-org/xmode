@@ -1,11 +1,10 @@
 <% content_for :page_title, @pipeline.name %>
-<% nodes = @pipeline.graph.fetch("nodes", []) %>
-<% edges = @pipeline.graph.fetch("edges", []) %>
-
 <div class="app-page-actions">
-  <div>
+  <div class="min-w-0">
     <p class="app-eyebrow"><%= @pipeline.key %></p>
-    <p class="mt-1 max-w-2xl text-sm text-muted-foreground">This pipeline snapshots its graph before every run, then records steps, logs, artifacts, approvals, and any resulting Change Request.</p>
+    <p class="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
+      Reusable wrapper around actions. Every run freezes this definition, then records objectives, plans, approvals, logs, artifacts, and Change Request evidence.
+    </p>
   </div>
   <div class="flex flex-wrap gap-2">
     <%= link_to edit_pipeline_path(@pipeline), class: "app-btn app-btn-muted" do %>
@@ -28,27 +27,70 @@
 </div>
 
 <div class="app-detail-grid">
-  <section class="linear-surface p-5">
-    <div class="flex flex-wrap items-center justify-between gap-3">
-      <h2 class="font-semibold text-foreground">Action graph</h2>
-      <span class="status-pill"><%= pluralize(nodes.size, "step") %></span>
-    </div>
-    <div class="mt-4 space-y-0">
-      <% nodes.each_with_index do |node, index| %>
-        <article class="app-run-step flex min-w-0 items-center gap-3">
-          <span class="status-pill shrink-0"><%= index + 1 %></span>
-          <div class="min-w-0 flex-1">
-            <h3 class="truncate text-sm font-semibold text-foreground"><%= node["label"] || node["action_key"] %></h3>
-            <p class="mt-1 truncate text-xs text-muted-foreground"><%= node["action_key"] %></p>
-          </div>
-          <% next_edge = edges.find { |edge| edge["from"] == node["id"] } %>
-          <% if next_edge %>
-            <span class="hidden text-xs text-muted-foreground sm:inline"><%= next_edge["condition"].presence || "next" %></span>
+  <div class="space-y-5">
+    <section class="linear-surface p-5">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p class="app-eyebrow">Action graph</p>
+          <h2 class="mt-1 font-semibold text-foreground"><%= @pipeline.name %></h2>
+        </div>
+        <span class="status-pill"><%= pluralize(@nodes.size, "step") %></span>
+      </div>
+      <div class="mt-4 space-y-0">
+        <% @nodes.each_with_index do |node, index| %>
+          <% action = @actions_by_key[node["action_key"]] %>
+          <% next_edge = @edges.find { |edge| edge["from"] == node["id"] } %>
+          <article class="app-run-step">
+            <div class="flex min-w-0 items-start gap-3">
+              <span class="status-pill shrink-0"><%= index + 1 %></span>
+              <div class="min-w-0 flex-1">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                  <h3 class="text-sm font-semibold text-foreground"><%= node["label"] || action&.name || node["action_key"] %></h3>
+                  <% if next_edge %>
+                    <span class="status-pill"><%= next_edge["condition"].presence || "next" %></span>
+                  <% end %>
+                </div>
+                <p class="mt-1 text-xs text-muted-foreground">
+                  <%= action&.skill_definition&.name || "No skill" %> · <%= (action&.provider || "provider").to_s.tr("_", " ").titleize %>
+                </p>
+                <% if action %>
+                  <div class="mt-3 grid gap-2 text-sm md:grid-cols-2">
+                    <div class="inbox-property"><span>Objective</span><strong><%= action.requires_objective? ? "Required" : "Optional" %></strong></div>
+                    <div class="inbox-property"><span>Plan</span><strong><%= action.plan_required_when_objective_unclear? ? "Fallback" : "Optional" %></strong></div>
+                  </div>
+                <% end %>
+              </div>
+            </div>
+          </article>
+        <% end %>
+      </div>
+    </section>
+
+    <section class="linear-surface p-5">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <h2 class="font-semibold text-foreground">Recent runs</h2>
+        <span class="linear-count"><%= @runs.size %></span>
+      </div>
+      <div class="mt-3 space-y-2">
+        <% @runs.each do |run| %>
+          <%= link_to pipeline_run_path(run), class: "linear-row" do %>
+            <%= lucide_icon(run.status == "completed" ? "check" : "activity", class_name: "app-icon text-muted-foreground") %>
+            <span class="linear-row-main">
+              <span class="linear-row-title"><%= run.issue&.identifier || run.project&.title || "Workspace run" %></span>
+              <span class="linear-row-meta">
+                <span><%= run.display_trigger %></span>
+                <span><%= time_ago_in_words(run.created_at) %> ago</span>
+              </span>
+            </span>
+            <span class="status-pill shrink-0"><%= run.display_status %></span>
           <% end %>
-        </article>
-      <% end %>
-    </div>
-  </section>
+        <% end %>
+        <% if @runs.empty? %>
+          <p class="linear-empty">No runs recorded for this pipeline yet.</p>
+        <% end %>
+      </div>
+    </section>
+  </div>
 
   <aside class="space-y-4">
     <section class="linear-surface p-4">
@@ -56,13 +98,55 @@
       <dl class="mt-3 grid gap-2 text-sm">
         <div class="inbox-property"><dt>Triggers</dt><dd><strong><%= @pipeline.triggers.presence&.join(", ") || "manual" %></strong></dd></div>
         <div class="inbox-property"><dt>Required context</dt><dd><strong><%= @pipeline.required_context.keys.presence&.join(", ") || "none" %></strong></dd></div>
-        <div class="inbox-property"><dt>Edges</dt><dd><strong><%= edges.size %></strong></dd></div>
+        <div class="inbox-property"><dt>Edges</dt><dd><strong><%= @edges.size %></strong></dd></div>
         <div class="inbox-property"><dt>Definition</dt><dd><strong><%= @pipeline.builtin? ? "built-in" : "workspace" %></strong></dd></div>
+        <div class="inbox-property"><dt>Snapshot</dt><dd><strong>Frozen per run</strong></dd></div>
       </dl>
     </section>
+
     <section class="linear-surface p-4">
-      <h3 class="font-medium text-foreground">Raw graph</h3>
-      <pre class="mt-3 max-h-96 overflow-auto rounded-md bg-background/70 p-3 text-xs text-muted-foreground"><%= JSON.pretty_generate(@pipeline.graph) %></pre>
+      <div class="flex items-center justify-between gap-3">
+        <h3 class="font-medium text-foreground">Schedules</h3>
+        <span class="linear-count"><%= @schedules.size %></span>
+      </div>
+      <div class="mt-3 space-y-2">
+        <% @schedules.each do |schedule| %>
+          <%= link_to schedule_path(schedule), class: "linear-row" do %>
+            <%= lucide_icon("clock", class_name: "app-icon text-muted-foreground") %>
+            <span class="linear-row-main">
+              <span class="linear-row-title"><%= schedule.schedulable&.try(:title) || schedule.schedulable&.try(:name) || "Workspace" %></span>
+              <span class="linear-row-meta"><span><%= schedule.run_at&.strftime("%b %-d, %-I:%M %p") || schedule.cron %></span></span>
+            </span>
+            <span class="status-pill shrink-0"><%= schedule.status.to_s.titleize %></span>
+          <% end %>
+        <% end %>
+        <% if @schedules.empty? %>
+          <p class="linear-empty">No schedules use this pipeline yet.</p>
+        <% end %>
+      </div>
+    </section>
+
+    <section class="linear-surface p-4">
+      <div class="flex items-center justify-between gap-3">
+        <h3 class="font-medium text-foreground">Event rules</h3>
+        <span class="linear-count"><%= @event_rules.size %></span>
+      </div>
+      <div class="mt-3 space-y-2">
+        <% @event_rules.each do |rule| %>
+          <article class="app-flat-row rounded-md px-3 py-3">
+            <div class="flex min-w-0 items-start justify-between gap-3">
+              <div class="min-w-0">
+                <p class="text-sm font-medium text-foreground"><%= rule.name %></p>
+                <p class="mt-1 text-xs text-muted-foreground"><%= rule.source %> · <%= rule.event_type %></p>
+              </div>
+              <span class="status-pill shrink-0"><%= rule.active? ? "Active" : "Paused" %></span>
+            </div>
+          </article>
+        <% end %>
+        <% if @event_rules.empty? %>
+          <p class="linear-empty">No event rules use this pipeline yet.</p>
+        <% end %>
+      </div>
     </section>
   </aside>
 </div>
