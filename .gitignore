@@ -16,3 +16,7 @@
 /tmp/pids/*
 !/tmp/pids/.keep
 .DS_Store
+
+/.kamal/secrets-common
+/.kamal/postgres-password
+/.kamal/active-record-encryption-*
