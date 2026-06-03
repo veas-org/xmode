@@ -14,6 +14,8 @@ RSpec.describe "Settings", type: :request do
     expect(response.body).to include("Access control")
     expect(response.body).to include("Single sign-on")
     expect(response.body).to include("Providers, repositories, and webhooks")
+    expect(response.body).to include("Local model runtime")
+    expect(response.body).to include("qwen2.5:0.5b")
     expect(response.body).to include("Repository automation app")
     expect(response.body).to include("Create GitHub App")
     expect(response.body).to include("Runner minutes")
@@ -25,12 +27,13 @@ RSpec.describe "Settings", type: :request do
     doc = Nokogiri::HTML(response.body)
     expect(doc.at_css(".settings-shell")).to be_present
     expect(doc.at_css(".settings-nav")).to be_present
-    expect(doc.css(".settings-nav-link").map(&:text).join(" ")).to include("Overview", "Workspace", "Members", "Security", "Integrations", "Billing", "Audit", "Appearance")
-    expect(doc.css(".settings-panel").size).to eq(8)
+    expect(doc.css(".settings-nav-link").map(&:text).join(" ")).to include("Overview", "Workspace", "Members", "Security", "Integrations", "Models", "Billing", "Audit", "Appearance")
+    expect(doc.css(".settings-panel").size).to eq(9)
     expect(doc.at_css(%(section#billing.settings-panel))).to be_present
     expect(doc.at_css(%(section#members.settings-panel))).to be_present
     expect(doc.at_css(%(section#security.settings-panel))).to be_present
     expect(doc.at_css(%(section#integrations.settings-panel))).to be_present
+    expect(doc.at_css(%(section#models.settings-panel))).to be_present
     expect(doc.at_css(%(form[action="#{github_app_manifest_integrations_path}"]))).to be_present
     expect(doc.css(".settings-list-row").size).to be >= 6
     expect(doc.at_css(%(a.settings-nav-link[href="#overview"]))).to be_present

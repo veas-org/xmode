@@ -24,6 +24,15 @@ Planet Express demo workspaces use a fake agent simulator for provider and local
 
 Codex/OpenAI actions use a deterministic provider adapter by default. To call the OpenAI Responses API for an action, set `OPENAI_API_KEY` in the process environment and configure the action runtime with `"mode": "live"` and an optional `"model"` value. Do not store API keys in action runtime config. Live provider output is still validated against the action output schema and recorded as run messages and artifacts.
 
+Local open-source model actions use the stable `local_model` provider and can target an Ollama-compatible backend with `provider: ollama` when the runtime should be explicit. Configure:
+
+- `LOCAL_MODEL_RUNTIME`, default `ollama`
+- `LOCAL_MODEL_BASE_URL`, default `http://xmode-ollama:11434`
+- `LOCAL_MODEL_NAME`, default `qwen2.5:0.5b`
+- `LOCAL_MODEL_TIMEOUT_SECONDS`, default `120`
+
+Set the action runtime to `"mode": "live"` to call the private model service. Without live mode, or when the service is unavailable, xmode records deterministic fallback output so normal pipelines do not fail because a local model is stopped. On small CPU-only hosts, use this for planning, classification, follow-ups, and sandbox-adjacent summaries; keep code-changing work behind sandbox evidence and Change Requests.
+
 GitHub should be connected through a GitHub App when possible. Self-hosted workspaces can create a private GitHub App from `Settings -> Integrations -> Create GitHub App`; xmode sends GitHub a manifest with the repository permissions it needs, stores the returned private key in the encrypted integration secret, and then guides the user to install the app on selected repositories.
 
 For hosted or centrally managed deployments, create the app in GitHub, set the setup URL to:
@@ -58,6 +67,7 @@ xmode is designed to run as:
 - web process: Rails/Puma/Thruster
 - job process: Solid Queue workers
 - Postgres accessory
+- optional Ollama accessory for private local model experiments
 - persistent `/rails/storage` volume for run artifacts
 
 Kamal config lives in `config/deploy.yml`.

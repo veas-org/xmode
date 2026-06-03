@@ -407,6 +407,55 @@
       </div>
     </section>
 
+    <section id="models" class="settings-panel">
+      <div class="settings-panel-head">
+        <div>
+          <p class="app-eyebrow">Models</p>
+          <h2>Local model runtime</h2>
+        </div>
+        <span class="linear-count"><%= @local_model_runtime %></span>
+      </div>
+      <div class="settings-mini-stats">
+        <span><strong><%= @local_model_name %></strong> default</span>
+        <span><strong><%= @local_model_runtime.titleize %></strong> backend</span>
+        <span><strong><%= @local_model_enabled ? "Live" : "Opt-in" %></strong> mode</span>
+        <span><strong><%= @local_model_timeout %>s</strong> timeout</span>
+      </div>
+      <div class="settings-overview-grid">
+        <section>
+          <h3>Runtime config</h3>
+          <dl class="settings-key-values">
+            <% @local_model_rows.each do |label, value| %>
+              <div><dt><%= label %></dt><dd title="<%= value %>"><%= value %></dd></div>
+            <% end %>
+          </dl>
+        </section>
+        <section>
+          <h3>Action contract</h3>
+          <div class="settings-list">
+            <article class="settings-list-row">
+              <span class="record-point-main">
+                <span class="record-point-title">Provider</span>
+                <span class="record-point-meta"><span>Use <code>local_model</code> for portable actions or <code>ollama</code> when the backend should be explicit.</span></span>
+              </span>
+            </article>
+            <article class="settings-list-row">
+              <span class="record-point-main">
+                <span class="record-point-title">Live mode</span>
+                <span class="record-point-meta"><span>Set action runtime <code>mode: live</code> to call the private model service; otherwise xmode records deterministic fallback output.</span></span>
+              </span>
+            </article>
+            <article class="settings-list-row">
+              <span class="record-point-main">
+                <span class="record-point-title">Boundary</span>
+                <span class="record-point-meta"><span>Local model output can plan and ask follow-ups, but code-changing work still needs sandbox evidence and a Change Request.</span></span>
+              </span>
+            </article>
+          </div>
+        </section>
+      </div>
+    </section>
+
     <section id="billing" class="settings-panel">
       <div class="settings-panel-head">
         <div>

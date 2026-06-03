@@ -6,6 +6,8 @@ module Providers
       output = case provider
       when "codex", "openai"
         CodexProvider.call(step)
+      when "local_model", "ollama"
+        LocalModelProvider.call(step)
       else
         { "summary" => "#{provider} provider recorded a planned action", "status" => "planned", "changed_files_count" => 0 }
       end

@@ -47,6 +47,10 @@ env:
     POSTGRES_HOST: "xmode-postgres"
     POSTGRES_USER: "xmode"
     DEMO_PLANET_EXPRESS: "1"
+    LOCAL_MODEL_RUNTIME: "ollama"
+    LOCAL_MODEL_BASE_URL: "http://xmode-ollama:11434"
+    LOCAL_MODEL_NAME: "qwen2.5:0.5b"
+    LOCAL_MODEL_TIMEOUT_SECONDS: "120"
   secret:
     - RAILS_MASTER_KEY
     - POSTGRES_PASSWORD
@@ -77,6 +81,16 @@ accessories:
         - POSTGRES_PASSWORD
     volumes:
       - "xmode_postgres_data:/var/lib/postgresql/data"
+  ollama:
+    image: ollama/ollama:latest
+    host: 129.153.38.146
+    env:
+      clear:
+        OLLAMA_HOST: "0.0.0.0:11434"
+        OLLAMA_KEEP_ALIVE: "5m"
+        OLLAMA_NUM_PARALLEL: "1"
+    volumes:
+      - "xmode_ollama:/root/.ollama"
 
 asset_path: /rails/public/assets
 

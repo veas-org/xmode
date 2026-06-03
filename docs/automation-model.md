@@ -57,13 +57,14 @@ Actions should usually require an objective. If the objective is missing or uncl
 Supported provider types:
 
 - Local shell
+- Local open-source model / Ollama
 - Codex / OpenAI
 - Claude
 - GitHub Actions
 - GitLab CI
 - MCP tools
 
-Initial implementation should start with local shell actions in isolated worktrees/containers, then add Codex/OpenAI as the first agent provider.
+Initial implementation should start with local shell actions in isolated worktrees/containers, then add Codex/OpenAI as the first agent provider. Self-hosted deployments can also enable a local model provider for private planning, classification, follow-ups, and run summaries; code-changing output should still go through sandbox execution and Change Requests.
 
 ## Built-In Action Catalog
 

@@ -13,6 +13,7 @@ module Catalog
 
     ACTIONS = [
       [ "plan-story", "Plan Story", "planning", "codex", [ "view_project" ], "story-planning" ],
+      [ "local-model-plan", "Local Model Plan", "planning", "local_model", [ "view_project" ], "story-planning" ],
       [ "verify-plan", "Verify Plan", "verification", "manual", [ "approve_change_requests" ], "manual-decision" ],
       [ "revise-plan", "Revise Plan", "planning", "manual", [ "edit_issues" ], "story-planning" ],
       [ "code", "Code", "coding", "codex", [ "run_code_actions" ], "software-implementation" ],
@@ -36,7 +37,8 @@ module Catalog
       [ "review-change-request", "Review Change Request", %w[review-diff security-scan manual-approval] ],
       [ "release-project", "Release Project", %w[run-tests security-scan manual-approval release] ],
       [ "verify-sandbox-fixture", "Verify Sandbox Fixture", %w[verify-typescript-sandbox open-change-request] ],
-      [ "verify-rails-sandbox-fixture", "Verify Rails Sandbox Fixture", %w[verify-ruby-rails-sandbox open-change-request] ]
+      [ "verify-rails-sandbox-fixture", "Verify Rails Sandbox Fixture", %w[verify-ruby-rails-sandbox open-change-request] ],
+      [ "local-model-planning-demo", "Local Model Planning Demo", %w[local-model-plan verify-plan] ]
     ].freeze
 
     DEFAULT_INPUT_SCHEMA = {
@@ -245,6 +247,7 @@ module Catalog
     def runtime_for(key)
       return { shell: true, real_sandbox_in_demo: true, fixture: "hello-world-typescript" } if key == "verify-typescript-sandbox"
       return { shell: true, real_sandbox_in_demo: true, fixture: "hello-world-rails", language: "ruby", framework: "rails" } if key == "verify-ruby-rails-sandbox"
+      return { "mode" => "live", "model" => ENV.fetch("LOCAL_MODEL_NAME", "qwen2.5:0.5b"), "temperature" => 0.2, "num_predict" => 512 } if key == "local-model-plan"
 
       key.in?(%w[run-tests security-scan update-dependencies open-change-request]) ? { shell: true } : {}
     end
@@ -285,6 +288,8 @@ module Catalog
       case key
       when "plan-story"
         "Create a concrete implementation plan for {{issue}} {{issue_title}} in {{project}}."
+      when "local-model-plan"
+        "Use the self-hosted local model to draft a bounded implementation plan for {{issue}} {{issue_title}} in {{project}}."
       when "code"
         "Implement the approved plan for {{issue}} {{issue_title}} in {{project}}."
       when "run-tests"
@@ -306,6 +311,8 @@ module Catalog
       case key
       when "plan-story"
         "Read the issue, infer missing context, identify risks, define acceptance checks, and output a reviewable plan."
+      when "local-model-plan"
+        "Send objective and run context to the private local model, require structured JSON back, and keep coding behind sandbox and Change Request steps."
       when "code"
         "Confirm the approved plan, edit only relevant files, run focused checks, capture artifacts, and prepare for review."
       when "run-tests"

@@ -7,6 +7,7 @@ class SettingsController < AuthenticatedController
     @account_rows = account_rows
     load_member_settings
     load_sso_settings
+    load_local_model_settings
     load_integration_settings
     load_billing_settings
     load_audit_settings
@@ -56,6 +57,16 @@ class SettingsController < AuthenticatedController
         permission: "manage_integrations",
         detail: "#{current_workspace.integration_accounts.count} accounts"
       ),
+      {
+        id: "models",
+        label: "Models",
+        description: "Configure local open-source model routing for planning, follow-ups, and sandbox-adjacent provider work.",
+        icon: "cpu",
+        href: "#models",
+        action_label: "Local runtime",
+        accessible: permitted?("manage_integrations"),
+        detail: local_model_detail
+      },
       settings_section(
         id: "billing",
         label: "Billing",
@@ -128,6 +139,14 @@ class SettingsController < AuthenticatedController
     "#{current_workspace.billing_plan.titleize} plan"
   end
 
+  def local_model_detail
+    ENV.fetch("LOCAL_MODEL_NAME", "qwen2.5:0.5b")
+  end
+
+  def local_model_base_url
+    ENV["LOCAL_MODEL_BASE_URL"].presence || ENV["OLLAMA_BASE_URL"].presence || "http://xmode-ollama:11434"
+  end
+
   def current_subscription
     current_workspace.billing_subscriptions.order(created_at: :desc).first ||
       current_workspace.billing_subscriptions.create!(
@@ -157,6 +176,21 @@ class SettingsController < AuthenticatedController
       identities: @sso_identity_count,
       auto_join: @sso_providers.count(&:allow_signups?)
     }
+  end
+
+  def load_local_model_settings
+    @local_model_base_url = local_model_base_url
+    @local_model_name = ENV.fetch("LOCAL_MODEL_NAME", "qwen2.5:0.5b")
+    @local_model_runtime = ENV.fetch("LOCAL_MODEL_RUNTIME", "ollama")
+    @local_model_timeout = ENV.fetch("LOCAL_MODEL_TIMEOUT_SECONDS", "120")
+    @local_model_enabled = ActiveModel::Type::Boolean.new.cast(ENV["LOCAL_MODEL_ENABLED"])
+    @local_model_rows = [
+      [ "Runtime", @local_model_runtime ],
+      [ "Default model", @local_model_name ],
+      [ "Endpoint", @local_model_base_url ],
+      [ "Default mode", @local_model_enabled ? "Live for local-model actions" : "Action opt-in" ],
+      [ "Timeout", "#{@local_model_timeout} seconds" ]
+    ]
   end
 
   def load_integration_settings
