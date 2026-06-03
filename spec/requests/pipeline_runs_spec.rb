@@ -38,7 +38,10 @@ RSpec.describe "Pipeline run detail", type: :request do
     get pipeline_run_path(run)
 
     expect(response).to have_http_status(:ok)
-    expect(response.body).to include("Run contract")
+    expect(response.body).to include("Run brief")
+    expect(response.body).to include("Most relevant steps")
+    expect(response.body).to include("Evidence rollup")
+    expect(response.body).to include("Evidence appendix")
     expect(response.body).to include("Approvals")
     expect(response.body).to include("Verify Plan")
     expect(response.body).to include("Pending")

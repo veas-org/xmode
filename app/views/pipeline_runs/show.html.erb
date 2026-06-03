@@ -2,10 +2,12 @@
 <% run_name = @run.pipeline_definition&.name || "Pipeline run" %>
 <% target_label = @run.issue&.identifier || @run.project&.title || @run.event&.title || "workspace run" %>
 <% run_context = (@run.input_context || {}).to_h %>
-<% objective_text = run_context["objective"].presence || @steps.map { |step| step.input_json.to_h["objective"].presence }.compact.first || @run.issue&.title || "Objective not captured yet." %>
-<% plan_text = run_context["plan"].presence || @steps.map { |step| step.input_json.to_h["plan"].presence }.compact.first || "Plan will be captured before execution continues." %>
+<% objective_text = run_context["objective"].presence || @steps.map { |step| (step.input_json || {}).to_h["objective"].presence }.compact.first || @run.issue&.title || "Objective not captured yet." %>
+<% plan_text = run_context["plan"].presence || @steps.map { |step| (step.input_json || {}).to_h["plan"].presence }.compact.first || "Plan will be captured before execution continues." %>
 <% current_step = @steps.find { |step| step.status.in?(%w[running waiting_for_approval waiting_for_input]) } || @steps.last %>
 <% completed_steps = @steps.count { |step| step.status == "completed" } %>
+<% failed_steps = @steps.count { |step| step.status.in?(%w[failed canceled]) } %>
+<% command_count = @sandbox_sessions.sum { |sandbox| sandbox.sandbox_commands.size } %>
 <% evidence_total = @artifacts.size + @logs.size + @sandbox_sessions.size + @approvals.size + @run_messages.size %>
 <% next_label = if @pending_run_message
   "Answer required"
@@ -16,82 +18,94 @@ elsif @run.status == "completed"
 else
   @run.display_status
 end %>
-<% loop_points = [
-  [ "Objective", objective_text.present? ? "captured" : "missing" ],
-  [ "Plan", plan_text.present? ? "captured" : "needed" ],
-  [ "Run", @run.status ],
-  [ "Evidence", evidence_total.positive? ? "captured" : "not run" ],
-  [ "Change Request", @change_request ? @change_request.status : "not opened" ]
+<% run_summary = if @run.error_message.present?
+  @run.error_message
+elsif current_step&.output_json.to_h["summary"].present?
+  current_step.output_json["summary"]
+elsif @run.status == "completed"
+  "Run completed with #{pluralize(completed_steps, "completed step")} and #{pluralize(evidence_total, "evidence item")}."
+elsif current_step
+  "#{current_step.name} is the current focus."
+else
+  "Run is waiting for its first step."
+end %>
+<% evidence_rows = [
+  [ "Approvals", pluralize(@approvals.size, "gate"), @approvals.any? { |approval| approval.status == "pending" } ? "pending" : (@approvals.any? ? "captured" : "none captured") ],
+  [ "Sandbox", pluralize(@sandbox_sessions.size, "session"), @sandbox_sessions.any? ? "#{pluralize(command_count, "command")}" : "not opened" ],
+  [ "Artifacts", pluralize(@artifacts.size, "file"), @artifacts.first&.name || "none captured" ],
+  [ "Logs", pluralize(@logs.size, "entry"), @logs.last&.message || "none captured" ],
+  [ "Run chat", pluralize(@run_messages.size, "message"), @pending_run_message ? "answer required" : (@run_messages.last&.content || "quiet") ]
 ] %>
 
-<div class="record-detail-layout run-record-layout">
-  <main class="record-detail-main run-record-main">
-    <header class="record-doc-hero">
-      <div class="record-doc-hero-top">
+<div class="record-detail-layout run-review-layout">
+  <main class="record-detail-main run-review-main">
+    <header class="record-doc-hero run-review-hero">
+      <div class="run-review-hero-top">
         <div class="flex min-w-0 flex-wrap items-center gap-2">
           <span class="linear-count">Run #<%= @run.id %></span>
           <%= status_icon_pill(@run.status, title: @run.display_status) %>
           <span class="linear-count"><%= target_label %></span>
           <span class="linear-count"><%= @run.display_trigger %></span>
         </div>
+      </div>
+
+      <h2 class="record-detail-page-title"><%= run_name %></h2>
+      <p class="run-review-summary"><%= run_summary %></p>
+
+      <div class="record-detail-page-actions">
+        <% if @run.issue %>
+          <%= link_to issue_path(@run.issue), class: "app-btn app-btn-muted" do %>
+            <%= lucide_icon("circle-dot", class_name: "app-icon") %>
+            <span><%= @run.issue.identifier %></span>
+          <% end %>
+        <% end %>
         <% if @change_request %>
-          <%= link_to change_request_path(@change_request), class: "app-icon-btn", title: "Open Change Request", aria: { label: "Open Change Request" } do %>
+          <%= link_to change_request_path(@change_request), class: "app-btn app-btn-primary" do %>
             <%= lucide_icon("git-pull-request", class_name: "app-icon") %>
+            <span>Change Request</span>
           <% end %>
         <% end %>
       </div>
-      <h2 class="record-detail-page-title"><%= run_name %></h2>
-      <div class="record-detail-page-meta">
-        <span><%= lucide_icon("circle-dot", class_name: "app-icon") %><%= objective_text %></span>
-        <span><%= lucide_icon("workflow", class_name: "app-icon") %>Objective -> plan -> execution -> evidence -> Change Request</span>
-      </div>
     </header>
 
-    <section class="record-detail-section">
+    <section class="record-detail-section run-review-brief-section">
       <div class="record-detail-section-head">
         <div>
-          <p class="app-eyebrow">Run contract</p>
-          <h3>Objective to review</h3>
+          <p class="app-eyebrow">Run brief</p>
+          <h3>Objective and plan</h3>
         </div>
         <span class="linear-count"><%= completed_steps %>/<%= @steps.size %> steps</span>
       </div>
-      <div class="catalog-contract-grid issue-readiness-grid">
-        <% loop_points.each do |label, state| %>
-          <article class="catalog-contract-item <%= 'is-primary' if label == 'Run' %>">
-            <span><%= label %></span>
-            <strong><%= state.to_s.tr("_", " ").titleize %></strong>
-            <small><%= label == "Evidence" ? pluralize(evidence_total, "item") : "tracked" %></small>
-          </article>
-        <% end %>
-      </div>
-    </section>
 
-    <section class="record-detail-section">
-      <div class="run-copy-grid">
+      <div class="run-review-brief-grid">
         <article>
-          <p class="app-eyebrow">Objective</p>
+          <span>Objective</span>
           <p><%= objective_text %></p>
         </article>
         <article>
-          <p class="app-eyebrow">Plan</p>
+          <span>Plan</span>
           <p><%= plan_text %></p>
         </article>
       </div>
     </section>
 
-    <section class="record-detail-section run-stage-section">
-      <div class="run-section-head">
+    <section class="record-detail-section run-review-timeline-section">
+      <div class="record-detail-section-head">
         <div>
-          <p class="app-eyebrow">Timeline</p>
-          <h3><%= completed_steps %>/<%= @steps.size %> steps complete</h3>
+          <p class="app-eyebrow">Execution</p>
+          <h3>Most relevant steps</h3>
+          <p class="mt-1 text-sm leading-6 text-muted-foreground">
+            <%= pluralize(completed_steps, "completed step") %><% if failed_steps.positive? %>, <%= pluralize(failed_steps, "failed step") %><% end %>, <%= pluralize(evidence_total, "evidence item") %>.
+          </p>
         </div>
-        <span class="linear-count"><%= pluralize(@snapshot_nodes.size, "snapshot step") %></span>
+        <span class="linear-count">Snapshot <%= pluralize(@snapshot_nodes.size, "step") %></span>
       </div>
 
-      <ol class="run-stage-list">
+      <ol class="run-review-step-list">
         <% @steps.each do |step| %>
           <% input = step.input_json || {} %>
-          <% provider = (step.action_definition&.provider || step.action_snapshot["provider"] || "provider").to_s.tr("_", " ").titleize %>
+          <% output = step.output_json || {} %>
+          <% provider = (step.action_definition&.provider || step.action_snapshot.to_h["provider"] || "provider").to_s.tr("_", " ").titleize %>
           <% duration = if step.started_at.present? && step.finished_at.present?
             distance_of_time_in_words(step.started_at, step.finished_at)
           elsif step.started_at.present?
@@ -99,49 +113,36 @@ end %>
           else
             "not started"
           end %>
-          <li class="run-stage-item">
-            <div class="run-stage-marker">
+          <% skill_label = if input.dig("skill", "name").present?
+            [ input.dig("skill", "name"), input.dig("skill", "version").present? ? "@#{input.dig("skill", "version")}" : nil ].compact.join(" ")
+          end %>
+          <% step_summary = output["summary"].presence || step.error_message.presence || input["objective"].presence || step.action_definition&.description.presence || "Step recorded." %>
+
+          <li class="run-review-step">
+            <div class="run-review-step-marker">
               <%= status_icon_pill(step.status, title: step.display_status) %>
             </div>
-            <article class="run-stage-body">
-              <header class="run-stage-header">
+            <article>
+              <header>
                 <div class="min-w-0">
-                  <p><%= step.name %></p>
-                  <span><%= provider %> · <%= duration %></span>
+                  <h4><%= step.name %></h4>
+                  <p><%= provider %> · <%= duration %><% if skill_label.present? %> · <%= skill_label %><% end %></p>
                 </div>
                 <span class="linear-count">Step <%= step.position + 1 %></span>
               </header>
 
-              <% if input.dig("skill", "name").present? || input["objective"].present? || input["plan"].present? %>
-                <div class="run-stage-contract">
-                  <% if input.dig("skill", "name").present? %>
-                    <% skill_label = [ input.dig("skill", "name"), input.dig("skill", "version").present? ? "@#{input.dig("skill", "version")}" : nil ].compact.join(" ") %>
-                    <div><span>Skill</span><strong><%= skill_label %></strong></div>
-                  <% end %>
-                  <% if input["objective"].present? %>
-                    <div><span>Objective</span><strong><%= input["objective"] %></strong></div>
-                  <% end %>
-                  <% if input["plan"].present? %>
-                    <div><span>Plan</span><strong><%= input["plan"] %></strong></div>
-                  <% end %>
-                </div>
-              <% end %>
+              <p class="run-review-step-summary <%= "is-danger" if step.error_message.present? %>"><%= step_summary %></p>
 
-              <% if step.output_json.present? || step.error_message.present? %>
-                <div class="run-stage-output">
-                  <% if step.output_json["summary"].present? %>
-                    <p><span>Output</span><strong><%= step.output_json["summary"] %></strong></p>
+              <% if output["status"].present? || output.key?("changed_files_count") || output["branch_name"].present? %>
+                <div class="run-review-step-metrics">
+                  <% if output["status"].present? %>
+                    <span><%= output["status"].to_s.tr("_", " ").titleize %></span>
                   <% end %>
-                  <div class="run-stage-metrics">
-                    <% if step.output_json["status"].present? %>
-                      <span><%= lucide_icon("check-circle", class_name: "app-icon") %><strong><%= step.output_json["status"].to_s.tr("_", " ").titleize %></strong></span>
-                    <% end %>
-                    <% if step.output_json.key?("changed_files_count") %>
-                      <span><%= lucide_icon("folder-git-2", class_name: "app-icon") %><strong><%= pluralize(step.output_json["changed_files_count"], "changed file") %></strong></span>
-                    <% end %>
-                  </div>
-                  <% if step.error_message.present? %>
-                    <p class="is-danger"><span>Error</span><strong><%= step.error_message %></strong></p>
+                  <% if output.key?("changed_files_count") %>
+                    <span><%= pluralize(output["changed_files_count"], "changed file") %></span>
+                  <% end %>
+                  <% if output["branch_name"].present? %>
+                    <span title="<%= output["branch_name"] %>"><%= output["branch_name"] %></span>
                   <% end %>
                 </div>
               <% end %>
@@ -150,272 +151,20 @@ end %>
         <% end %>
       </ol>
     </section>
-
-    <section class="record-detail-section run-evidence-section">
-      <div class="run-section-head">
-        <div>
-          <p class="app-eyebrow">Evidence</p>
-          <h3>Evidence ledger</h3>
-        </div>
-        <span class="linear-count"><%= pluralize(evidence_total, "item") %></span>
-      </div>
-
-      <div class="run-evidence-ledger">
-        <details class="run-evidence-row run-evidence-rollup">
-          <summary>
-            <%= status_icon_pill(@approvals.any? { |approval| approval.status == "pending" } ? "pending" : "completed", title: "Approvals") %>
-            <span class="run-evidence-main">
-              <span class="run-evidence-row-head">
-                <strong>Approvals</strong>
-                <span><%= pluralize(@approvals.size, "gate") %></span>
-              </span>
-              <span class="run-evidence-summary-text">
-                <% if @approvals.any? %>
-                  <%= @approvals.map { |approval| "#{approval.action_run_step&.name || "Manual gate"}: #{approval.display_status}" }.join(", ") %>
-                <% else %>
-                  No approval gates were reached.
-                <% end %>
-              </span>
-            </span>
-          </summary>
-          <div class="run-evidence-rollup-body">
-            <% if @approvals.any? %>
-              <% @approvals.each do |approval| %>
-                <article class="run-evidence-proof-row">
-                  <%= status_icon_pill(approval.status, title: approval.display_status) %>
-                  <span class="run-evidence-main">
-                    <span class="run-evidence-row-head">
-                      <strong><%= approval.action_run_step&.name || "Manual gate" %></strong>
-                      <span><%= approval.created_at ? "#{time_ago_in_words(approval.created_at)} ago" : "pending" %></span>
-                    </span>
-                    <span class="run-evidence-summary-text"><%= approval.user&.display_name || "No reviewer recorded" %> · <%= approval.display_status %></span>
-                    <% if approval.notes.present? %>
-                      <span class="run-evidence-summary-text"><%= approval.notes %></span>
-                    <% end %>
-                  </span>
-                </article>
-              <% end %>
-            <% else %>
-              <p class="linear-empty px-0 py-3 text-left">No approvals recorded.</p>
-            <% end %>
-          </div>
-        </details>
-
-        <details class="run-evidence-row run-evidence-rollup">
-          <summary>
-            <%= status_icon_pill(@sandbox_sessions.any? { |sandbox| sandbox.status == "failed" } ? "failed" : "completed", title: "Sandboxes") %>
-            <span class="run-evidence-main">
-              <span class="run-evidence-row-head">
-                <strong>Sandboxes</strong>
-                <span><%= pluralize(@sandbox_sessions.size, "session") %></span>
-              </span>
-              <span class="run-evidence-summary-text">
-                <% if @sandbox_sessions.any? %>
-                  <%= @sandbox_sessions.map { |sandbox| sandbox.execution_environment&.name || "Workspace sandbox" }.uniq.join(", ") %>
-                <% else %>
-                  No sandbox sessions recorded.
-                <% end %>
-              </span>
-            </span>
-          </summary>
-          <div class="run-evidence-rollup-body">
-            <% if @sandbox_sessions.any? %>
-              <% @sandbox_sessions.each do |sandbox| %>
-                <% files = @sandbox_files_by_session_id.fetch(sandbox.id, []) %>
-                <% environment = sandbox.execution_environment %>
-                <article class="run-evidence-proof-row">
-                  <%= status_icon_pill(sandbox.status, title: sandbox.status.titleize) %>
-                  <span class="run-evidence-main">
-                    <span class="run-evidence-row-head">
-                      <strong><%= sandbox.kind.to_s.tr("_", " ").titleize %></strong>
-                      <span><%= sandbox.created_at ? "#{time_ago_in_words(sandbox.created_at)} ago" : "ready" %></span>
-                    </span>
-                    <span class="run-evidence-summary-text">
-                      <%= environment&.name || "Workspace sandbox" %>
-                      · <%= sandbox.action_run_step&.name || "Run sandbox" %>
-                      · <%= environment&.docker? ? environment.docker_image : "host runtime" %>
-                      · <%= pluralize(files.size, "file") %>
-                      · <%= pluralize(sandbox.sandbox_commands.size, "command") %>
-                    </span>
-                    <details class="run-evidence-inline-details">
-                      <summary>Inspect sandbox</summary>
-                      <p>
-                        Runtime:
-                        <strong><%= environment&.runner_mode.to_s.tr("_", " ").titleize.presence || "Local Worktree" %></strong>
-                        <% if environment&.docker? %>
-                          · <strong><%= environment.docker_image %></strong>
-                        <% end %>
-                      </p>
-                      <% if sandbox.worktree_path.present? %>
-                        <p class="break-all">Worktree: <%= sandbox.worktree_path %></p>
-                      <% end %>
-                      <% if files.any? %>
-                        <div class="sandbox-file-list">
-                          <% files.each do |file| %>
-                            <div class="sandbox-file-row">
-                              <%= lucide_icon(file.fetch(:type) == "directory" ? "folder" : "file", class_name: "app-icon text-muted-foreground") %>
-                              <span class="sandbox-file-name"><%= file.fetch(:path) %></span>
-                              <span class="sandbox-file-meta"><%= file.fetch(:byte_size).present? ? number_to_human_size(file.fetch(:byte_size)) : "folder" %></span>
-                            </div>
-                          <% end %>
-                        </div>
-                      <% end %>
-                      <div class="sandbox-terminal">
-                        <div class="sandbox-terminal-head">
-                          <span>Terminal</span>
-                          <span><%= pluralize(sandbox.sandbox_commands.size, "command") %></span>
-                        </div>
-                        <% sandbox.sandbox_commands.order(created_at: :desc).first(3).each do |command| %>
-                          <article class="sandbox-command-row">
-                            <div class="sandbox-command-line">
-                              <code>$ <%= command.command %></code>
-                              <%= status_icon_pill(command.status, title: command.status.titleize) %>
-                            </div>
-                            <% if command.stdout.present? %>
-                              <pre><%= command.stdout %></pre>
-                            <% end %>
-                            <% if command.stderr.present? %>
-                              <pre class="is-error"><%= command.stderr %></pre>
-                            <% end %>
-                          </article>
-                        <% end %>
-                        <% if sandbox.worktree_path.present? && sandbox.status.in?(%w[ready running]) %>
-                          <%= form_with url: pipeline_run_sandbox_session_commands_path(@run, sandbox), class: "sandbox-command-form" do |form| %>
-                            <%= text_field_tag :command, nil, class: "app-input", placeholder: "pwd, ls, cat README.md" %>
-                            <%= form.submit "Run", class: "app-btn app-btn-muted" %>
-                          <% end %>
-                        <% end %>
-                      </div>
-                    </details>
-                  </span>
-                </article>
-              <% end %>
-            <% else %>
-              <p class="linear-empty px-0 py-3 text-left">No sandbox sessions recorded.</p>
-            <% end %>
-          </div>
-        </details>
-
-        <details class="run-evidence-row run-evidence-rollup">
-          <% artifact_names = @artifacts.map(&:name).uniq %>
-          <% artifact_summary = artifact_names.first(3).join(", ") %>
-          <% artifact_summary = [ artifact_summary, "+#{artifact_names.size - 3} more" ].reject(&:blank?).join(" ") if artifact_names.size > 3 %>
-          <summary>
-            <span class="status-icon-pill" title="Artifacts" aria-label="Artifacts"><%= lucide_icon("download", class_name: "app-icon") %></span>
-            <span class="run-evidence-main">
-              <span class="run-evidence-row-head">
-                <strong>Artifacts</strong>
-                <span><%= pluralize(@artifacts.size, "file") %></span>
-              </span>
-              <span class="run-evidence-summary-text"><%= artifact_summary.presence || "No artifacts recorded." %></span>
-            </span>
-          </summary>
-          <div class="run-evidence-rollup-body">
-            <% if @artifacts.any? %>
-              <% @artifacts.each do |artifact| %>
-                <% preview = artifact_text_preview(artifact) %>
-                <article class="run-evidence-proof-row">
-                  <span class="status-icon-pill" title="Artifact" aria-label="Artifact"><%= lucide_icon("file", class_name: "app-icon") %></span>
-                  <span class="run-evidence-main">
-                    <span class="run-evidence-row-head">
-                      <strong><%= artifact.name %></strong>
-                      <span><%= artifact.created_at ? "#{time_ago_in_words(artifact.created_at)} ago" : "saved" %></span>
-                    </span>
-                    <span class="run-evidence-summary-text"><%= artifact.byte_size.present? ? number_to_human_size(artifact.byte_size) : "saved" %> · <%= artifact.content_type || "file" %></span>
-                    <% if preview.present? %>
-                      <details class="run-evidence-inline-details">
-                        <summary>Preview artifact</summary>
-                        <% if artifact.content_type == "text/markdown" %>
-                          <div class="rich-markdown mt-3">
-                            <%= render_markdown(preview) %>
-                          </div>
-                        <% elsif artifact.content_type&.start_with?("text/") %>
-                          <pre class="mt-3 max-h-80 overflow-auto rounded-md bg-muted/35 p-3 text-xs text-muted-foreground"><%= preview %></pre>
-                        <% end %>
-                      </details>
-                    <% end %>
-                  </span>
-                </article>
-              <% end %>
-            <% else %>
-              <p class="linear-empty px-0 py-3 text-left">No artifacts recorded.</p>
-            <% end %>
-          </div>
-        </details>
-
-        <details class="run-evidence-row run-evidence-rollup">
-          <summary>
-            <%= status_icon_pill(@logs.any? { |log| log.level == "error" } ? "error" : "info", title: "Run logs") %>
-            <span class="run-evidence-main">
-              <span class="run-evidence-row-head">
-                <strong>Logs</strong>
-                <span><%= pluralize(@logs.size, "entry") %></span>
-              </span>
-              <span class="run-evidence-summary-text"><%= @logs.last&.message || "No logs recorded." %></span>
-            </span>
-          </summary>
-          <div class="run-evidence-rollup-body">
-            <% if @logs.any? %>
-              <% @logs.each do |log| %>
-                <article class="run-evidence-proof-row">
-                  <%= status_icon_pill(log.level, title: log.level.to_s.titleize) %>
-                  <span class="run-evidence-main">
-                    <span class="run-evidence-row-head">
-                      <strong><%= log.message %></strong>
-                      <span><%= log.created_at ? "#{time_ago_in_words(log.created_at)} ago" : log.level %></span>
-                    </span>
-                    <span class="run-evidence-summary-text"><%= log.level %></span>
-                  </span>
-                </article>
-              <% end %>
-            <% else %>
-              <p class="linear-empty px-0 py-3 text-left">No logs recorded.</p>
-            <% end %>
-          </div>
-        </details>
-
-        <% if @run_messages.any? || @pending_run_message.present? %>
-          <details class="run-evidence-row run-evidence-rollup">
-            <summary>
-              <%= status_icon_pill(@pending_run_message ? "waiting_for_input" : "info", title: "Run chat") %>
-              <span class="run-evidence-main">
-                <span class="run-evidence-row-head">
-                  <strong>Run chat</strong>
-                  <span><%= pluralize(@run_messages.size, "message") %></span>
-                </span>
-                <span class="run-evidence-summary-text"><%= @pending_run_message&.content || @run_messages.last&.content || "No structured chat messages yet." %></span>
-              </span>
-            </summary>
-            <div class="run-chat-thread">
-              <% @run_messages.each do |message| %>
-                <article class="run-chat-message is-<%= message.role %> <%= "is-pending" if message.pending? %>">
-                  <div class="run-chat-message-head">
-                    <span><%= message.role == "user" ? (message.user&.display_name || "You") : "xmode" %></span>
-                    <span><%= message.kind.to_s.tr("_", " ") %></span>
-                  </div>
-                  <% if message.content.present? %>
-                    <p><%= message.content %></p>
-                  <% end %>
-                </article>
-              <% end %>
-            </div>
-          </details>
-        <% end %>
-      </div>
-    </section>
   </main>
 
-  <aside class="record-detail-side run-record-side">
-    <section class="record-detail-side-section run-now-panel">
-      <div class="record-detail-side-title">
+  <aside class="record-detail-side run-review-side">
+    <section class="record-detail-section run-review-now-section <%= "is-action-required" if @pending_run_message || @pending_approval %>">
+      <div class="record-detail-section-head">
         <div>
           <p class="app-eyebrow">Now</p>
           <h3><%= next_label %></h3>
         </div>
         <%= status_icon_pill(@pending_run_message ? "waiting_for_input" : @run.status, title: next_label) %>
       </div>
+
       <% if current_step %>
-        <p class="text-sm leading-6 text-muted-foreground"><%= current_step.name %></p>
+        <p class="run-review-side-copy"><%= current_step.name %></p>
       <% end %>
 
       <% if @pending_run_message %>
@@ -434,10 +183,18 @@ end %>
           <% if @pending_run_message.choices.any? %>
             <div class="run-chat-actions">
               <% @pending_run_message.choices.each do |choice| %>
+                <% choice_key = choice["key"].to_s %>
+                <% choice_button_class = if choice_key.match?(/approve|accept|continue|yes/)
+                  "app-btn app-btn-primary"
+                elsif choice_key.match?(/reject|cancel|stop|no/)
+                  "app-btn app-btn-danger"
+                else
+                  "app-btn app-btn-muted"
+                end %>
                 <%= button_to pipeline_run_run_message_path(@run, @pending_run_message),
                       method: :post,
                       params: { choice: choice["key"] },
-                      class: "app-btn app-btn-muted" do %>
+                      class: choice_button_class do %>
                   <span><%= choice["label"].presence || choice["key"].to_s.humanize %></span>
                 <% end %>
               <% end %>
@@ -463,6 +220,8 @@ end %>
             <span>Reject</span>
           <% end %>
         </div>
+      <% else %>
+        <p class="run-review-side-copy">No manual response is required right now.</p>
       <% end %>
 
       <details class="run-follow-up">
@@ -494,50 +253,237 @@ end %>
       <% end %>
     </section>
 
-    <section class="record-detail-side-section">
-      <div class="record-detail-side-title">
-        <h3>Details</h3>
-      </div>
-      <dl class="catalog-contract-list">
-        <div><dt><%= lucide_icon("activity", class_name: "app-icon") %><span>Trigger</span></dt><dd><%= @run.display_trigger %></dd></div>
-        <div><dt><%= lucide_icon("folder", class_name: "app-icon") %><span>Project</span></dt><dd><%= @run.project&.title || "-" %></dd></div>
-        <div><dt><%= lucide_icon("circle-dot", class_name: "app-icon") %><span>Issue</span></dt><dd><%= @run.issue&.identifier || "-" %></dd></div>
-        <div><dt><%= lucide_icon("radio-tower", class_name: "app-icon") %><span>Event</span></dt><dd><%= @run.event&.title || "-" %></dd></div>
-        <div><dt><%= lucide_icon("list", class_name: "app-icon") %><span>Snapshot</span></dt><dd><%= pluralize(@snapshot_nodes.size, "step") %></dd></div>
-      </dl>
-    </section>
-
-    <section class="record-detail-side-section">
-      <div class="record-detail-side-title">
-        <h3>Change Request</h3>
-      </div>
-      <% if @change_request %>
-        <div class="record-detail-list">
-          <%= link_to change_request_path(@change_request), class: "record-detail-row" do %>
-            <%= status_icon_pill(@change_request.status, title: @change_request.status.to_s.titleize) %>
-            <span class="record-point-main">
-              <span class="record-point-title"><%= @change_request.title %></span>
-              <span class="record-point-meta"><span class="min-w-0 truncate"><%= @change_request.branch_name %></span></span>
-            </span>
-          <% end %>
+    <section class="record-detail-section run-review-context-section">
+      <div class="record-detail-section-head">
+        <div>
+          <p class="app-eyebrow">Context</p>
+          <h3>Run context</h3>
         </div>
-      <% else %>
-        <p class="text-sm leading-6 text-muted-foreground">No Change Request yet.</p>
-      <% end %>
+      </div>
+      <div class="cr-context-strip">
+        <div>
+          <span>Trigger</span>
+          <strong><%= @run.display_trigger %></strong>
+        </div>
+        <div>
+          <span>Project</span>
+          <strong title="<%= @run.project&.title %>"><%= @run.project&.title || "-" %></strong>
+        </div>
+        <div>
+          <span>Issue</span>
+          <strong><%= @run.issue&.identifier || "-" %></strong>
+        </div>
+        <div>
+          <span>Event</span>
+          <strong title="<%= @run.event&.title %>"><%= @run.event&.title || "-" %></strong>
+        </div>
+        <div>
+          <span>Snapshot</span>
+          <strong><%= pluralize(@snapshot_nodes.size, "step") %></strong>
+        </div>
+      </div>
     </section>
 
-    <section class="record-detail-side-section">
-      <div class="record-detail-side-title">
-        <h3>Checklist</h3>
+    <section class="record-detail-section run-review-evidence-section">
+      <div class="record-detail-section-head">
+        <div>
+          <p class="app-eyebrow">Evidence</p>
+          <h3>Evidence rollup</h3>
+        </div>
+        <span class="linear-count"><%= pluralize(evidence_total, "item") %></span>
       </div>
-      <div class="run-usp-list">
-        <% loop_points.each do |label, state| %>
-          <div>
-            <%= status_icon_pill(state, title: "#{label}: #{state.to_s.tr("_", " ").titleize}") %>
-            <span><%= label %></span>
-          </div>
+
+      <div class="run-review-evidence-list">
+        <% evidence_rows.each do |label, count, detail| %>
+          <article class="run-review-evidence-row">
+            <%= status_icon_pill(detail, title: "#{label}: #{detail.to_s.tr("_", " ").titleize}") %>
+            <span>
+              <strong><%= label %></strong>
+              <small><%= count %> · <%= detail %></small>
+            </span>
+          </article>
         <% end %>
       </div>
     </section>
+
+    <section class="record-detail-section run-review-context-section">
+      <div class="record-detail-section-head">
+        <div>
+          <p class="app-eyebrow">Review package</p>
+          <h3>Change Request</h3>
+        </div>
+      </div>
+      <% if @change_request %>
+        <%= link_to change_request_path(@change_request), class: "run-review-change-request" do %>
+          <%= status_icon_pill(@change_request.status, title: @change_request.status.to_s.titleize) %>
+          <span>
+            <strong><%= @change_request.title %></strong>
+            <small title="<%= @change_request.branch_name %>"><%= @change_request.branch_name %></small>
+          </span>
+        <% end %>
+      <% else %>
+        <p class="run-review-side-copy">No Change Request yet.</p>
+      <% end %>
+    </section>
+
+    <details class="cr-technical-appendix run-review-appendix">
+      <summary>
+        <span>Evidence appendix</span>
+        <small><%= pluralize(@approvals.size, "approval") %>, <%= pluralize(@sandbox_sessions.size, "sandbox") %>, <%= pluralize(@artifacts.size, "artifact") %>, <%= pluralize(@logs.size, "log") %></small>
+      </summary>
+
+      <div class="cr-appendix-grid">
+        <section class="cr-appendix-section">
+          <h3>Approvals</h3>
+          <% if @approvals.any? %>
+            <div class="cr-verification-list">
+              <% @approvals.each do |approval| %>
+                <article class="cr-verification-row">
+                  <%= status_icon_pill(approval.status, title: approval.display_status) %>
+                  <div class="min-w-0">
+                    <strong><%= approval.action_run_step&.name || "Manual gate" %></strong>
+                    <p><%= approval.user&.display_name || "No reviewer recorded" %> · <%= approval.display_status %></p>
+                    <% if approval.notes.present? %>
+                      <p><%= approval.notes %></p>
+                    <% end %>
+                  </div>
+                </article>
+              <% end %>
+            </div>
+          <% else %>
+            <p class="linear-empty px-0 py-3 text-left">No approvals recorded.</p>
+          <% end %>
+        </section>
+
+        <section class="cr-appendix-section">
+          <h3>Sandboxes</h3>
+          <% if @sandbox_sessions.any? %>
+            <div class="cr-appendix-items">
+              <% @sandbox_sessions.each do |sandbox| %>
+                <% files = @sandbox_files_by_session_id.fetch(sandbox.id, []) %>
+                <% environment = sandbox.execution_environment %>
+                <details class="cr-appendix-item">
+                  <summary>
+                    <span><%= sandbox.kind.to_s.tr("_", " ").titleize %></span>
+                    <small><%= sandbox.status.titleize %> · <%= pluralize(files.size, "file") %></small>
+                  </summary>
+                  <p class="mt-2 text-xs leading-5 text-muted-foreground">
+                    <%= environment&.name || "Workspace sandbox" %>
+                    · <%= sandbox.action_run_step&.name || "Run sandbox" %>
+                    · <%= environment&.docker? ? environment.docker_image : "host runtime" %>
+                  </p>
+                  <% if sandbox.worktree_path.present? %>
+                    <p class="mt-2 break-all text-xs leading-5 text-muted-foreground">Worktree: <%= sandbox.worktree_path %></p>
+                  <% end %>
+                  <% if files.any? %>
+                    <div class="sandbox-file-list">
+                      <% files.each do |file| %>
+                        <div class="sandbox-file-row">
+                          <%= lucide_icon(file.fetch(:type) == "directory" ? "folder" : "file", class_name: "app-icon text-muted-foreground") %>
+                          <span class="sandbox-file-name"><%= file.fetch(:path) %></span>
+                          <span class="sandbox-file-meta"><%= file.fetch(:byte_size).present? ? number_to_human_size(file.fetch(:byte_size)) : "folder" %></span>
+                        </div>
+                      <% end %>
+                    </div>
+                  <% end %>
+                  <div class="sandbox-terminal">
+                    <div class="sandbox-terminal-head">
+                      <span>Terminal</span>
+                      <span><%= pluralize(sandbox.sandbox_commands.size, "command") %></span>
+                    </div>
+                    <% sandbox.sandbox_commands.order(created_at: :desc).first(3).each do |command| %>
+                      <article class="sandbox-command-row">
+                        <div class="sandbox-command-line">
+                          <code>$ <%= command.command %></code>
+                          <%= status_icon_pill(command.status, title: command.status.titleize) %>
+                        </div>
+                        <% if command.stdout.present? %>
+                          <pre><%= command.stdout %></pre>
+                        <% end %>
+                        <% if command.stderr.present? %>
+                          <pre class="is-error"><%= command.stderr %></pre>
+                        <% end %>
+                      </article>
+                    <% end %>
+                    <% if sandbox.worktree_path.present? && sandbox.status.in?(%w[ready running]) %>
+                      <%= form_with url: pipeline_run_sandbox_session_commands_path(@run, sandbox), class: "sandbox-command-form" do |form| %>
+                        <%= text_field_tag :command, nil, class: "app-input", placeholder: "pwd, ls, cat README.md" %>
+                        <%= form.submit "Run", class: "app-btn app-btn-muted" %>
+                      <% end %>
+                    <% end %>
+                  </div>
+                </details>
+              <% end %>
+            </div>
+          <% else %>
+            <p class="linear-empty px-0 py-3 text-left">No sandbox sessions recorded.</p>
+          <% end %>
+        </section>
+
+        <section class="cr-appendix-section">
+          <h3>Artifacts</h3>
+          <% if @artifacts.any? %>
+            <div class="cr-appendix-items">
+              <% @artifacts.each do |artifact| %>
+                <% preview = artifact_text_preview(artifact) %>
+                <details class="cr-appendix-item">
+                  <summary>
+                    <span><%= artifact.name %></span>
+                    <small><%= artifact.byte_size.present? ? number_to_human_size(artifact.byte_size) : artifact.content_type.presence || "saved" %></small>
+                  </summary>
+                  <% if preview.present? && artifact.content_type == "text/markdown" %>
+                    <div class="record-artifact-preview rich-markdown mt-3">
+                      <%= render_markdown(preview) %>
+                    </div>
+                  <% elsif preview.present? && (artifact.content_type&.start_with?("text/") || artifact.content_type == "application/json" || artifact.content_type == "text/x-patch") %>
+                    <pre class="record-artifact-preview mt-3 overflow-auto rounded-md bg-muted/35 p-3 text-xs text-muted-foreground"><%= preview %></pre>
+                  <% else %>
+                    <p class="mt-2 text-xs text-muted-foreground">Preview unavailable.</p>
+                  <% end %>
+                </details>
+              <% end %>
+            </div>
+          <% else %>
+            <p class="linear-empty px-0 py-3 text-left">No artifacts recorded.</p>
+          <% end %>
+        </section>
+
+        <section class="cr-appendix-section">
+          <h3>Logs</h3>
+          <% if @logs.any? %>
+            <div class="cr-log-list">
+              <% @logs.each do |log| %>
+                <article>
+                  <%= status_icon_pill(log.level, title: log.level.to_s.titleize) %>
+                  <span><%= log.message %></span>
+                  <small><%= time_ago_in_words(log.created_at) %> ago</small>
+                </article>
+              <% end %>
+            </div>
+          <% else %>
+            <p class="linear-empty px-0 py-3 text-left">No logs recorded.</p>
+          <% end %>
+        </section>
+
+        <% if @run_messages.any? || @pending_run_message.present? %>
+          <section class="cr-appendix-section cr-appendix-section-wide">
+            <h3>Run chat</h3>
+            <div class="run-chat-thread">
+              <% @run_messages.each do |message| %>
+                <article class="run-chat-message is-<%= message.role %> <%= "is-pending" if message.pending? %>">
+                  <div class="run-chat-message-head">
+                    <span><%= message.role == "user" ? (message.user&.display_name || "You") : "xmode" %></span>
+                    <span><%= message.kind.to_s.tr("_", " ") %></span>
+                  </div>
+                  <% if message.content.present? %>
+                    <p><%= message.content %></p>
+                  <% end %>
+                </article>
+              <% end %>
+            </div>
+          </section>
+        <% end %>
+      </div>
+    </details>
   </aside>
 </div>
