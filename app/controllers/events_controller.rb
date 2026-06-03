@@ -4,6 +4,9 @@ class EventsController < AuthenticatedController
   def index
     @events = current_workspace.events.includes(:project, :issue).order(created_at: :desc)
     @rules = current_workspace.event_rules.includes(:pipeline_definition).order(active: :desc, name: :asc)
+    @webhook_endpoint = "#{request.base_url}/webhooks/events/#{current_workspace.slug}/{source}"
+    @event_sdk_repo_url = "https://github.com/m9rc1n/xmode-events"
+    @event_sdk_rows = event_sdk_rows
     @event_rows = @events.map { |event| event_row(event) }
     @rule_rows = @rules.map { |rule| rule_row(rule) }
     @event_counts = {
@@ -24,6 +27,14 @@ class EventsController < AuthenticatedController
   end
 
   private
+
+  def event_sdk_rows
+    [
+      [ "Node.js", "@xmode/events", "captureEvent, captureBug, captureWarning" ],
+      [ "Python", "xmode-events", "capture_event, capture_bug, capture_warning" ],
+      [ "Ruby", "xmode-events", "capture_event, capture_bug, capture_warning" ]
+    ]
+  end
 
   def set_event
     @event = current_workspace.events.includes(:project, :issue).find(params[:id])

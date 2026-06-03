@@ -1,86 +1,105 @@
 <% content_for :page_title, @saved_view.name %>
 
-<div class="app-page-actions">
-  <div class="min-w-0">
-    <p class="app-eyebrow"><%= @saved_view.view_type.tr("_", " ").titleize %> view</p>
-    <p class="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground"><%= @view_description %></p>
-  </div>
-  <%= link_to views_path, class: "app-btn app-btn-muted" do %>
-    <%= lucide_icon("list-filter", class_name: "app-icon") %>
-    <span>Views</span>
-  <% end %>
-</div>
-
-<div class="app-detail-grid">
-  <section class="linear-surface">
-    <div class="linear-toolbar">
-      <div class="flex min-w-0 items-center gap-2">
-        <%= lucide_icon(@view_row.fetch(:icon), class_name: "app-icon text-muted-foreground") %>
-        <h2 class="linear-title truncate"><%= @saved_view.name %></h2>
-        <span class="linear-count"><%= @view_row.fetch(:count) %></span>
-      </div>
-      <span class="app-eyebrow"><%= @saved_view.team&.name || current_workspace.name %></span>
+<div class="view-detail-page">
+  <header class="view-detail-hero">
+    <div class="min-w-0">
+      <p class="app-eyebrow">Saved view</p>
+      <h1><%= @saved_view.name %></h1>
+      <p><%= @view_description %></p>
+      <dl class="view-contract-line" aria-label="View contract">
+        <div><dt>Scope</dt><dd><%= @scope_label %></dd></div>
+        <div><dt>Type</dt><dd><%= @saved_view.view_type.tr("_", " ").titleize %></dd></div>
+        <div><dt>Results</dt><dd><%= @view_row.fetch(:count) %></dd></div>
+        <div><dt>Source</dt><dd><%= @source_path %></dd></div>
+      </dl>
     </div>
 
-    <% case @saved_view.view_type %>
-    <% when "roadmap" %>
-      <div class="linear-list">
-        <% @projects.each do |project| %>
-          <%= link_to project_path(project), class: "linear-row" do %>
-            <span class="status-pill shrink-0"><%= project.status %></span>
-            <div class="linear-row-main">
-              <p class="linear-row-title"><%= project.title %></p>
-              <div class="linear-row-meta">
-                <span><%= project.key %></span>
-                <span><%= pluralize(project.issues.size, "issue") %></span>
-                <span><%= project.repository_url.presence || "No repository" %></span>
-              </div>
-            </div>
+    <div class="view-detail-actions">
+      <%= link_to "All views", views_path, class: "app-btn app-btn-muted" %>
+      <%= link_to "Open source", @source_path, class: "app-btn app-btn-primary" %>
+    </div>
+  </header>
+
+  <div class="view-detail-layout">
+    <aside class="view-sibling-nav" aria-label="Sibling views">
+      <div class="view-sibling-nav-head">
+        <p class="app-eyebrow">Scope</p>
+        <h2><%= @scope_label %></h2>
+        <span><%= pluralize(@sibling_view_rows.size, "sibling") %></span>
+      </div>
+
+      <nav class="view-sibling-list">
+        <% @sibling_view_rows.each do |row| %>
+          <% view = row.fetch(:view) %>
+          <%= link_to view_path(view), class: "view-sibling-link #{'is-active' if view == @saved_view}" do %>
+            <span>
+              <strong><%= view.name %></strong>
+              <small><%= view.view_type.tr("_", " ").titleize %></small>
+            </span>
+            <em><%= row.fetch(:count) %></em>
           <% end %>
         <% end %>
-        <% if @projects.empty? %>
-          <p class="linear-empty">No projects match this view.</p>
-        <% end %>
+      </nav>
+    </aside>
+
+    <main class="view-result-panel">
+      <div class="view-result-head">
+        <div>
+          <p class="app-eyebrow">Results</p>
+          <h2><%= @saved_view.name %></h2>
+        </div>
+        <span class="linear-count"><%= pluralize(@view_row.fetch(:count), "result") %></span>
       </div>
-    <% when "automation_queue" %>
-      <div class="linear-list">
-        <% @runs.each do |run| %>
-          <%= link_to pipeline_run_path(run), class: "linear-row" do %>
-            <div class="linear-row-main">
-              <p class="linear-row-title"><%= run.pipeline_definition&.name || "Pipeline run" %></p>
-              <div class="linear-row-meta">
-                <span><%= run.display_trigger %></span>
-                <span><%= run.issue&.identifier || run.project&.key || "Workspace" %></span>
-                <span><%= time_ago_in_words(run.created_at) %> ago</span>
-              </div>
-            </div>
-            <span class="status-pill shrink-0"><%= run.display_status %></span>
+
+      <% case @saved_view.view_type %>
+      <% when "roadmap" %>
+        <div class="view-result-list">
+          <% @projects.each do |project| %>
+            <%= link_to project_path(project), class: "view-result-row" do %>
+              <span class="view-result-main">
+                <span class="view-result-title"><%= project.title %></span>
+                <span class="view-result-meta">
+                  <span><%= project.key %></span>
+                  <span><%= project.status.titleize %></span>
+                  <span><%= pluralize(project.issues.size, "issue") %></span>
+                  <span><%= project.repository_url.presence || "No repository" %></span>
+                </span>
+              </span>
+              <%= status_icon_pill(project.status, title: project.status.to_s.titleize) %>
+            <% end %>
           <% end %>
-        <% end %>
-        <% if @runs.empty? %>
-          <p class="linear-empty">No automation runs match this view.</p>
-        <% end %>
-      </div>
-    <% else %>
-      <%= render "issues/table", issues: @issues %>
-    <% end %>
-  </section>
-
-  <aside class="space-y-4">
-    <section class="linear-surface p-4">
-      <h3 class="font-medium text-foreground">View contract</h3>
-      <dl class="mt-3 grid gap-2 text-sm">
-        <div class="inbox-property"><dt>Type</dt><dd><strong><%= @saved_view.view_type.tr("_", " ").titleize %></strong></dd></div>
-        <div class="inbox-property"><dt>Team</dt><dd><strong><%= @saved_view.team&.name || "Workspace" %></strong></dd></div>
-        <div class="inbox-property"><dt>Source</dt><dd><strong><%= @source_path %></strong></dd></div>
-        <div class="inbox-property"><dt>Results</dt><dd><strong><%= @view_row.fetch(:count) %></strong></dd></div>
-      </dl>
-    </section>
-
-    <section class="linear-surface p-4">
-      <h3 class="font-medium text-foreground">How to use it</h3>
-      <p class="mt-3 text-sm leading-6 text-muted-foreground"><%= @view_description %></p>
-      <p class="mt-3 text-sm leading-6 text-muted-foreground">Saved views keep repeated operating lenses separate from the Inbox, so teams can review backlog, cycle, roadmap, and automation work without losing context.</p>
-    </section>
-  </aside>
+          <% if @projects.empty? %>
+            <p class="linear-empty px-0 py-6 text-left">No projects match this view.</p>
+          <% end %>
+        </div>
+      <% when "automation_queue" %>
+        <div class="view-result-list">
+          <% @runs.each do |run| %>
+            <%= link_to pipeline_run_path(run), class: "view-result-row" do %>
+              <span class="view-result-main">
+                <span class="view-result-title"><%= run.pipeline_definition&.name || "Pipeline run" %></span>
+                <span class="view-result-meta">
+                  <span><%= run.display_trigger %></span>
+                  <span><%= run.issue&.identifier || run.project&.key || "Workspace" %></span>
+                  <span><%= time_ago_in_words(run.created_at) %> ago</span>
+                </span>
+              </span>
+              <%= status_icon_pill(run.status, title: run.display_status) %>
+            <% end %>
+          <% end %>
+          <% if @runs.empty? %>
+            <p class="linear-empty px-0 py-6 text-left">No automation runs match this view.</p>
+          <% end %>
+        </div>
+      <% else %>
+        <%= render "issues/list",
+              issues: @issues,
+              list_class: "view-result-list",
+              row_class: "view-result-row",
+              empty_message: "No issues match this view.",
+              show_cycle: @saved_view.view_type == "active_cycle",
+              show_counts: true %>
+      <% end %>
+    </main>
+  </div>
 </div>

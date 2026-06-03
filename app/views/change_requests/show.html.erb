@@ -1,262 +1,217 @@
 <% content_for :page_title, @change_request.title %>
 
-<div class="app-page-actions">
-  <div class="min-w-0">
-    <p class="app-eyebrow">Change Request</p>
-    <h2 class="mt-1 truncate text-xl font-semibold text-foreground">Review package</h2>
-    <p class="mt-1 max-w-3xl text-sm leading-6 text-muted-foreground">Branch, checks, run evidence, and linked issue context before merge.</p>
-  </div>
-  <div class="flex flex-wrap items-center gap-1.5">
-    <%= status_icon_pill(@change_request.status, title: @change_request.status.to_s.titleize) %>
-    <% if @change_request.url.present? %>
-      <%= link_to @change_request.url, class: "app-btn app-btn-muted", target: "_blank", rel: "noopener" do %>
-        <%= lucide_icon("external-link", class_name: "app-icon") %>
-        <span>Open provider</span>
-      <% end %>
-    <% end %>
-  </div>
-</div>
+<div class="record-detail-layout change-request-record-layout cr-review-layout">
+  <main class="record-detail-main cr-review-main">
+    <header class="record-doc-hero cr-review-hero">
+      <div class="cr-review-hero-top">
+        <div class="flex min-w-0 flex-wrap items-center gap-2">
+          <span class="linear-count">Review package</span>
+          <%= status_icon_pill(@change_request.status, title: @change_request.status.to_s.titleize) %>
+          <span class="linear-count"><%= @change_request.external_id.presence || "local draft" %></span>
+        </div>
+      </div>
 
-<div class="record-layout">
-  <main class="record-main">
-    <section class="record-panel">
-      <div class="record-header">
-        <div class="min-w-0">
-          <div class="flex flex-wrap items-center gap-2">
-            <%= status_icon_pill(@change_request.status, title: @change_request.status.to_s.titleize) %>
-            <span class="status-pill"><%= @change_request.provider %></span>
-            <span class="status-pill"><%= @repository.full_name.presence || @repository.name %></span>
-          </div>
-          <h2 class="record-title mt-3"><%= @change_request.title %></h2>
-          <p class="record-description">
-            <span class="text-muted-foreground"><%= @repository.default_branch %></span>
-            <span class="mx-1 text-muted-foreground">to</span>
-            <span class="break-all text-foreground"><%= @change_request.branch_name %></span>
+      <h2 class="record-detail-page-title"><%= @change_request.title %></h2>
+      <p class="cr-review-summary">
+        Review the code delta first, then use the compact context and verification evidence to decide whether this branch is ready to open or merge.
+      </p>
+
+      <div class="record-detail-page-actions">
+        <% if @repository_web_url.present? %>
+          <%= link_to @repository_web_url, class: "app-btn app-btn-muted", target: "_blank", rel: "noopener" do %>
+            <%= lucide_icon(@change_request.provider == "github" ? "github" : "external-link", class_name: "app-icon") %>
+            <span>Repository</span>
+          <% end %>
+        <% end %>
+        <% if @change_request.url.present? %>
+          <%= link_to @change_request.url, class: "app-btn app-btn-primary", target: "_blank", rel: "noopener" do %>
+            <%= lucide_icon("git-pull-request", class_name: "app-icon") %>
+            <span><%= @provider_change_request_label %></span>
+          <% end %>
+        <% end %>
+      </div>
+    </header>
+
+    <section class="record-detail-section cr-change-section">
+      <div class="record-detail-section-head">
+        <div>
+          <p class="app-eyebrow">What changed</p>
+          <h3>Readable diff summary</h3>
+          <p class="mt-1 text-sm leading-6 text-muted-foreground">
+            <%= pluralize(@changed_files.size, "file") %> changed<% if @diff_sections.any? %>, <%= pluralize(@diff_sections.sum { |section| section[:additions] }, "addition") %>, <%= pluralize(@diff_sections.sum { |section| section[:deletions] }, "deletion") %><% end %>.
           </p>
         </div>
-        <span class="linear-count shrink-0"><%= @change_request.external_id.presence || "local draft" %></span>
+        <span class="linear-count"><%= pluralize(@changed_files.size, "file") %></span>
       </div>
 
-      <div class="record-body">
-        <div class="record-point-list">
-          <div class="record-point">
-            <%= lucide_icon("folder-git-2", class_name: "app-icon text-muted-foreground") %>
-            <span class="record-point-main">
-              <span class="record-point-title">Repository</span>
-              <span class="record-point-meta"><%= @repository.full_name.presence || @repository.name %></span>
-            </span>
-          </div>
-          <div class="record-point">
-            <%= lucide_icon("git-branch", class_name: "app-icon text-muted-foreground") %>
-            <span class="record-point-main">
-              <span class="record-point-title">Branch route</span>
-              <span class="record-point-meta">
-                <span><%= @repository.default_branch %></span>
-                <span>to</span>
-                <span class="break-all text-foreground"><%= @change_request.branch_name %></span>
-              </span>
-            </span>
-          </div>
-          <div class="grid gap-1 md:grid-cols-2">
-            <div class="record-key-value"><span>Issue</span><strong><%= @issue&.identifier || "Manual" %></strong></div>
-            <div class="record-key-value"><span>Run</span><strong><%= @run ? "##{@run.id}" : "Manual" %></strong></div>
-            <div class="record-key-value"><span>Updated</span><strong><%= time_ago_in_words(@change_request.updated_at) %> ago</strong></div>
-            <div class="record-key-value"><span>Provider</span><strong><%= @change_request.provider %></strong></div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="record-panel">
-      <div class="record-header">
-        <div>
-          <div class="record-section-heading">
-            <%= lucide_icon("check-circle", class_name: "app-icon text-muted-foreground") %>
-            <span>Review readiness</span>
-          </div>
-          <p class="mt-1 text-sm leading-6 text-muted-foreground">The minimum operating record xmode expects before a code-changing run is merged.</p>
-        </div>
-        <span class="linear-count"><%= @review_steps.count { |_label, _value, status| status != "missing" } %>/<%= @review_steps.size %></span>
-      </div>
-
-      <div class="record-body">
-        <div class="record-point-list">
-          <% @review_steps.each do |label, value, status| %>
-            <article class="record-point">
-              <%= status_icon_pill(status, title: "#{label}: #{status}") %>
-              <span class="record-point-main">
-                <span class="record-point-title"><%= label %></span>
-                <span class="record-point-meta"><%= value %></span>
-              </span>
+      <% if @diff_sections.any? %>
+        <div class="cr-change-list">
+          <% @diff_sections.each do |section| %>
+            <article class="cr-change-file">
+              <div class="cr-change-file-head">
+                <span class="linear-count"><%= section[:status] %></span>
+                <strong title="<%= section[:path] %>"><%= section[:path] %></strong>
+                <span class="cr-change-stats">
+                  <span>+<%= section[:additions] %></span>
+                  <span>-<%= section[:deletions] %></span>
+                </span>
+              </div>
+              <p><%= section[:note] %></p>
+              <% if section[:preview_lines].any? %>
+                <div class="cr-change-preview" aria-label="Added lines preview">
+                  <% section[:preview_lines].each do |line| %>
+                    <code><span>+</span><%= line %></code>
+                  <% end %>
+                </div>
+              <% end %>
             </article>
           <% end %>
         </div>
+      <% elsif @changed_files.any? %>
+        <div class="cr-changed-file-strip">
+          <% @changed_files.each do |entry| %>
+            <span>
+              <strong><%= entry.fetch("label") %></strong>
+              <small><%= entry.fetch("path") %></small>
+            </span>
+          <% end %>
+        </div>
+      <% else %>
+        <p class="linear-empty px-0 py-6 text-left">No changed files were captured for this Change Request.</p>
+      <% end %>
+    </section>
+
+  </main>
+
+  <aside class="record-detail-side cr-review-side">
+    <section class="record-detail-section cr-context-section">
+      <div class="record-detail-section-head">
+        <div>
+          <p class="app-eyebrow">Context</p>
+          <h3>Review context</h3>
+        </div>
+      </div>
+      <div class="cr-context-strip">
+        <div>
+          <span>Repository</span>
+          <strong title="<%= @repository.full_name.presence || @repository.name %>"><%= @repository.full_name.presence || @repository.name %></strong>
+        </div>
+        <div>
+          <span>Branch</span>
+          <strong title="<%= @change_request.branch_name %>"><%= @change_request.branch_name.presence || "missing" %></strong>
+        </div>
+        <div>
+          <span>Base</span>
+          <strong><%= @repository.default_branch.presence || "main" %></strong>
+        </div>
+        <div>
+          <span>Issue</span>
+          <strong><%= @issue&.identifier || "manual" %></strong>
+        </div>
+        <div>
+          <span>Run</span>
+          <strong><%= @run ? "##{@run.id} #{ @run.status.to_s.tr('_', ' ') }" : "manual" %></strong>
+        </div>
       </div>
     </section>
 
-    <section class="record-panel">
-      <div class="record-header">
+    <section class="record-detail-section cr-verification-section">
+      <div class="record-detail-section-head">
         <div>
-          <div class="record-section-heading">
-            <%= lucide_icon("activity", class_name: "app-icon text-muted-foreground") %>
-            <span>Run evidence</span>
-          </div>
-          <p class="mt-1 text-xs text-muted-foreground"><%= @run&.pipeline_definition&.name || "Manual Change Request" %></p>
+          <p class="app-eyebrow">Verification</p>
+          <h3><%= @run&.pipeline_definition&.name || "Manual Change Request" %></h3>
         </div>
         <span class="linear-count"><%= pluralize(@steps.size, "step") %></span>
       </div>
 
-      <div class="record-body">
-        <div class="record-point-list">
-          <% if @steps.any? %>
-            <% @steps.each do |step| %>
-              <article class="app-run-step">
-                <div class="flex min-w-0 items-start gap-3">
-                  <%= status_icon_pill(step.status, title: step.display_status) %>
-                  <div class="min-w-0 flex-1">
-                    <p class="record-point-title"><%= step.name %></p>
-                    <div class="record-point-meta">
-                      <span><%= step.action_definition&.key || step.action_snapshot["key"] || "snapshot" %></span>
-                      <% if step.started_at.present? %>
-                        <span><%= time_ago_in_words(step.started_at) %> ago</span>
-                      <% end %>
-                    </div>
-                  </div>
-                </div>
-
-                <% if step.output_json.present? || step.error_message.present? %>
-                  <dl class="mt-3 grid gap-2 text-sm md:grid-cols-3">
-                    <% if step.output_json["summary"].present? %>
-                      <div class="record-key-value"><dt>Output</dt><dd><strong><%= step.output_json["summary"] %></strong></dd></div>
-                    <% end %>
-                    <% if step.output_json["status"].present? %>
-                      <div class="record-key-value"><dt>Result</dt><dd><strong><%= step.output_json["status"].to_s.tr("_", " ").titleize %></strong></dd></div>
-                    <% end %>
-                    <% if step.output_json.key?("changed_files_count") %>
-                      <div class="record-key-value"><dt>Changed files</dt><dd><strong><%= step.output_json["changed_files_count"] %></strong></dd></div>
-                    <% end %>
-                    <% if step.error_message.present? %>
-                      <div class="record-key-value md:col-span-3"><dt>Error</dt><dd><strong><%= step.error_message %></strong></dd></div>
-                    <% end %>
-                  </dl>
-                <% end %>
-              </article>
-            <% end %>
-          <% else %>
-            <p class="linear-empty px-0 py-6">No run evidence is attached yet. Manual Change Requests can still link a branch, checks, and reviewer notes.</p>
+      <% if @steps.any? %>
+        <div class="cr-verification-list">
+          <% @steps.each do |step| %>
+            <article class="cr-verification-row">
+              <%= status_icon_pill(step.status, title: step.display_status) %>
+              <div class="min-w-0">
+                <strong><%= step.name %></strong>
+                <p>
+                  <%= step.output_json["summary"].presence || step.error_message.presence || step.action_definition&.key || "Step recorded." %>
+                  <% if step.output_json.key?("changed_files_count") %>
+                    <span><%= pluralize(step.output_json["changed_files_count"], "changed file") %></span>
+                  <% end %>
+                </p>
+              </div>
+            </article>
           <% end %>
         </div>
-      </div>
+      <% else %>
+        <p class="linear-empty px-0 py-5 text-left">No run evidence is attached yet. Use the branch and provider links to review manual Change Requests.</p>
+      <% end %>
     </section>
-  </main>
 
-  <aside class="record-side">
-    <section class="record-panel">
-      <div class="record-body">
-        <div class="record-side-group">
-          <div class="flex items-center justify-between gap-3">
-            <div class="record-section-heading">
-              <%= lucide_icon("check-circle", class_name: "app-icon text-muted-foreground") %>
-              <span>Checks</span>
-            </div>
-            <span class="linear-count"><%= @checks.size %></span>
-          </div>
-          <div class="record-point-list mt-3">
-            <% if @checks.any? %>
+    <details class="cr-technical-appendix">
+      <summary>
+        <span>Technical details</span>
+        <small><%= pluralize(@checks.size, "check") %>, <%= pluralize(@artifacts.size, "artifact") %>, <%= pluralize(@logs.size, "recent log") %></small>
+      </summary>
+
+      <div class="cr-appendix-grid">
+        <section class="cr-appendix-section">
+          <h3>Check snapshot</h3>
+          <% if @checks.any? %>
+            <dl class="cr-appendix-list">
               <% @checks.each do |key, value| %>
-                <div class="record-key-value">
-                  <span class="truncate"><%= key.to_s.humanize %></span>
-                  <strong>
-                    <%= value.is_a?(Array) || value.is_a?(Hash) ? JSON.generate(value) : value.to_s %>
-                  </strong>
+                <div>
+                  <dt><%= key.to_s.humanize %></dt>
+                  <dd><%= value.is_a?(Array) || value.is_a?(Hash) ? JSON.generate(value) : value.to_s %></dd>
                 </div>
               <% end %>
-            <% else %>
-              <p class="linear-empty px-0 py-4 text-left">No checks captured yet.</p>
-            <% end %>
-          </div>
-        </div>
+            </dl>
+          <% else %>
+            <p class="linear-empty px-0 py-3 text-left">No checks captured yet.</p>
+          <% end %>
+        </section>
 
-        <div class="record-side-group">
-          <div class="flex items-center justify-between gap-3">
-            <div class="record-section-heading">
-              <%= lucide_icon("download", class_name: "app-icon text-muted-foreground") %>
-              <span>Artifacts</span>
-            </div>
-            <span class="linear-count"><%= @artifacts.size %></span>
-          </div>
-          <div class="record-point-list mt-3">
-            <% if @artifacts.any? %>
+        <section class="cr-appendix-section">
+          <h3>Artifacts</h3>
+          <% if @artifacts.any? %>
+            <div class="cr-appendix-items">
               <% @artifacts.each do |artifact| %>
-                <div class="record-point">
-                  <%= lucide_icon("download", class_name: "app-icon text-muted-foreground") %>
-                  <span class="record-point-main">
-                    <span class="record-point-title"><%= artifact.name %></span>
-                    <span class="record-point-meta"><%= artifact.content_type.presence || "artifact" %></span>
-                  </span>
-                  <span class="linear-count shrink-0"><%= artifact.byte_size.present? ? number_to_human_size(artifact.byte_size) : "saved" %></span>
-                </div>
+                <% preview = artifact_text_preview(artifact, max_bytes: 8_000) %>
+                <details class="cr-appendix-item">
+                  <summary>
+                    <span><%= artifact.name %></span>
+                    <small><%= artifact.byte_size.present? ? number_to_human_size(artifact.byte_size) : artifact.content_type.presence || "saved" %></small>
+                  </summary>
+                  <% if preview.present? && artifact.content_type == "text/markdown" %>
+                    <div class="record-artifact-preview rich-markdown mt-3">
+                      <%= render_markdown(preview) %>
+                    </div>
+                  <% elsif preview.present? && (artifact.content_type&.start_with?("text/") || artifact.content_type == "application/json" || artifact.content_type == "text/x-patch") %>
+                    <pre class="record-artifact-preview mt-3 overflow-auto rounded-md bg-muted/35 p-3 text-xs text-muted-foreground"><%= preview %></pre>
+                  <% else %>
+                    <p class="mt-2 text-xs text-muted-foreground">Preview unavailable.</p>
+                  <% end %>
+                </details>
               <% end %>
-            <% else %>
-              <p class="linear-empty px-0 py-4 text-left">No artifacts attached.</p>
-            <% end %>
-          </div>
-        </div>
-
-        <div class="record-side-group">
-          <div class="record-section-heading">
-            <%= lucide_icon("link", class_name: "app-icon text-muted-foreground") %>
-            <span>Linked context</span>
-          </div>
-          <div class="record-point-list mt-3">
-            <% if @issue.present? %>
-              <%= link_to issue_path(@issue), class: "record-point" do %>
-                <%= lucide_icon("circle-dot", class_name: "app-icon text-muted-foreground") %>
-                <span class="record-point-main">
-                  <span class="record-point-title">Issue</span>
-                  <span class="record-point-meta"><%= @issue.identifier %></span>
-                </span>
-              <% end %>
-            <% end %>
-            <% if @run.present? %>
-              <%= link_to pipeline_run_path(@run), class: "record-point" do %>
-                <%= status_icon_pill(@run.status, title: @run.display_status) %>
-                <span class="record-point-main">
-                  <span class="record-point-title">Pipeline run</span>
-                  <span class="record-point-meta">#<%= @run.id %></span>
-                </span>
-              <% end %>
-            <% end %>
-            <div class="record-key-value">
-              <span>Provider</span>
-              <strong><%= @change_request.provider %></strong>
             </div>
-            <% if @issue.blank? && @run.blank? %>
-              <p class="linear-empty px-0 py-4 text-left">No issue or run linked yet.</p>
-            <% end %>
-          </div>
-        </div>
+          <% else %>
+            <p class="linear-empty px-0 py-3 text-left">No artifacts attached.</p>
+          <% end %>
+        </section>
 
         <% if @logs.any? %>
-          <div class="record-side-group">
-            <div class="record-section-heading">
-              <%= lucide_icon("terminal", class_name: "app-icon text-muted-foreground") %>
-              <span>Recent logs</span>
-            </div>
-            <div class="record-point-list mt-3">
+          <section class="cr-appendix-section cr-appendix-section-wide">
+            <h3>Recent logs</h3>
+            <div class="cr-log-list">
               <% @logs.each do |log| %>
-                <div class="record-point">
+                <article>
                   <%= status_icon_pill(log.level, title: log.level.to_s.titleize) %>
-                  <span class="record-point-main">
-                    <span class="record-point-title"><%= log.message %></span>
-                    <span class="record-point-meta"><%= time_ago_in_words(log.created_at) %> ago</span>
-                  </span>
-                </div>
+                  <span><%= log.message %></span>
+                  <small><%= time_ago_in_words(log.created_at) %> ago</small>
+                </article>
               <% end %>
             </div>
-          </div>
+          </section>
         <% end %>
       </div>
-    </section>
+    </details>
   </aside>
 </div>

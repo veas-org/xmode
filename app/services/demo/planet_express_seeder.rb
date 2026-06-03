@@ -131,6 +131,46 @@ module Demo
         "Route Optimization",
         "Done",
         "feature"
+      ],
+      [
+        "OPS-6",
+        "Run the TypeScript sandbox fixture",
+        <<~MARKDOWN,
+          ## Objective
+
+          Use the local `hello-world-typescript` repository to verify that xmode can clone a TypeScript project, run a deterministic package/script command, capture evidence, and detect a predictable sandbox diff.
+
+          ## Done when
+
+          - The sandbox clones the fixture repository.
+          - The run executes an xmode fixture script.
+          - Evidence shows generated TypeScript and changelog changes.
+          - The run can be packaged into a Change Request later.
+        MARKDOWN
+        "medium",
+        "Sandbox Verification",
+        "Backlog",
+        "maintenance"
+      ],
+      [
+        "OPS-7",
+        "Run the Rails sandbox fixture",
+        <<~MARKDOWN,
+          ## Objective
+
+          Use the local `hello-world-rails` repository to verify that xmode can clone a Rails project, run a deterministic Ruby sandbox action, capture the README/service/test diff, and package the result into a Change Request.
+
+          ## Done when
+
+          - The sandbox clones the Rails fixture repository.
+          - The run executes `ruby scripts/xmode_hello_world.rb`.
+          - Evidence shows the Hello World README flow plus Ruby implementation files.
+          - The run opens a branch-backed Change Request package.
+        MARKDOWN
+        "medium",
+        "Rails Sandbox Verification",
+        "Backlog",
+        "maintenance"
       ]
     ].freeze
 
@@ -151,6 +191,7 @@ module Demo
         cleanup_demo_interactions!
         seed_projects!
         seed_integrations!
+        seed_execution_environments!
         seed_billing!
         seed_cycle!
         seed_issues!
@@ -205,7 +246,7 @@ module Demo
     end
 
     def seed_projects!
-      PROJECTS.each do |attributes|
+      project_definitions.each do |attributes|
         workspace.projects.find_or_initialize_by(key: attributes.fetch(:key)).tap do |project|
           project.team = primary_team
           project.title = attributes.fetch(:title)
@@ -240,12 +281,13 @@ module Demo
       }
       account.save!
 
-      PROJECTS.each do |attributes|
+      project_definitions.each do |attributes|
+        repository_url = attributes.fetch(:repository_url)
         workspace.repository_connections.find_or_initialize_by(url: attributes.fetch(:repository_url)).tap do |connection|
-          connection.integration_account = account
-          connection.provider = "github"
+          connection.integration_account = repository_provider_for(repository_url) == "github" ? account : nil
+          connection.provider = repository_provider_for(repository_url)
           connection.name = attributes.fetch(:title)
-          connection.full_name = attributes.fetch(:repository_url).sub(%r{\Ahttps://github.com/}, "").sub(/\.git\z/, "")
+          connection.full_name = repository_full_name_for(repository_url)
           connection.default_branch = "main"
           connection.external_id = "demo-#{attributes.fetch(:key)}"
           connection.save!
@@ -402,7 +444,7 @@ module Demo
       )
 
       pipeline.graph.fetch("nodes", []).each_with_index do |node, index|
-        action = workspace.action_definitions.find_by(key: node["action_key"])
+        action = action_for_node(node)
         step = run.action_run_steps.create!(
           action_definition: action,
           name: node["label"].presence || action&.name || "Action",
@@ -411,7 +453,7 @@ module Demo
           started_at: run.started_at + index.minutes,
           finished_at: run.started_at + (index + 1).minutes,
           input_json: action&.input_context_for(run) || run.input_context,
-          output_json: completed_maintenance_output_for(node["action_key"])
+          output_json: completed_maintenance_output_for(node["action_key"].to_s.split("@", 2).first)
         )
         run.append_log("#{step.name} completed with demo evidence.", step: step)
       end
@@ -476,6 +518,75 @@ module Demo
       @primary_team ||= workspace.teams.find_by!(key: "ops")
     end
 
+    def project_definitions
+      PROJECTS + [
+        {
+          key: "sandbox-verification",
+          title: "Sandbox Verification",
+          description: <<~MARKDOWN,
+            **Mission:** provide a deterministic repository for validating xmode sandbox execution, generated diffs, terminal commands, and future Change Request flows.
+
+            **Fixture:** `hello-world-typescript` is a tiny TypeScript project with build, test, verification, and mock-agent-change scripts.
+          MARKDOWN
+          repository_url: sandbox_fixture_repository_url
+        },
+        {
+          key: "rails-sandbox-verification",
+          title: "Rails Sandbox Verification",
+          description: <<~MARKDOWN,
+            **Mission:** provide a deterministic Rails repository for validating xmode Ruby sandbox execution, generated README/service/test diffs, terminal output, and Change Request packaging.
+
+            **Fixture:** `hello-world-rails` is a small Rails project with a Ruby script that implements a Hello World feature flow inside the sandbox.
+          MARKDOWN
+          repository_url: rails_sandbox_fixture_repository_url
+        }
+      ]
+    end
+
+    def sandbox_fixture_repository_url
+      configured_url = ENV["XMODE_SANDBOX_FIXTURE_REPOSITORY_URL"].presence
+      return configured_url if configured_url
+
+      local_fixture = Rails.root.join("..", "hello-world-typescript").expand_path
+      return local_fixture.to_s if Rails.env.test? && local_fixture.join(".git").directory?
+
+      "https://github.com/m9rc1n/hello-world-typescript.git"
+    end
+
+    def rails_sandbox_fixture_repository_url
+      configured_url = ENV["XMODE_RAILS_SANDBOX_FIXTURE_REPOSITORY_URL"].presence
+      return configured_url if configured_url
+
+      local_fixture = Rails.root.join("..", "hello-world-rails").expand_path
+      return local_fixture.to_s if Rails.env.test? && local_fixture.join(".git").directory?
+
+      "https://github.com/m9rc1n/hello-world-rails.git"
+    end
+
+    def seed_execution_environments!
+      workspace.projects.find_each do |project|
+        workspace.execution_environments.find_or_initialize_by(
+          project: project,
+          kind: "ephemeral_sandbox",
+          name: "#{project.key} sandbox"
+        ).tap do |environment|
+          environment.status = "ready"
+          environment.metadata = environment.metadata.to_h.merge(ExecutionEnvironment.default_metadata_for(project))
+          environment.save!
+        end
+      end
+    end
+
+    def repository_provider_for(repository_url)
+      repository_url.to_s.start_with?("http", "git@") ? "github" : "local"
+    end
+
+    def repository_full_name_for(repository_url)
+      return File.basename(repository_url.to_s) if repository_provider_for(repository_url) == "local"
+
+      repository_url.to_s.sub(%r{\Ahttps://github.com/}, "").sub(/\.git\z/, "")
+    end
+
     def status(name)
       primary_team.issue_statuses.find_by!(name: name)
     end
@@ -491,6 +602,14 @@ module Demo
       else
         { "status" => "completed", "summary" => "Demo step completed.", "changed_files_count" => 0 }
       end
+    end
+
+    def action_for_node(node)
+      key, parsed_version = node["action_key"].to_s.split("@", 2)
+      version = node["action_version"].presence || parsed_version.presence
+      scope = workspace.action_definitions.where(key: key)
+      scope = scope.where(version: version) if version.present?
+      version.present? ? scope.order(id: :desc).first : Catalog::Versions.latest(scope.to_a)
     end
 
     def write_demo_artifact(name, content)

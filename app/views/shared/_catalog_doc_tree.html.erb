@@ -1,0 +1,33 @@
+<aside class="catalog-doc-nav">
+  <div class="catalog-doc-nav-head">
+    <span class="app-eyebrow">Catalog</span>
+    <span class="flex items-center gap-1.5">
+      <span class="linear-count"><%= tree.to_a.sum { |node| node[:kind] == :file ? 1 : node[:count].to_i } %></span>
+      <% if local_assigns[:import_path].present? %>
+        <%= link_to local_assigns[:import_path], class: "app-icon-btn", title: "Import", aria: { label: "Import" }, data: side_panel_data do %>
+          <%= lucide_icon("upload", class_name: "app-icon") %>
+        <% end %>
+      <% end %>
+      <% if local_assigns[:new_path].present? %>
+        <%= link_to local_assigns[:new_path], class: "app-icon-btn", title: "New", aria: { label: "New" }, data: side_panel_data do %>
+          <%= lucide_icon("plus", class_name: "app-icon") %>
+        <% end %>
+      <% end %>
+    </span>
+  </div>
+  <% if local_assigns[:home_path].present? || local_assigns[:list_path].present? %>
+    <div class="catalog-doc-shortcuts">
+      <% if local_assigns[:home_path].present? %>
+        <%= link_to "Home", local_assigns[:home_path], class: "catalog-doc-shortcut" %>
+      <% end %>
+      <% if local_assigns[:list_path].present? %>
+        <%= link_to "List", local_assigns[:list_path], class: "catalog-doc-shortcut" %>
+      <% end %>
+    </div>
+  <% end %>
+  <nav class="catalog-doc-tree" aria-label="Catalog files">
+    <% tree.to_a.each do |node| %>
+      <%= render "shared/catalog_doc_tree_node", node: node, depth: 0 %>
+    <% end %>
+  </nav>
+</aside>

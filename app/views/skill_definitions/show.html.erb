@@ -1,58 +1,148 @@
 <% content_for :page_title, @skill.name %>
-<div class="mb-5 flex gap-2">
-  <%= link_to "Edit", edit_skill_path(@skill), class: "app-btn app-btn-muted", data: side_panel_data %>
-  <%= link_to "Export YAML", export_skill_path(@skill), class: "app-btn app-btn-muted" %>
-</div>
-<section class="linear-surface p-5">
-  <dl class="grid gap-4 md:grid-cols-3">
-    <div><dt class="app-eyebrow">Key</dt><dd class="mt-1 text-foreground"><%= @skill.key %></dd></div>
-    <div><dt class="app-eyebrow">Category</dt><dd class="mt-1 text-foreground"><%= @skill.category %></dd></div>
-    <div><dt class="app-eyebrow">Actions</dt><dd class="mt-1 text-foreground"><%= @actions.count %></dd></div>
-  </dl>
-  <div class="rich-markdown mt-5">
-    <%= render_markdown(@skill.description, empty: "No description.") %>
-  </div>
-  <div class="mt-5 grid gap-4 md:grid-cols-2">
-    <div>
+
+<div class="catalog-doc-page">
+  <%= render "shared/catalog_doc_tree", tree: @catalog_navigation, home_path: skills_home_path, list_path: skills_path(mode: "list"), import_path: import_skills_path, new_path: new_skill_path %>
+
+  <article class="catalog-doc-article">
+    <header class="catalog-doc-hero">
+      <div class="flex min-w-0 flex-wrap items-center gap-2">
+        <span class="linear-count">Skill</span>
+        <span class="linear-count"><%= @skill.versioned_key %></span>
+        <span class="linear-count"><%= @skill.category %></span>
+      </div>
+      <h2><%= @skill.name %></h2>
+      <p>
+        Reusable team playbook for agent work. Actions bind to this exact version so objectives, planning behavior, guardrails, and evidence expectations stay stable across runs.
+      </p>
+      <div class="catalog-doc-tags">
+        <span>@<%= @skill.version %></span>
+        <% if @skill.latest_version? %>
+          <span>latest</span>
+        <% end %>
+        <span><%= pluralize(@actions.count, "action") %></span>
+        <span><%= pluralize(@skill.best_practices.size, "best practice") %></span>
+        <span><%= @skill.builtin? ? "built-in" : "workspace" %></span>
+      </div>
+    </header>
+
+    <section class="catalog-doc-section">
+      <p class="app-eyebrow">Skill contract</p>
+      <h3>When to use this skill</h3>
+      <div class="rich-markdown catalog-doc-prose">
+        <%= render_markdown(@skill.description, empty: "No description.") %>
+      </div>
+
+      <div class="catalog-contract-grid">
+        <div class="catalog-contract-item is-primary">
+          <span>Version</span>
+          <strong>@<%= @skill.version %></strong>
+          <small>Actions bind to this exact skill version for stable runs.</small>
+        </div>
+        <div class="catalog-contract-item">
+          <span>Actions</span>
+          <strong><%= pluralize(@actions.size, "action") %></strong>
+          <small>Executable steps currently using this playbook.</small>
+        </div>
+        <div class="catalog-contract-item">
+          <span>Objective</span>
+          <strong><%= @skill.objective_template.present? ? "Template defined" : "No template" %></strong>
+          <small>Default shape for work the skill should accomplish.</small>
+        </div>
+        <div class="catalog-contract-item">
+          <span>Plan</span>
+          <strong><%= @skill.plan_template.present? ? "Template defined" : "No template" %></strong>
+          <small>Planning guidance for ambiguous objectives.</small>
+        </div>
+      </div>
+
+      <dl class="catalog-contract-list">
+        <div><dt>key</dt><dd><%= @skill.key %></dd></div>
+        <div><dt>category</dt><dd><%= @skill.category %></dd></div>
+        <div><dt>definition</dt><dd><%= @skill.builtin? ? "built-in" : "workspace" %></dd></div>
+        <div><dt>best practices</dt><dd><%= @skill.best_practices.size %></dd></div>
+      </dl>
+    </section>
+
+    <section class="catalog-doc-section">
       <p class="app-eyebrow">Instructions</p>
-      <div class="rich-markdown mt-2">
+      <div class="rich-markdown catalog-doc-prose">
         <%= render_markdown(@skill.instructions, empty: "No instructions.") %>
       </div>
-    </div>
-    <div>
-      <p class="app-eyebrow">Plan fallback</p>
-      <div class="rich-markdown mt-2">
+    </section>
+
+    <section class="catalog-doc-section">
+      <p class="app-eyebrow">Objective Template</p>
+      <div class="rich-markdown catalog-doc-prose">
+        <%= render_markdown(@skill.objective_template, empty: "No objective template.") %>
+      </div>
+    </section>
+
+    <section class="catalog-doc-section">
+      <p class="app-eyebrow">Plan Template</p>
+      <div class="rich-markdown catalog-doc-prose">
         <%= render_markdown(@skill.plan_template, empty: "No plan template.") %>
       </div>
-    </div>
-  </div>
-  <% if @skill.best_practices.present? %>
-    <div class="mt-5">
-      <p class="app-eyebrow">Best practices</p>
-      <ul class="mt-2 space-y-2 text-sm text-muted-foreground">
-        <% @skill.best_practices.each do |practice| %>
-          <li class="app-flat-row"><%= practice %></li>
-        <% end %>
-      </ul>
-    </div>
-  <% end %>
-</section>
+    </section>
 
-<section class="linear-surface mt-5 p-5">
-  <h2 class="mb-4 font-semibold text-foreground">Actions using this skill</h2>
-  <table class="app-table">
-    <thead><tr><th>Action</th><th>Provider</th><th>Objective</th></tr></thead>
-    <tbody>
-      <% @actions.each do |action| %>
-        <tr>
-          <td><%= link_to action.name, action_path(action), class: "text-foreground hover:text-foreground" %></td>
-          <td><%= action.provider %></td>
-          <td><%= action.requires_objective? ? "required" : "optional" %></td>
-        </tr>
-      <% end %>
-      <% if @actions.empty? %>
-        <tr><td colspan="3" class="text-muted-foreground">No actions use this skill yet.</td></tr>
-      <% end %>
-    </tbody>
-  </table>
-</section>
+    <% if @skill.best_practices.present? %>
+      <section class="catalog-doc-section">
+        <p class="app-eyebrow">Best Practices</p>
+        <ul class="catalog-doc-list">
+          <% @skill.best_practices.each do |practice| %>
+            <li><%= practice %></li>
+          <% end %>
+        </ul>
+      </section>
+    <% end %>
+  </article>
+
+  <aside class="catalog-doc-aside">
+    <section class="catalog-doc-panel">
+      <p class="app-eyebrow">Markdown definition</p>
+      <div class="mt-3 flex flex-wrap gap-2">
+        <%= link_to edit_skill_path(@skill), class: "app-btn app-btn-muted", data: side_panel_data do %>
+          <%= lucide_icon("pencil", class_name: "app-icon") %>
+          <span>Edit</span>
+        <% end %>
+        <%= link_to source_skill_path(@skill), class: "app-btn app-btn-muted", data: side_panel_data do %>
+          <%= lucide_icon("file-pen-line", class_name: "app-icon") %>
+          <span>Source</span>
+        <% end %>
+        <%= link_to export_skill_path(@skill), class: "app-btn app-btn-muted" do %>
+          <%= lucide_icon("download", class_name: "app-icon") %>
+          <span>YAML</span>
+        <% end %>
+      </div>
+    </section>
+
+    <%= render "shared/catalog_versions", record: @skill, versions: @catalog_versions %>
+
+    <section class="catalog-doc-panel">
+      <h3>Input contract</h3>
+      <%= render "shared/schema_contract", schema: @skill.input_schema %>
+    </section>
+
+    <section class="catalog-doc-panel">
+      <h3>Output contract</h3>
+      <%= render "shared/schema_contract", schema: @skill.output_schema %>
+    </section>
+
+    <section class="catalog-doc-panel">
+      <div class="flex items-center justify-between gap-3">
+        <h3>Actions using this skill</h3>
+        <span class="linear-count"><%= @actions.size %></span>
+      </div>
+      <div class="catalog-doc-link-list">
+        <% @actions.each do |action| %>
+          <%= link_to action_path(action) do %>
+            <span><%= action.name %></span>
+            <small><%= action.key %> · <%= action.provider.to_s.tr("_", " ").titleize %></small>
+          <% end %>
+        <% end %>
+        <% if @actions.empty? %>
+          <p class="linear-empty px-0 py-3 text-left">No actions use this skill yet.</p>
+        <% end %>
+      </div>
+    </section>
+  </aside>
+</div>

@@ -1,31 +1,62 @@
 <% content_for :page_title, "Cycles" %>
 
-<div class="app-page-actions">
-  <div>
-    <p class="app-eyebrow">Sprint planning</p>
-    <p class="mt-1 max-w-2xl text-sm text-muted-foreground">Time-boxed delivery windows that connect issues, priorities, owners, and automation runs.</p>
-  </div>
-  <%= link_to new_cycle_path, class: "app-btn app-btn-primary", data: side_panel_data do %>
-    <%= lucide_icon("plus", class_name: "app-icon") %>
-    <span>Cycle</span>
-  <% end %>
-</div>
-
-<div class="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-  <% @cycles.each do |cycle| %>
-    <%= link_to cycle_path(cycle), class: "linear-surface block p-5 transition-colors hover:bg-muted/50" do %>
-      <div class="flex items-start justify-between gap-3">
-        <h2 class="font-semibold text-foreground"><%= cycle.name %></h2>
-        <span class="status-pill"><%= cycle.status %></span>
+<div class="ops-page">
+  <header class="ops-hero">
+    <div class="min-w-0">
+      <p class="app-eyebrow">Sprint planning</p>
+      <h1>Cycles</h1>
+      <p>Time-boxed delivery windows that connect committed issues, priorities, owners, goals, automation runs, and review evidence.</p>
+      <div class="ops-summary" aria-label="Cycle summary">
+        <span><strong><%= @cycle_counts.fetch(:total) %></strong> cycles</span>
+        <span><strong><%= @cycle_counts.fetch(:active) %></strong> active</span>
+        <span><strong><%= @cycle_counts.fetch(:planned) %></strong> planned</span>
+        <span><strong><%= @cycle_counts.fetch(:committed_issues) %></strong> issues</span>
       </div>
-      <div class="mt-5 grid gap-2 text-sm">
-        <div class="inbox-property"><span>Team</span><strong><%= cycle.team.name %></strong></div>
-        <div class="inbox-property"><span>Window</span><strong><%= [ cycle.starts_on || "No start", cycle.ends_on || "No end" ].join(" - ") %></strong></div>
-      </div>
-      <div class="mt-4 flex flex-wrap gap-2">
-        <span class="status-pill"><%= pluralize(cycle.issues.count, "issue") %></span>
-        <span class="status-pill"><%= pluralize(cycle.goals.count, "goal") %></span>
-      </div>
+    </div>
+    <%= link_to new_cycle_path, class: "app-btn app-btn-primary", data: side_panel_data do %>
+      <%= lucide_icon("plus", class_name: "app-icon") %>
+      <span>Cycle</span>
     <% end %>
-  <% end %>
+  </header>
+
+  <section class="ops-section">
+    <div class="ops-section-head">
+      <div>
+        <p class="app-eyebrow">Planning</p>
+        <h2>Grouped by status</h2>
+      </div>
+      <span class="linear-count"><%= @cycles.size %></span>
+    </div>
+
+    <div class="ops-group-list">
+      <% @status_groups.each do |status, cycles| %>
+        <section class="ops-group">
+          <div class="ops-group-head">
+            <h3><%= status.to_s.titleize %></h3>
+            <span class="linear-count"><%= cycles.size %></span>
+          </div>
+          <div class="ops-list">
+            <% cycles.each do |cycle| %>
+              <%= link_to cycle_path(cycle), class: "ops-row" do %>
+                <%= status_icon_pill(cycle.status, title: cycle.status.to_s.titleize) %>
+                <span class="record-point-main">
+                  <span class="record-point-title"><%= cycle.name %></span>
+                  <span class="record-point-meta">
+                    <span><%= cycle.team.name %></span>
+                    <span><%= [ cycle.starts_on || "No start", cycle.ends_on || "No end" ].join(" - ") %></span>
+                    <span><%= pluralize(cycle.issues.size, "issue") %></span>
+                    <span><%= pluralize(cycle.goals.size, "goal") %></span>
+                  </span>
+                </span>
+                <span class="linear-count"><%= cycle.updated_at.strftime("%b %-d") %></span>
+              <% end %>
+            <% end %>
+          </div>
+        </section>
+      <% end %>
+      <% if @cycles.empty? %>
+        <p class="linear-empty px-0 py-6 text-left">No cycles yet.</p>
+      <% end %>
+    </div>
+  </section>
 </div>

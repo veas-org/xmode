@@ -1,155 +1,183 @@
 <% content_for :page_title, "Schedule ##{@schedule.id}" %>
 
-<div class="app-page-actions">
-  <div class="min-w-0">
-    <p class="app-eyebrow"><%= @schedule.kind.tr("_", " ").titleize %> schedule</p>
-    <h2 class="mt-1 truncate text-xl font-semibold text-foreground">Schedule operating record</h2>
-    <p class="mt-1 max-w-3xl text-sm leading-6 text-muted-foreground">Recurring and one-off automation should show the trigger, target context, action path, run evidence, and Change Request boundary before a team trusts it.</p>
-  </div>
-  <div class="flex flex-wrap items-center gap-2">
-    <span class="status-pill"><%= @schedule.status.titleize %></span>
-    <%= link_to edit_schedule_path(@schedule), class: "app-btn app-btn-muted", data: side_panel_data do %>
-      <%= lucide_icon("pencil", class_name: "app-icon") %>
-      <span>Edit</span>
-    <% end %>
-    <%= button_to run_pipeline_path(@pipeline, project_id: @target_project&.id), method: :post, class: "app-btn app-btn-muted" do %>
-      <%= lucide_icon("play", class_name: "app-icon") %>
-      <span>Run now</span>
-    <% end %>
-  </div>
-</div>
-
-<div class="app-detail-grid">
-  <main class="min-w-0 space-y-4">
-    <section class="linear-surface p-5">
-      <div class="flex flex-wrap items-start justify-between gap-4">
-        <div class="min-w-0">
-          <p class="app-eyebrow">Trigger contract</p>
-          <h2 class="mt-2 text-2xl font-semibold text-foreground"><%= @pipeline.name %></h2>
-          <p class="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">This schedule dispatches a frozen pipeline definition against <span class="text-foreground"><%= @target&.try(:title) || @target&.try(:name) || "the workspace" %></span>.</p>
+<div class="record-detail-layout schedule-record-layout">
+  <main class="record-detail-main">
+    <header class="record-doc-hero">
+      <div class="record-doc-hero-top">
+        <div class="flex min-w-0 flex-wrap items-center gap-2">
+          <span class="linear-count">Schedule</span>
+          <span class="linear-count"><%= @schedule.kind.tr("_", " ").titleize %></span>
+          <%= status_icon_pill(@schedule.status, title: @schedule.status.titleize) %>
+          <span class="linear-count"><%= @recent_runs.size %> recent <%= "run".pluralize(@recent_runs.size) %></span>
         </div>
-        <span class="status-pill"><%= @schedule.run_at.present? ? "One-off" : "Recurring" %></span>
+        <div class="flex shrink-0 items-center gap-1.5">
+          <%= link_to edit_schedule_path(@schedule), class: "app-icon-btn", title: "Edit schedule", aria: { label: "Edit schedule" }, data: side_panel_data do %>
+            <%= lucide_icon("pencil", class_name: "app-icon") %>
+          <% end %>
+          <%= button_to run_pipeline_path(@pipeline, project_id: @target_project&.id),
+                method: :post,
+                form: { class: "contents" },
+                class: "app-icon-btn",
+                title: "Run now",
+                aria: { label: "Run now" } do %>
+            <%= lucide_icon("play", class_name: "app-icon") %>
+          <% end %>
+        </div>
       </div>
 
-      <dl class="mt-5 grid gap-2 text-sm md:grid-cols-3">
-        <% @trigger_rows.each do |label, value| %>
-          <div class="inbox-property"><dt><%= label %></dt><dd><strong><%= value.presence || "-" %></strong></dd></div>
+      <h2 class="record-detail-page-title"><%= @pipeline.name %></h2>
+      <div class="record-detail-page-meta">
+        <span><%= @schedule.run_at&.strftime("%b %-d, %Y %-I:%M %p") || @schedule.cron %></span>
+        <span><%= @target&.try(:title) || @target&.try(:name) || "Workspace" %></span>
+        <% if @target_project&.repository_url.present? %>
+          <span><span class="min-w-0 truncate"><%= @target_project.repository_url %></span></span>
         <% end %>
-      </dl>
+      </div>
+    </header>
+
+    <section class="record-detail-section">
+      <div class="record-detail-section-head">
+        <div>
+          <p class="app-eyebrow">Trigger contract</p>
+          <h3>Cadence, target, frozen definition, and evidence before automation runs.</h3>
+          <p class="mt-1 text-sm leading-6 text-muted-foreground">This schedule dispatches a frozen pipeline definition against <span class="text-foreground"><%= @target&.try(:title) || @target&.try(:name) || "the workspace" %></span>.</p>
+        </div>
+        <span class="linear-count"><%= @schedule.run_at.present? ? "One-off" : "Recurring" %></span>
+      </div>
+
+      <div class="catalog-contract-grid schedule-contract-grid">
+        <% @trigger_rows.each do |label, value| %>
+          <article class="catalog-contract-item <%= 'is-primary' if label == 'Pipeline' %>">
+            <span><%= label %></span>
+            <strong><%= value.presence || "-" %></strong>
+            <small><%= label == "Frozen evidence" ? "linked runs" : "schedule contract" %></small>
+          </article>
+        <% end %>
+      </div>
     </section>
 
-    <section class="linear-surface">
-      <div class="linear-toolbar">
+    <section class="record-detail-section">
+      <div class="record-detail-section-head">
         <div>
-          <h3 class="linear-title">Action path</h3>
-          <p class="text-xs text-muted-foreground">The scheduled run follows this action graph and snapshots it per execution.</p>
+          <p class="app-eyebrow">Action path</p>
+          <h3>Snapshot steps</h3>
+          <p class="mt-1 text-sm leading-6 text-muted-foreground">Every scheduled run follows this path and freezes action definitions per execution.</p>
         </div>
         <span class="linear-count"><%= pluralize(@nodes.size, "step") %></span>
       </div>
 
-      <div class="linear-list">
+      <div class="record-detail-list">
         <% @nodes.each_with_index do |node, index| %>
-          <% action = @actions_by_key[node["action_key"]] %>
+          <% action = action_for_node(node) %>
+          <% node_type = node["type"].presence || "action" %>
           <% next_edge = @edges.find { |edge| edge["from"] == node["id"] } %>
           <article class="app-run-step">
             <div class="flex min-w-0 items-start gap-3">
-              <span class="status-pill shrink-0"><%= index + 1 %></span>
-              <div class="min-w-0 flex-1">
-                <div class="flex flex-wrap items-start justify-between gap-2">
-                  <div class="min-w-0">
-                    <h3 class="truncate text-sm font-semibold text-foreground"><%= node["label"] || action&.name || node["action_key"] %></h3>
-                    <p class="mt-1 text-xs text-muted-foreground">
-                      <%= action&.skill_definition&.name || "No skill" %> · <%= (action&.provider || "provider").to_s.tr("_", " ").titleize %>
-                    </p>
-                  </div>
-                  <span class="status-pill shrink-0"><%= next_edge&.fetch("condition", nil).presence || "next" %></span>
-                </div>
-                <% if action %>
-                  <div class="mt-3 grid gap-2 text-sm md:grid-cols-3">
-                    <div class="inbox-property"><span>Objective</span><strong><%= action.requires_objective? ? "Required" : "Optional" %></strong></div>
-                    <div class="inbox-property"><span>Plan</span><strong><%= action.plan_required_when_objective_unclear? ? "Fallback" : "Optional" %></strong></div>
-                    <div class="inbox-property"><span>Timeout</span><strong><%= action.timeout_seconds %>s</strong></div>
-                  </div>
+              <span class="linear-count shrink-0"><%= index + 1 %></span>
+              <span class="record-point-main">
+                <span class="record-point-title"><%= node["label"] || action&.name || node["action_key"] || node_type.titleize %></span>
+                <span class="record-point-meta">
+                  <% if action %>
+                    <span><%= action.versioned_key %></span>
+                    <span><%= action.skill_definition&.display_name || "No skill" %></span>
+                    <span><%= action.provider.to_s.tr("_", " ").titleize %></span>
+                    <span>Objective <%= action.requires_objective? ? "required" : "optional" %></span>
+                    <span>Plan <%= action.plan_required_when_objective_unclear? ? "fallback" : "optional" %></span>
+                    <span><%= action.timeout_seconds %>s timeout</span>
+                  <% else %>
+                    <span>Interactive</span>
+                    <span><%= node_type.to_s.tr("_", " ").titleize %></span>
+                  <% end %>
+                  <span><%= next_edge&.fetch("condition", nil).presence || "next" %></span>
+                </span>
+                <% if action.blank? && (node["question"].present? || node["prompt"].present?) %>
+                  <span class="mt-2 block text-sm leading-6 text-muted-foreground"><%= node["question"].presence || node["prompt"] %></span>
                 <% end %>
-              </div>
+              </span>
             </div>
           </article>
         <% end %>
       </div>
     </section>
 
-    <section class="linear-surface">
-      <div class="linear-toolbar">
+    <section class="record-detail-section">
+      <div class="record-detail-section-head">
         <div>
-          <h3 class="linear-title">Recent scheduled runs</h3>
-          <p class="text-xs text-muted-foreground">Execution evidence tied back to this schedule target.</p>
+          <p class="app-eyebrow">Run evidence</p>
+          <h3>Recent scheduled runs</h3>
+          <p class="mt-1 text-sm leading-6 text-muted-foreground">Execution evidence tied back to this schedule target.</p>
         </div>
         <span class="linear-count"><%= @recent_runs.size %></span>
       </div>
 
-      <div class="linear-list">
+      <div class="record-detail-list">
         <% if @recent_runs.any? %>
           <% @recent_runs.each do |run| %>
-            <%= link_to pipeline_run_path(run), class: "linear-row" do %>
-              <%= lucide_icon(run.status == "completed" ? "check" : "activity", class_name: "app-icon text-muted-foreground") %>
-              <span class="linear-row-main">
-                <span class="linear-row-title"><%= run.issue&.identifier || run.project&.title || "Workspace run" %></span>
-                <span class="linear-row-meta">
+            <%= link_to pipeline_run_path(run), class: "record-detail-row" do %>
+              <%= status_icon_pill(run.status, title: run.display_status) %>
+              <span class="record-point-main">
+                <span class="record-point-title"><%= run.issue&.identifier || run.project&.title || "Workspace run" %></span>
+                <span class="record-point-meta">
                   <span><%= run.display_trigger %></span>
                   <span><%= run.run_artifacts.first&.name || pluralize(run.run_artifacts.size, "artifact") %></span>
                   <% if run.change_request.present? %>
-                    <span><%= run.change_request.branch_name %></span>
+                    <span class="break-all"><%= run.change_request.branch_name %></span>
                   <% end %>
-                  <span><%= time_ago_in_words(run.created_at) %> ago</span>
                 </span>
               </span>
-              <span class="status-pill shrink-0"><%= run.display_status %></span>
+              <span class="linear-count shrink-0"><%= time_ago_in_words(run.created_at) %> ago</span>
             <% end %>
           <% end %>
         <% else %>
-          <p class="linear-empty">No scheduled runs have matched this target yet.</p>
+          <p class="linear-empty px-0 py-6 text-left">No scheduled runs have matched this target yet.</p>
         <% end %>
       </div>
     </section>
   </main>
 
-  <aside class="linear-side">
-    <section class="linear-surface p-4">
-      <h3 class="font-medium text-foreground">Safety boundary</h3>
-      <div class="mt-3 space-y-1">
+  <aside class="record-detail-side">
+    <section class="record-detail-side-section">
+      <div class="record-detail-side-title">
+        <h3>Target context</h3>
+      </div>
+      <dl class="catalog-contract-list">
+        <div><dt>Target</dt><dd><%= @target&.try(:title) || @target&.try(:name) || "Workspace" %></dd></div>
+        <div><dt>Project</dt><dd><%= @target_project&.title || "-" %></dd></div>
+        <div><dt>Repository</dt><dd><%= @target_project&.repository_url.presence || "-" %></dd></div>
+        <div><dt>Pipeline key</dt><dd><%= @pipeline.key %></dd></div>
+      </dl>
+    </section>
+
+    <section class="record-detail-side-section">
+      <div class="record-detail-side-title">
+        <h3>Safety boundary</h3>
+      </div>
+      <div class="record-detail-list">
         <% @safety_rows.each do |label, value| %>
-          <div class="app-flat-row rounded-md">
-            <p class="text-sm font-medium text-foreground"><%= label %></p>
-            <p class="mt-1 text-sm leading-6 text-muted-foreground"><%= value %></p>
-          </div>
+          <article class="record-detail-row">
+            <span class="record-point-main">
+              <span class="record-point-title"><%= label %></span>
+              <span class="record-point-meta"><%= value %></span>
+            </span>
+          </article>
         <% end %>
       </div>
     </section>
 
-    <section class="linear-surface p-4">
-      <h3 class="font-medium text-foreground">Target context</h3>
-      <dl class="mt-3 grid gap-2 text-sm">
-        <div class="inbox-property"><dt>Target</dt><dd><strong><%= @target&.try(:title) || @target&.try(:name) || "Workspace" %></strong></dd></div>
-        <div class="inbox-property"><dt>Project</dt><dd><strong><%= @target_project&.title || "-" %></strong></dd></div>
-        <div class="inbox-property"><dt>Repository</dt><dd><strong><%= @target_project&.repository_url.presence || "-" %></strong></dd></div>
-        <div class="inbox-property"><dt>Pipeline key</dt><dd><strong><%= @pipeline.key %></strong></dd></div>
-      </dl>
-    </section>
-
-    <section class="linear-surface p-4">
-      <div class="flex items-center justify-between gap-3">
-        <h3 class="font-medium text-foreground">Change Requests</h3>
+    <section class="record-detail-side-section">
+      <div class="record-detail-side-title">
+        <h3>Change Requests</h3>
         <span class="linear-count"><%= @change_requests.size %></span>
       </div>
-      <div class="mt-3 space-y-1">
+      <div class="record-detail-list">
         <% if @change_requests.any? %>
           <% @change_requests.each do |change_request| %>
-            <%= link_to change_request_path(change_request), class: "app-flat-row flex items-center justify-between gap-4 rounded-md" do %>
-              <span class="min-w-0">
-                <span class="block truncate text-sm font-medium text-foreground"><%= change_request.title %></span>
-                <span class="mt-1 block truncate text-xs text-muted-foreground"><%= change_request.branch_name %></span>
+            <%= link_to change_request_path(change_request), class: "record-detail-row" do %>
+              <%= status_icon_pill(change_request.status, title: change_request.status.to_s.titleize) %>
+              <span class="record-point-main">
+                <span class="record-point-title"><%= change_request.title %></span>
+                <span class="record-point-meta"><span class="break-all"><%= change_request.branch_name %></span></span>
               </span>
-              <span class="status-pill shrink-0"><%= change_request.status.titleize %></span>
             <% end %>
           <% end %>
         <% else %>

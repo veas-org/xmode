@@ -1,41 +1,103 @@
 <% content_for :page_title, "Views" %>
 
-<section class="linear-surface">
-  <div class="linear-toolbar">
-    <div class="flex min-w-0 items-center gap-2">
-      <%= lucide_icon("list-filter", class_name: "app-icon text-muted-foreground") %>
-      <h2 class="linear-title">Views</h2>
-      <span class="linear-count"><%= @view_rows.size %></span>
-    </div>
-    <span class="app-eyebrow">Workspace defaults</span>
-  </div>
-
-  <div class="grid gap-2 p-2 md:grid-cols-2 xl:grid-cols-3">
-    <% @view_rows.each do |row| %>
-      <% view = row.fetch(:view) %>
-      <%= link_to view_path(view), class: "app-view-card" do %>
-        <div class="flex items-start justify-between gap-3">
-          <div class="flex min-w-0 items-center gap-2">
-            <span class="app-view-icon">
-              <%= lucide_icon(row.fetch(:icon), class_name: "app-icon") %>
-            </span>
-            <div class="min-w-0">
-              <h3 class="truncate text-sm font-medium text-foreground"><%= view.name %></h3>
-              <p class="mt-1 truncate text-xs text-muted-foreground"><%= view.team&.name || current_workspace.name %></p>
-            </div>
-          </div>
-          <span class="linear-count"><%= row.fetch(:count) %></span>
-        </div>
-        <p class="mt-4 line-clamp-2 text-xs leading-5 text-muted-foreground"><%= row.fetch(:description) %></p>
-        <p class="mt-3 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground"><%= view.view_type.tr("_", " ").titleize %></p>
-      <% end %>
-    <% end %>
-
-    <% if @view_rows.empty? %>
-      <div class="linear-empty md:col-span-2 xl:col-span-3">
-        <%= lucide_icon("list-filter", class_name: "mx-auto mb-3 h-5 w-5 text-muted-foreground") %>
-        <p>No saved views yet.</p>
+<div class="ops-page views-page">
+  <header class="ops-hero views-hero">
+    <div class="min-w-0">
+      <p class="app-eyebrow">Workspace lenses</p>
+      <h1>Views</h1>
+      <p>Saved lenses are organized by scope first, then shown as sibling views in one continuous outline.</p>
+      <div class="ops-summary" aria-label="Saved view summary">
+        <span><strong><%= @view_counts.fetch(:total) %></strong> views</span>
+        <span><strong><%= @view_counts.fetch(:issue_views) %></strong> issue views</span>
+        <span><strong><%= @view_counts.fetch(:roadmap) %></strong> roadmap</span>
+        <span><strong><%= @view_counts.fetch(:automation) %></strong> automation</span>
       </div>
-    <% end %>
+    </div>
+  </header>
+
+  <div class="views-layout">
+    <section class="views-tree-panel" aria-labelledby="views-tree-title">
+      <div class="views-panel-head">
+        <div>
+          <p class="app-eyebrow">Tree</p>
+          <h2 id="views-tree-title">View structure</h2>
+        </div>
+        <span class="linear-count"><%= @view_rows.size %></span>
+      </div>
+
+      <% if @view_tree.any? %>
+        <div class="views-tree">
+          <% @view_tree.each do |node| %>
+            <section class="views-tree-root">
+              <div class="views-root-head">
+                <span class="views-root-marker" aria-hidden="true"></span>
+                <span class="views-root-main">
+                  <span class="views-root-title"><%= node.fetch(:label) %></span>
+                  <span class="views-root-meta"><%= node.fetch(:subtitle) %> · <%= pluralize(node.fetch(:count), "view") %></span>
+                </span>
+              </div>
+
+              <div class="views-sibling-list">
+                <% node.fetch(:rows).each do |row| %>
+                  <% view = row.fetch(:view) %>
+                  <%= link_to view_path(view), class: "views-sibling-row #{'is-primary' if row == @primary_view_row}" do %>
+                    <span class="views-sibling-main">
+                      <span class="views-sibling-title"><%= view.name %></span>
+                      <span class="views-sibling-meta">
+                        <span><%= view.view_type.tr("_", " ").titleize %></span>
+                        <span><%= row.fetch(:description) %></span>
+                      </span>
+                    </span>
+                    <span class="views-sibling-count"><%= row.fetch(:count) %></span>
+                  <% end %>
+                <% end %>
+              </div>
+            </section>
+          <% end %>
+        </div>
+      <% else %>
+        <p class="linear-empty px-0 py-6 text-left">No saved views yet.</p>
+      <% end %>
+    </section>
+
+    <aside class="views-preview-panel" aria-label="View branch preview">
+      <% if @primary_view_row %>
+        <% primary_view = @primary_view_row.fetch(:view) %>
+        <div class="views-panel-head">
+          <div>
+            <p class="app-eyebrow">Preview</p>
+            <h2><%= primary_view.team&.name || current_workspace.name %></h2>
+          </div>
+          <span class="linear-count"><%= pluralize(@sibling_view_rows.size, "sibling") %></span>
+        </div>
+
+        <section class="views-preview-summary">
+          <p class="views-preview-title"><%= primary_view.name %></p>
+          <p><%= @primary_view_row.fetch(:description) %></p>
+          <dl class="views-preview-kv">
+            <div><dt>Scope</dt><dd><%= primary_view.team&.name || current_workspace.name %></dd></div>
+            <div><dt>Type</dt><dd><%= primary_view.view_type.tr("_", " ").titleize %></dd></div>
+            <div><dt>Records</dt><dd><%= @primary_view_row.fetch(:count) %></dd></div>
+          </dl>
+          <div class="views-preview-actions">
+            <%= link_to "Open view", view_path(primary_view), class: "app-btn app-btn-primary" %>
+            <%= link_to "Open source", @primary_view_row.fetch(:source_path), class: "app-btn app-btn-muted" %>
+          </div>
+        </section>
+
+        <section class="views-sibling-strip">
+          <p class="app-eyebrow">Siblings</p>
+          <% @sibling_view_rows.each do |row| %>
+            <% view = row.fetch(:view) %>
+            <%= link_to view_path(view), class: "views-strip-row #{'is-active' if row == @primary_view_row}" do %>
+              <span><%= view.name %></span>
+              <small><%= row.fetch(:count) %></small>
+            <% end %>
+          <% end %>
+        </section>
+      <% else %>
+        <p class="linear-empty px-0 py-6 text-left">Create a saved view to see its branch preview.</p>
+      <% end %>
+    </aside>
   </div>
-</section>
+</div>

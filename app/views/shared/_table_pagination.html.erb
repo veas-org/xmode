@@ -1,0 +1,37 @@
+<% pagination = local_assigns.fetch(:pagination) %>
+<% filter_params = local_assigns.fetch(:filter_params, {}).compact_blank %>
+
+<div class="catalog-pagination">
+  <p>
+    Showing <strong><%= pagination.from %>-<%= pagination.to %></strong>
+    of <strong><%= pagination.total_count %></strong>
+  </p>
+
+  <div class="catalog-pagination-controls">
+    <% if pagination.previous_page %>
+      <%= link_to url_for(filter_params.merge(page: pagination.previous_page)), class: "app-btn app-btn-muted" do %>
+        <%= lucide_icon("chevron-left", class_name: "app-icon") %>
+        <span>Previous</span>
+      <% end %>
+    <% else %>
+      <span class="app-btn app-btn-muted is-disabled">
+        <%= lucide_icon("chevron-left", class_name: "app-icon") %>
+        <span>Previous</span>
+      </span>
+    <% end %>
+
+    <span class="linear-count">Page <%= pagination.page %> of <%= pagination.total_pages %></span>
+
+    <% if pagination.next_page %>
+      <%= link_to url_for(filter_params.merge(page: pagination.next_page)), class: "app-btn app-btn-muted" do %>
+        <span>Next</span>
+        <%= lucide_icon("chevron-right", class_name: "app-icon") %>
+      <% end %>
+    <% else %>
+      <span class="app-btn app-btn-muted is-disabled">
+        <span>Next</span>
+        <%= lucide_icon("chevron-right", class_name: "app-icon") %>
+      </span>
+    <% end %>
+  </div>
+</div>

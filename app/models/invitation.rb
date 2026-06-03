@@ -5,6 +5,8 @@ class Invitation < ApplicationRecord
   before_validation :ensure_token, on: :create
   before_validation :ensure_expiration, on: :create
 
+  normalizes :email, with: ->(email) { email.to_s.strip.downcase }
+
   validates :email, presence: true
   validates :role, inclusion: { in: Membership::ROLES }
   validates :token, presence: true, uniqueness: true
@@ -15,6 +17,10 @@ class Invitation < ApplicationRecord
 
   def expired?
     expires_at.present? && expires_at < Time.current
+  end
+
+  def pending?
+    !accepted? && !expired?
   end
 
   private

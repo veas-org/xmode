@@ -1,41 +1,61 @@
 <% content_for :page_title, "Schedules" %>
 
-<div class="app-page-actions">
-  <div>
-    <p class="app-eyebrow">Automation schedules</p>
-    <p class="mt-1 max-w-2xl text-sm text-muted-foreground">Time-based automation for recurring maintenance and one-off pipeline runs. Code-changing schedules still create isolated branches and Change Requests.</p>
-  </div>
-  <%= link_to new_schedule_path, class: "app-btn app-btn-primary", data: side_panel_data do %>
-    <%= lucide_icon("plus", class_name: "app-icon") %>
-    <span>Schedule</span>
-  <% end %>
-</div>
+<div class="ops-page">
+  <header class="ops-hero">
+    <div class="min-w-0">
+      <p class="app-eyebrow">Automation schedules</p>
+      <h1>Schedules</h1>
+      <p>Time-based automation for recurring maintenance and one-off pipeline runs. Code-changing schedules still create isolated branches and Change Requests.</p>
+      <div class="ops-summary" aria-label="Schedule summary">
+        <span><strong><%= @schedule_counts.fetch(:total) %></strong> schedules</span>
+        <span><strong><%= @schedule_counts.fetch(:active) %></strong> active</span>
+        <span><strong><%= @schedule_counts.fetch(:recurring) %></strong> recurring</span>
+        <span><strong><%= @schedule_counts.fetch(:one_off) %></strong> one-off</span>
+      </div>
+    </div>
+    <%= link_to new_schedule_path, class: "app-btn app-btn-primary", data: side_panel_data do %>
+      <%= lucide_icon("plus", class_name: "app-icon") %>
+      <span>Schedule</span>
+    <% end %>
+  </header>
 
-<section class="linear-surface">
-  <div class="linear-toolbar">
-    <div class="flex min-w-0 items-center gap-2">
-      <%= lucide_icon("clock", class_name: "app-icon text-muted-foreground") %>
-      <h2 class="linear-title">Scheduled pipelines</h2>
+  <section class="ops-section">
+    <div class="ops-section-head">
+      <div>
+        <p class="app-eyebrow">Dispatch queue</p>
+        <h2>Grouped by status</h2>
+      </div>
       <span class="linear-count"><%= @schedules.size %></span>
     </div>
-  </div>
-  <div class="linear-list">
-    <% @schedules.each do |schedule| %>
-      <%= link_to schedule_path(schedule), class: "linear-row" do %>
-        <span class="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-muted/45 text-muted-foreground">
-          <%= lucide_icon(schedule.kind == "recurring" ? "repeat" : "calendar-clock", class_name: "app-icon") %>
-        </span>
-        <div class="linear-row-main">
-          <p class="linear-row-title"><%= schedule.pipeline_definition.name %></p>
-          <div class="linear-row-meta">
-            <span><%= schedule.kind %></span>
-            <span><%= schedule.schedulable&.try(:title) || schedule.schedulable&.try(:name) || "Workspace" %></span>
-            <span><%= schedule.run_at&.strftime("%b %-d, %Y %-I:%M %p") || schedule.cron %></span>
+
+    <div class="ops-group-list">
+      <% @status_groups.each do |status, schedules| %>
+        <section class="ops-group">
+          <div class="ops-group-head">
+            <h3><%= status.to_s.titleize %></h3>
+            <span class="linear-count"><%= schedules.size %></span>
           </div>
-        </div>
-        <span class="status-pill"><%= schedule.status %></span>
+          <div class="ops-list">
+            <% schedules.each do |schedule| %>
+              <%= link_to schedule_path(schedule), class: "ops-row" do %>
+                <%= status_icon_pill(schedule.status, title: schedule.status.to_s.titleize) %>
+                <span class="record-point-main">
+                  <span class="record-point-title"><%= schedule.pipeline_definition.name %></span>
+                  <span class="record-point-meta">
+                    <span><%= schedule.kind.tr("_", " ").titleize %></span>
+                    <span><%= schedule.schedulable&.try(:title) || schedule.schedulable&.try(:name) || "Workspace" %></span>
+                    <span><%= schedule.run_at&.strftime("%b %-d, %Y %-I:%M %p") || schedule.cron %></span>
+                  </span>
+                </span>
+                <span class="linear-count"><%= schedule.pipeline_definition.key %></span>
+              <% end %>
+            <% end %>
+          </div>
+        </section>
       <% end %>
-    <% end %>
-    <% if @schedules.empty? %><p class="linear-empty">No schedules yet.</p><% end %>
-  </div>
-</section>
+      <% if @schedules.empty? %>
+        <p class="linear-empty px-0 py-6 text-left">No schedules yet.</p>
+      <% end %>
+    </div>
+  </section>
+</div>

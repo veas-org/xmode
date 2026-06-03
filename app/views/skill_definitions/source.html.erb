@@ -1,0 +1,15 @@
+<% content_for :page_title, "Edit #{@skill.name} source" %>
+<%= render layout: "shared/side_panel",
+      locals: {
+        title: "Edit #{@skill.name} source",
+        eyebrow: "Skill markdown",
+        description: "Edit this skill as YAML frontmatter plus markdown instructions.",
+        back_path: skill_path(@skill),
+        wide: true
+      } do %>
+  <%= render "shared/catalog_source_form",
+        record: @skill,
+        kind: "Skill",
+        path: source_skill_path(@skill),
+        back_path: skill_path(@skill) %>
+<% end %>

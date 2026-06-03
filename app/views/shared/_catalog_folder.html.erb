@@ -1,0 +1,18 @@
+<details class="catalog-folder" open>
+  <summary class="catalog-folder-summary">
+    <span class="catalog-folder-icon">
+      <%= lucide_icon(local_assigns.fetch(:icon, "folder"), class_name: "app-icon") %>
+    </span>
+    <span class="catalog-folder-main">
+      <span class="catalog-folder-title"><%= title %></span>
+      <% if local_assigns[:subtitle].present? %>
+        <span class="catalog-folder-subtitle"><%= subtitle %></span>
+      <% end %>
+    </span>
+    <span class="linear-count"><%= count %></span>
+    <%= lucide_icon("chevron-right", class_name: "catalog-folder-chevron") %>
+  </summary>
+  <div class="catalog-folder-items">
+    <%= yield %>
+  </div>
+</details>

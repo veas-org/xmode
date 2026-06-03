@@ -4,6 +4,8 @@ class StripeWebhooksController < ApplicationController
   def create
     event = stripe_event
     case event.type
+    when "checkout.session.completed"
+      complete_checkout_session(event.data.object)
     when "customer.subscription.created", "customer.subscription.updated"
       upsert_subscription(event.data.object)
     when "customer.subscription.deleted"
@@ -29,9 +31,27 @@ class StripeWebhooksController < ApplicationController
     return unless workspace
 
     workspace.billing_subscriptions.find_or_initialize_by(stripe_subscription_id: subscription.id).tap do |record|
-      record.plan = workspace.billing_plan
-      record.status = subscription.status
+      record.plan = hosted_plan_for(workspace)
+      record.status = normalized_subscription_status(subscription.status)
       record.current_period_end = Time.at(subscription.current_period_end) if subscription.current_period_end
+      record.seats = workspace.memberships.count
+      record.save!
+    end
+  end
+
+  def complete_checkout_session(session)
+    workspace = Workspace.find_by(id: session_workspace_id(session))
+    return unless workspace
+
+    workspace.update!(
+      stripe_customer_id: session.customer.presence || workspace.stripe_customer_id,
+      billing_plan: "team"
+    )
+    return if session.subscription.blank?
+
+    workspace.billing_subscriptions.find_or_initialize_by(stripe_subscription_id: subscription_id(session.subscription)).tap do |record|
+      record.plan = "team"
+      record.status = session.payment_status == "paid" ? "active" : "incomplete"
       record.seats = workspace.memberships.count
       record.save!
     end
@@ -39,5 +59,21 @@ class StripeWebhooksController < ApplicationController
 
   def cancel_subscription(subscription)
     BillingSubscription.find_by(stripe_subscription_id: subscription.id)&.update!(status: "canceled")
+  end
+
+  def session_workspace_id(session)
+    session.metadata.to_h["workspace_id"].presence || session.client_reference_id
+  end
+
+  def subscription_id(subscription)
+    subscription.respond_to?(:id) ? subscription.id : subscription.to_s
+  end
+
+  def hosted_plan_for(workspace)
+    workspace.billing_plan == "community" ? "team" : workspace.billing_plan
+  end
+
+  def normalized_subscription_status(status)
+    status.to_s.in?(BillingSubscription::STATUSES) ? status.to_s : "inactive"
   end
 end

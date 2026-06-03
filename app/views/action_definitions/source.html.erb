@@ -1,0 +1,15 @@
+<% content_for :page_title, "Edit #{@action.name} source" %>
+<%= render layout: "shared/side_panel",
+      locals: {
+        title: "Edit #{@action.name} source",
+        eyebrow: "Action markdown",
+        description: "Edit this action as YAML frontmatter plus markdown guidance.",
+        back_path: action_path(@action),
+        wide: true
+      } do %>
+  <%= render "shared/catalog_source_form",
+        record: @action,
+        kind: "Action",
+        path: source_action_path(@action),
+        back_path: action_path(@action) %>
+<% end %>

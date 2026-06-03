@@ -13,6 +13,9 @@ RSpec.describe "Saved views", type: :request do
 
     expect(response).to have_http_status(:ok)
     expect(response.body).to include("Views")
+    expect(response.body).to include("View structure")
+    expect(response.body).to include("sibling views")
+    expect(response.body).to include("Engineering")
     expect(response.body).to include("Team Backlog")
     expect(response.body).not_to include("Filter inbox")
   end

@@ -1,133 +1,170 @@
 <% content_for :page_title, @action.name %>
-<div class="app-page-actions">
-  <div class="min-w-0">
-    <p class="app-eyebrow"><%= @action.key %> · <%= @action.category %> · <%= @action.provider.to_s.tr("_", " ").titleize %></p>
-    <p class="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-      Action contract for one reusable automation skill. Pipelines use this definition to pass objective, plan, inputs, outputs, and evidence between steps.
-    </p>
-  </div>
-  <div class="flex flex-wrap gap-2">
-    <%= link_to edit_action_path(@action), class: "app-btn app-btn-muted", data: side_panel_data do %>
-      <%= lucide_icon("pencil", class_name: "app-icon") %>
-      <span>Edit</span>
-    <% end %>
-    <%= link_to export_action_path(@action), class: "app-btn app-btn-muted" do %>
-      <%= lucide_icon("download", class_name: "app-icon") %>
-      <span>YAML</span>
-    <% end %>
-  </div>
-</div>
+<% skill = @action.skill_definition %>
 
-<div class="app-detail-grid">
-  <div class="space-y-5">
-    <section class="linear-surface p-5">
-      <div class="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p class="app-eyebrow">Action contract</p>
-          <h2 class="mt-1 font-semibold text-foreground"><%= @action.name %></h2>
+<div class="catalog-doc-page">
+  <%= render "shared/catalog_doc_tree", tree: @catalog_navigation, home_path: actions_home_path, list_path: actions_path(mode: "list"), import_path: import_actions_path, new_path: new_action_path %>
+
+  <article class="catalog-doc-article">
+    <header class="catalog-doc-hero">
+      <div class="flex min-w-0 flex-wrap items-center gap-2">
+        <span class="linear-count">Action</span>
+        <span class="linear-count"><%= @action.versioned_key %></span>
+        <span class="linear-count"><%= @action.provider.to_s.tr("_", " ").titleize %></span>
+      </div>
+      <h2><%= @action.name %></h2>
+      <p>
+        Reusable executable step for pipeline runs. This document describes the objective contract, fallback plan, provider behavior, inputs, outputs, and review evidence expected from the action.
+      </p>
+      <div class="catalog-doc-tags">
+        <span><%= @action.category %></span>
+        <span>@<%= @action.version %></span>
+        <% if @action.latest_version? %>
+          <span>latest</span>
+        <% end %>
+        <% if skill %>
+          <%= link_to skill_path(skill) do %>
+            <%= skill.name %> @<%= skill.version %>
+          <% end %>
+        <% end %>
+        <span><%= @action.requires_objective? ? "objective required" : "objective optional" %></span>
+        <span><%= @action.plan_required_when_objective_unclear? ? "plans unclear objectives" : "no plan fallback" %></span>
+      </div>
+    </header>
+
+    <section class="catalog-doc-section">
+      <p class="app-eyebrow">Action contract</p>
+      <h3>How this action should be used</h3>
+      <p>
+        Pipelines call this action with a clear objective and, when needed, a plan. The action should keep work scoped to that contract, return structured output, and leave enough evidence for the next pipeline step or reviewer.
+      </p>
+
+      <div class="catalog-contract-grid">
+        <div class="catalog-contract-item is-primary">
+          <span>Version</span>
+          <strong>@<%= @action.version %></strong>
+          <small>Pipelines should bind to this exact action version for stable runs.</small>
         </div>
-        <span class="status-pill"><%= @action.builtin? ? "Built-in" : "Workspace" %></span>
+        <div class="catalog-contract-item">
+          <span>Objective</span>
+          <strong><%= @action.requires_objective? ? "Required" : "Optional" %></strong>
+          <small>Defines the intended outcome before execution starts.</small>
+        </div>
+        <div class="catalog-contract-item">
+          <span>Plan</span>
+          <strong><%= @action.plan_required_when_objective_unclear? ? "Required when unclear" : "Optional" %></strong>
+          <small>Used as a scoped fallback when the objective needs clarification.</small>
+        </div>
+        <div class="catalog-contract-item">
+          <span>Skill</span>
+          <strong><%= skill&.versioned_key || "No skill" %></strong>
+          <small>Versioned instructions bound to this action.</small>
+        </div>
+        <div class="catalog-contract-item">
+          <span>Provider</span>
+          <strong><%= @action.provider.to_s.tr("_", " ").titleize %></strong>
+          <small><%= @action.timeout_seconds %> second execution budget.</small>
+        </div>
       </div>
 
-      <dl class="mt-4 grid gap-2 text-sm md:grid-cols-2">
-        <div class="inbox-property"><dt>Skill</dt><dd><strong><%= @action.skill_definition&.name || "-" %></strong></dd></div>
-        <div class="inbox-property"><dt>Provider</dt><dd><strong><%= @action.provider.to_s.tr("_", " ").titleize %></strong></dd></div>
-        <div class="inbox-property"><dt>Objective</dt><dd><strong><%= @action.requires_objective? ? "Required" : "Optional" %></strong></dd></div>
-        <div class="inbox-property"><dt>Plan fallback</dt><dd><strong><%= @action.plan_required_when_objective_unclear? ? "When unclear" : "Disabled" %></strong></dd></div>
+      <dl class="catalog-contract-list">
+        <div><dt>key</dt><dd><%= @action.key %></dd></div>
+        <div><dt>version</dt><dd>@<%= @action.version %></dd></div>
+        <div><dt>category</dt><dd><%= @action.category %></dd></div>
+        <div><dt>definition</dt><dd><%= @action.builtin? ? "built-in" : "workspace" %></dd></div>
+        <div><dt>review evidence</dt><dd><%= @action.artifact_policy.keys.presence&.join(", ") || "default" %></dd></div>
       </dl>
-
-      <div class="mt-5 grid gap-4 md:grid-cols-2">
-        <div>
-          <p class="app-eyebrow">Objective template</p>
-          <div class="rich-markdown mt-2">
-            <%= render_markdown(@action.objective_template, empty: "No objective template.") %>
-          </div>
-        </div>
-        <div>
-          <p class="app-eyebrow">Plan template</p>
-          <div class="rich-markdown mt-2">
-            <%= render_markdown(@action.plan_template.presence || @action.skill_definition&.plan_template, empty: "No plan template.") %>
-          </div>
-        </div>
-      </div>
-
-      <% if @action.execution_guidance.present? %>
-        <div class="mt-5">
-          <p class="app-eyebrow">Execution guidance</p>
-          <div class="rich-markdown mt-2">
-            <%= render_markdown(@action.execution_guidance) %>
-          </div>
-        </div>
-      <% end %>
     </section>
 
-    <% if @action.best_practices.present? %>
-      <section class="linear-surface p-5">
-        <div class="flex items-center gap-2">
-          <%= lucide_icon("check-circle", class_name: "app-icon text-muted-foreground") %>
-          <h2 class="font-semibold text-foreground">Best practices</h2>
+    <section class="catalog-doc-section">
+      <p class="app-eyebrow">Objective Template</p>
+      <div class="rich-markdown catalog-doc-prose">
+        <%= render_markdown(@action.objective_template, empty: "No objective template.") %>
+      </div>
+    </section>
+
+    <section class="catalog-doc-section">
+      <p class="app-eyebrow">Plan Template</p>
+      <div class="rich-markdown catalog-doc-prose">
+        <%= render_markdown(@action.plan_template.presence || skill&.plan_template, empty: "No plan template.") %>
+      </div>
+    </section>
+
+    <% if @action.execution_guidance.present? %>
+      <section class="catalog-doc-section">
+        <p class="app-eyebrow">Execution Guidance</p>
+        <div class="rich-markdown catalog-doc-prose">
+          <%= render_markdown(@action.execution_guidance) %>
         </div>
-        <ul class="mt-3 space-y-2 text-sm text-muted-foreground">
+      </section>
+    <% end %>
+
+    <% if @action.best_practices.present? %>
+      <section class="catalog-doc-section">
+        <p class="app-eyebrow">Best Practices</p>
+        <ul class="catalog-doc-list">
           <% @action.best_practices.each do |practice| %>
-            <li class="app-flat-row rounded-md px-3 py-2"><%= practice %></li>
+            <li><%= practice %></li>
           <% end %>
         </ul>
       </section>
     <% end %>
-  </div>
+  </article>
 
-  <aside class="space-y-4">
-    <section class="linear-surface p-4">
-      <h3 class="font-medium text-foreground">Input contract</h3>
-      <div class="mt-3 space-y-2 text-sm">
-        <% @action.input_schema.fetch("properties", {}).each do |name, schema| %>
-          <div class="inbox-property"><span><%= name %></span><strong><%= schema["type"] || "any" %></strong></div>
+  <aside class="catalog-doc-aside">
+    <section class="catalog-doc-panel">
+      <p class="app-eyebrow">Markdown definition</p>
+      <div class="mt-3 flex flex-wrap gap-2">
+        <%= link_to edit_action_path(@action), class: "app-btn app-btn-muted", data: side_panel_data do %>
+          <%= lucide_icon("pencil", class_name: "app-icon") %>
+          <span>Edit</span>
         <% end %>
-        <% if @action.input_schema.fetch("properties", {}).empty? %>
-          <p class="linear-empty">No named inputs.</p>
+        <%= link_to source_action_path(@action), class: "app-btn app-btn-muted", data: side_panel_data do %>
+          <%= lucide_icon("file-pen-line", class_name: "app-icon") %>
+          <span>Source</span>
+        <% end %>
+        <%= link_to export_action_path(@action), class: "app-btn app-btn-muted" do %>
+          <%= lucide_icon("download", class_name: "app-icon") %>
+          <span>YAML</span>
         <% end %>
       </div>
     </section>
 
-    <section class="linear-surface p-4">
-      <h3 class="font-medium text-foreground">Output contract</h3>
-      <div class="mt-3 space-y-2 text-sm">
-        <% @action.output_schema.fetch("properties", {}).each do |name, schema| %>
-          <div class="inbox-property"><span><%= name %></span><strong><%= schema["type"] || "any" %></strong></div>
-        <% end %>
-        <% if @action.output_schema.fetch("properties", {}).empty? %>
-          <p class="linear-empty">No named outputs.</p>
-        <% end %>
-      </div>
+    <%= render "shared/catalog_versions", record: @action, versions: @catalog_versions %>
+
+    <section class="catalog-doc-panel">
+      <h3>Input contract</h3>
+      <%= render "shared/schema_contract", schema: @action.input_schema %>
     </section>
 
-    <section class="linear-surface p-4">
-      <h3 class="font-medium text-foreground">Runtime</h3>
-      <dl class="mt-3 grid gap-2 text-sm">
-        <div class="inbox-property"><dt>Timeout</dt><dd><strong><%= @action.timeout_seconds %>s</strong></dd></div>
-        <div class="inbox-property"><dt>Permissions</dt><dd><strong><%= @action.permissions.presence&.join(", ") || "none" %></strong></dd></div>
-        <div class="inbox-property"><dt>Defaults</dt><dd><strong><%= @action.defaults.keys.presence&.join(", ") || "none" %></strong></dd></div>
-        <div class="inbox-property"><dt>Artifacts</dt><dd><strong><%= @action.artifact_policy.keys.presence&.join(", ") || "default" %></strong></dd></div>
+    <section class="catalog-doc-panel">
+      <h3>Output contract</h3>
+      <%= render "shared/schema_contract", schema: @action.output_schema %>
+    </section>
+
+    <section class="catalog-doc-panel">
+      <h3>Runtime</h3>
+      <dl class="catalog-contract-list">
+        <div><dt>Timeout</dt><dd><%= @action.timeout_seconds %>s</dd></div>
+        <div><dt>Permissions</dt><dd><%= @action.permissions.presence&.join(", ") || "none" %></dd></div>
+        <div><dt>Defaults</dt><dd><%= @action.defaults.keys.presence&.join(", ") || "none" %></dd></div>
+        <div><dt>Artifacts</dt><dd><%= @action.artifact_policy.keys.presence&.join(", ") || "default" %></dd></div>
       </dl>
     </section>
 
-    <section class="linear-surface p-4">
+    <section class="catalog-doc-panel">
       <div class="flex items-center justify-between gap-3">
-        <h3 class="font-medium text-foreground">Used by pipelines</h3>
+        <h3>Used by pipelines</h3>
         <span class="linear-count"><%= @linked_pipelines.size %></span>
       </div>
-      <div class="mt-3 space-y-2">
+      <div class="catalog-doc-link-list">
         <% @linked_pipelines.each do |pipeline| %>
-          <%= link_to pipeline_path(pipeline), class: "linear-row" do %>
-            <%= lucide_icon("workflow", class_name: "app-icon text-muted-foreground") %>
-            <span class="linear-row-main">
-              <span class="linear-row-title"><%= pipeline.name %></span>
-              <span class="linear-row-meta"><span><%= pipeline.key %></span></span>
-            </span>
+          <%= link_to pipeline_path(pipeline) do %>
+            <span><%= pipeline.name %></span>
+            <small><%= pipeline.key %></small>
           <% end %>
         <% end %>
         <% if @linked_pipelines.empty? %>
-          <p class="linear-empty">No pipelines use this action yet.</p>
+          <p class="linear-empty px-0 py-3 text-left">No pipelines use this action yet.</p>
         <% end %>
       </div>
     </section>

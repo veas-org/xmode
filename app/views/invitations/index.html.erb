@@ -1,0 +1,81 @@
+<% content_for :page_title, "Members" %>
+
+<div class="ops-page">
+  <header class="ops-hero">
+    <div class="min-w-0">
+      <p class="app-eyebrow">Workspace access</p>
+      <h1>Members</h1>
+      <p>Manage who can operate projects, pipelines, integrations, approvals, billing, and audit evidence in this workspace.</p>
+      <div class="ops-summary" aria-label="Member summary">
+        <span><strong><%= @member_counts.fetch(:total) %></strong> members</span>
+        <span><strong><%= @member_counts.fetch(:owners) %></strong> owners</span>
+        <span><strong><%= @member_counts.fetch(:admins) %></strong> admins</span>
+        <span><strong><%= @member_counts.fetch(:pending_invites) %></strong> pending invites</span>
+      </div>
+    </div>
+    <% if permitted?(:manage_members) %>
+      <%= link_to new_invitation_path, class: "app-btn app-btn-primary", data: side_panel_data do %>
+        <%= lucide_icon("plus", class_name: "app-icon") %>
+        <span>Invite</span>
+      <% end %>
+    <% end %>
+  </header>
+
+  <div class="ops-layout">
+    <section class="ops-section">
+      <div class="ops-section-head">
+        <div>
+          <p class="app-eyebrow">Access</p>
+          <h2>Workspace members</h2>
+        </div>
+        <span class="linear-count"><%= @memberships.size %></span>
+      </div>
+      <div class="ops-list">
+        <% @memberships.each do |membership| %>
+          <article class="ops-row">
+            <%= status_icon_pill(membership.role, title: membership.role.titleize) %>
+            <span class="record-point-main">
+              <span class="record-point-title"><%= membership.user.display_name %></span>
+              <span class="record-point-meta">
+                <span><%= membership.user.email %></span>
+                <span><%= membership.team&.name || "Workspace" %></span>
+                <span><%= membership.role.titleize %></span>
+              </span>
+            </span>
+          </article>
+        <% end %>
+      </div>
+    </section>
+
+    <aside class="ops-side">
+      <section class="ops-section">
+        <div class="ops-section-head">
+          <div>
+            <p class="app-eyebrow">Invitations</p>
+            <h2>Invite links</h2>
+          </div>
+          <span class="linear-count"><%= @invitations.size %></span>
+        </div>
+        <div class="ops-list">
+          <% @invitations.each do |invitation| %>
+            <% invite_status = invitation.accepted? ? "accepted" : invitation.expired? ? "expired" : "pending" %>
+            <article class="ops-row">
+              <%= status_icon_pill(invite_status, title: invite_status.titleize) %>
+              <span class="record-point-main">
+                <span class="record-point-title"><%= invitation.email %></span>
+                <span class="record-point-meta">
+                  <span><%= invitation.role.titleize %></span>
+                  <span><%= invitation.team&.name || "Workspace" %></span>
+                  <span class="break-all"><%= invitation_url(invitation.token) %></span>
+                </span>
+              </span>
+            </article>
+          <% end %>
+          <% if @invitations.empty? %>
+            <p class="linear-empty px-0 py-5 text-left">No pending invitations.</p>
+          <% end %>
+        </div>
+      </section>
+    </aside>
+  </div>
+</div>

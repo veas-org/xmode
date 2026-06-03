@@ -1,20 +1,35 @@
 <%= form_with model: pipeline_definition, url: pipeline_definition.persisted? ? pipeline_path(pipeline_definition) : pipelines_path, class: "space-y-5" do |form| %>
   <%= render "shared/form_errors", object: pipeline_definition %>
-  <div class="grid gap-4 sm:grid-cols-2">
+  <div class="grid gap-4 sm:grid-cols-3">
     <div><%= form.label :name, class: "app-label" %><%= form.text_field :name, class: "app-input", required: true %></div>
     <div><%= form.label :key, class: "app-label" %><%= form.text_field :key, class: "app-input", required: true %></div>
+    <div><%= form.label :version, class: "app-label" %><%= form.text_field :version, class: "app-input", required: true, placeholder: "1.0.0" %></div>
   </div>
 
-  <% actions_json = (@actions || []).map { |a| { id: a.id, key: a.key, name: a.name } }.to_json %>
+  <% graph_editor_value = pipeline_definition.graph.is_a?(Hash) ? JSON.pretty_generate(pipeline_definition.graph.presence || { nodes: [], edges: [] }) : pipeline_definition.graph.to_s %>
+  <% actions_json = (@actions || []).map { |a| { id: a.id, key: a.key, version: a.version, reference: a.versioned_key, name: a.name } }.to_json %>
   <div data-controller="pipeline-graph" data-pipeline-graph-actions-value="<%= actions_json %>">
-    <div class="mb-3 flex flex-wrap gap-2">
-      <% (@actions || []).each do |action| %>
-        <button type="button" class="app-btn app-btn-muted" data-action="pipeline-graph#addNode" data-action-key="<%= action.key %>"><%= action.name %></button>
-      <% end %>
-      <button type="button" class="app-btn app-btn-danger" data-action="pipeline-graph#clear">Clear</button>
+    <div class="mb-3 space-y-3">
+      <div>
+        <p class="app-eyebrow mb-2">Actions</p>
+        <div class="flex flex-wrap gap-2">
+          <% (@actions || []).each do |action| %>
+            <button type="button" class="app-btn app-btn-muted" data-action="pipeline-graph#addNode" data-action-reference="<%= action.versioned_key %>"><%= action.name %> @<%= action.version %></button>
+          <% end %>
+        </div>
+      </div>
+      <div>
+        <p class="app-eyebrow mb-2">Interactive</p>
+        <div class="flex flex-wrap gap-2">
+          <button type="button" class="app-btn app-btn-muted" data-action="pipeline-graph#addInteractionNode" data-node-type="decision">Decision</button>
+          <button type="button" class="app-btn app-btn-muted" data-action="pipeline-graph#addInteractionNode" data-node-type="follow_up">Follow-up</button>
+          <button type="button" class="app-btn app-btn-muted" data-action="pipeline-graph#addInteractionNode" data-node-type="goal_check">Goal check</button>
+          <button type="button" class="app-btn app-btn-danger" data-action="pipeline-graph#clear">Clear</button>
+        </div>
+      </div>
     </div>
     <div class="graph-canvas relative overflow-hidden" data-pipeline-graph-target="graph"></div>
-    <%= text_area_tag "pipeline_definition[graph_json]", JSON.pretty_generate(pipeline_definition.graph.presence || { nodes: [], edges: [] }), rows: 10, class: "app-textarea mt-4 font-mono text-xs", data: { pipeline_graph_target: "field" } %>
+    <%= text_area_tag "pipeline_definition[graph_json]", graph_editor_value, rows: 10, class: "app-textarea mt-4 font-mono text-xs", data: { pipeline_graph_target: "field" } %>
   </div>
 
   <div><%= label_tag "pipeline_definition_required_context_json", "Required context JSON", class: "app-label" %><%= text_area_tag "pipeline_definition[required_context_json]", JSON.pretty_generate(pipeline_definition.required_context.presence || {}), rows: 5, class: "app-textarea font-mono text-xs" %></div>

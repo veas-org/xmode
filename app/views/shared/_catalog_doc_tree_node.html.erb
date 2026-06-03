@@ -1,0 +1,28 @@
+<% depth = local_assigns.fetch(:depth, 0) %>
+<% open_all = local_assigns.fetch(:open_all, false) %>
+
+<% if node[:kind] == :folder %>
+  <details class="catalog-doc-folder" <%= "open" if open_all || node[:active] %>>
+    <summary>
+      <span class="catalog-doc-node-icon"><%= lucide_icon("folder", class_name: "app-icon") %></span>
+      <span class="catalog-doc-node-label"><%= node[:label] %></span>
+      <span class="linear-count"><%= node[:count] %></span>
+      <%= lucide_icon("chevron-right", class_name: "catalog-folder-chevron") %>
+    </summary>
+    <div class="catalog-doc-folder-children">
+      <% node[:children].to_a.each do |child| %>
+        <%= render "shared/catalog_doc_tree_node", node: child, depth: depth + 1, open_all: open_all %>
+      <% end %>
+    </div>
+  </details>
+<% else %>
+  <%= link_to node[:href], class: "catalog-doc-file #{'is-active' if node[:active]}" do %>
+    <span class="catalog-doc-node-icon"><%= lucide_icon("file", class_name: "app-icon") %></span>
+    <span class="catalog-doc-node-main">
+      <span class="catalog-doc-node-label"><%= node[:label] %></span>
+      <% if node[:subtitle].present? %>
+        <span class="catalog-doc-node-subtitle"><%= node[:subtitle] %></span>
+      <% end %>
+    </span>
+  <% end %>
+<% end %>

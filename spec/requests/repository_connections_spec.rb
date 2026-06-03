@@ -34,6 +34,7 @@ RSpec.describe "Repository connections", type: :request do
     expect(repository.full_name).to eq("acme/mission-control")
     expect(repository.name).to eq("acme/mission-control")
     expect(repository.integration_account).to eq(account)
+    expect(workspace.audit_events.last).to have_attributes(action: "repository.created", auditable: repository, user: user)
 
     get edit_repository_connection_path(repository)
     expect(response).to have_http_status(:ok)
@@ -54,5 +55,6 @@ RSpec.describe "Repository connections", type: :request do
     expect(response).to redirect_to(integrations_path)
     expect(repository.reload.name).to eq("Mission Control")
     expect(repository.default_branch).to eq("trunk")
+    expect(workspace.audit_events.last).to have_attributes(action: "repository.updated", auditable: repository, user: user)
   end
 end

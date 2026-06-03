@@ -1,0 +1,86 @@
+<%= form_with model: sso_provider, class: "space-y-4" do |form| %>
+  <%= render "shared/form_errors", object: sso_provider %>
+
+  <% if sso_provider.persisted? %>
+    <div>
+      <%= label_tag :sso_callback_url, "Callback URL", class: "app-label" %>
+      <input id="sso_callback_url" class="app-input font-mono text-xs" readonly value="<%= sso_callback_url(sso_provider) %>">
+      <p class="mt-2 text-xs leading-5 text-muted-foreground">Add this as the redirect URI in your identity provider.</p>
+    </div>
+  <% end %>
+
+  <div class="grid gap-4 sm:grid-cols-2">
+    <div>
+      <%= form.label :name, class: "app-label" %>
+      <%= form.text_field :name, class: "app-input", required: true, placeholder: "Okta" %>
+    </div>
+    <div>
+      <%= form.label :status, class: "app-label" %>
+      <%= form.select :status, SsoProvider::STATUSES.map { |status| [ status.titleize, status ] }, {}, class: "app-input" %>
+    </div>
+  </div>
+
+  <%= form.hidden_field :provider_type, value: "oidc" %>
+
+  <div>
+    <%= form.label :issuer, "Issuer URL", class: "app-label" %>
+    <%= form.url_field :issuer, class: "app-input", placeholder: "https://acme.okta.com/oauth2/default" %>
+    <p class="mt-2 text-xs leading-5 text-muted-foreground">xmode discovers OIDC endpoints from the issuer. Manual endpoints below are only needed when discovery is unavailable.</p>
+  </div>
+
+  <div class="grid gap-4 sm:grid-cols-2">
+    <div>
+      <%= form.label :client_id, class: "app-label" %>
+      <%= form.text_field :client_id, class: "app-input", required: true %>
+    </div>
+    <div>
+      <%= form.label :client_secret_ciphertext, "Client secret", class: "app-label" %>
+      <%= form.password_field :client_secret_ciphertext,
+            class: "app-input",
+            required: !sso_provider.persisted?,
+            placeholder: sso_provider.persisted? ? "Leave blank to keep current secret" : nil %>
+    </div>
+  </div>
+
+  <div class="grid gap-4 sm:grid-cols-2">
+    <div>
+      <%= form.label :scopes, class: "app-label" %>
+      <%= form.text_field :scopes, class: "app-input", required: true, placeholder: "openid email profile" %>
+    </div>
+    <div>
+      <%= form.label :email_domain, "Allowed email domain", class: "app-label" %>
+      <%= form.text_field :email_domain, class: "app-input", placeholder: "acme.com" %>
+    </div>
+  </div>
+
+  <div class="grid gap-4 sm:grid-cols-2">
+    <label class="flex items-center gap-2 text-sm text-muted-foreground">
+      <%= form.check_box :allow_signups, class: "h-4 w-4 rounded border-border bg-muted" %>
+      <span>Auto-join matching users</span>
+    </label>
+    <div>
+      <%= form.label :default_membership_role, "Default role", class: "app-label" %>
+      <%= form.select :default_membership_role, (Membership::ROLES - [ "owner" ]).map { |role| [ role.titleize, role ] }, {}, class: "app-input" %>
+    </div>
+  </div>
+
+  <details class="rounded-md bg-muted/30 p-3">
+    <summary class="cursor-pointer text-sm font-medium text-foreground">Manual OIDC endpoints</summary>
+    <div class="mt-4 space-y-4">
+      <div>
+        <%= form.label :authorization_endpoint, class: "app-label" %>
+        <%= form.url_field :authorization_endpoint, class: "app-input" %>
+      </div>
+      <div>
+        <%= form.label :token_endpoint, class: "app-label" %>
+        <%= form.url_field :token_endpoint, class: "app-input" %>
+      </div>
+      <div>
+        <%= form.label :userinfo_endpoint, class: "app-label" %>
+        <%= form.url_field :userinfo_endpoint, class: "app-input" %>
+      </div>
+    </div>
+  </details>
+
+  <%= form.submit sso_provider.persisted? ? "Update SSO provider" : "Save SSO provider", class: "app-btn app-btn-primary" %>
+<% end %>

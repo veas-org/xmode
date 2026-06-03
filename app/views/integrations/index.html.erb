@@ -1,88 +1,134 @@
 <% content_for :page_title, "Integrations" %>
 
-<div class="app-page-actions">
-  <div>
-    <p class="app-eyebrow">Provider connections</p>
-    <p class="mt-1 max-w-2xl text-sm text-muted-foreground">Connect GitHub, GitLab, and repository contexts used by actions, pipeline runs, and Change Request creation.</p>
-  </div>
-</div>
+<div class="ops-page">
+  <header class="ops-hero">
+    <div class="min-w-0">
+      <p class="app-eyebrow">Provider connections</p>
+      <h1>Integrations</h1>
+      <p>Connect provider accounts, repository contexts, and signed webhook intake used by actions, pipeline runs, and Change Request creation.</p>
+      <div class="ops-summary" aria-label="Integration summary">
+        <span><strong><%= @integration_counts.fetch(:accounts) %></strong> accounts</span>
+        <span><strong><%= @integration_counts.fetch(:repositories) %></strong> repositories</span>
+        <span><strong><%= @integration_counts.fetch(:active) %></strong> active</span>
+        <span><strong><%= @integration_counts.fetch(:providers) %></strong> providers</span>
+      </div>
+    </div>
+    <% if permitted?(:manage_integrations) %>
+      <div class="flex flex-wrap gap-2">
+        <%= link_to github_app_integrations_path, class: "app-btn app-btn-primary" do %>
+          <%= lucide_icon("plug-zap", class_name: "app-icon") %>
+          <span>GitHub App</span>
+        <% end %>
+        <%= link_to new_integration_path, class: "app-btn app-btn-muted", data: side_panel_data do %>
+          <%= lucide_icon("plus", class_name: "app-icon") %>
+          <span>Manual token</span>
+        <% end %>
+        <%= link_to new_repository_connection_path, class: "app-btn app-btn-muted", data: side_panel_data do %>
+          <%= lucide_icon("plus", class_name: "app-icon") %>
+          <span>Repository</span>
+        <% end %>
+      </div>
+    <% end %>
+  </header>
 
-<div class="grid gap-5 lg:grid-cols-2">
-  <section class="linear-surface">
-    <div class="linear-toolbar">
-      <div class="flex min-w-0 items-center gap-2">
-        <%= lucide_icon("plug", class_name: "app-icon text-muted-foreground") %>
-        <h2 class="linear-title">Accounts</h2>
-        <span class="linear-count"><%= @integrations.size %></span>
-      </div>
-      <% if permitted?(:manage_integrations) %>
-        <%= link_to new_integration_path, class: "app-icon-btn", title: "New integration", aria: { label: "New integration" }, data: side_panel_data do %>
-          <%= lucide_icon("plus", class_name: "app-icon") %>
-        <% end %>
-      <% end %>
-    </div>
-    <div class="linear-list">
-      <% @integrations.each do |integration| %>
-        <article class="linear-row">
-          <span class="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-muted/45 text-muted-foreground">
-            <%= lucide_icon(integration.provider == "github" ? "github" : "plug", class_name: "app-icon") %>
-          </span>
-          <div class="linear-row-main">
-            <p class="linear-row-title"><%= integration.name %></p>
-            <div class="linear-row-meta">
-              <span><%= integration.provider %></span>
-              <span><%= integration.updated_at ? "updated #{time_ago_in_words(integration.updated_at)} ago" : "not synced" %></span>
-            </div>
+  <div class="ops-layout">
+    <div class="min-w-0 space-y-5">
+      <section class="ops-section">
+        <div class="ops-section-head">
+          <div>
+            <p class="app-eyebrow">Accounts</p>
+            <h2>Provider accounts</h2>
           </div>
-          <span class="status-pill"><%= integration.status %></span>
-        </article>
-      <% end %>
-      <% if @integrations.empty? %><p class="linear-empty">No integrations connected.</p><% end %>
-    </div>
-  </section>
-  <section class="linear-surface">
-    <div class="linear-toolbar">
-      <div class="flex min-w-0 items-center gap-2">
-        <%= lucide_icon("git-branch", class_name: "app-icon text-muted-foreground") %>
-        <h2 class="linear-title">Repositories</h2>
-        <span class="linear-count"><%= @repositories.size %></span>
-      </div>
-      <% if permitted?(:manage_integrations) %>
-        <%= link_to new_repository_connection_path, class: "app-icon-btn", title: "New repository", aria: { label: "New repository" }, data: side_panel_data do %>
-          <%= lucide_icon("plus", class_name: "app-icon") %>
-        <% end %>
-      <% end %>
-    </div>
-    <div class="linear-list">
-      <% @repositories.each do |repo| %>
-        <%= link_to edit_repository_connection_path(repo), class: "linear-row", data: side_panel_data do %>
-          <span class="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-muted/45 text-muted-foreground">
-            <%= lucide_icon("folder-git-2", class_name: "app-icon") %>
-          </span>
-          <div class="linear-row-main">
-            <p class="linear-row-title"><%= repo.full_name.presence || repo.name %></p>
-            <div class="linear-row-meta">
-              <span><%= repo.provider %></span>
-              <span><%= repo.default_branch %></span>
-              <% if repo.integration_account %>
-                <span><%= repo.integration_account.name %></span>
+          <span class="linear-count"><%= @integrations.size %></span>
+        </div>
+        <div class="ops-list">
+          <% @integrations.each do |integration| %>
+            <article class="ops-row">
+              <%= status_icon_pill(integration.status, title: integration.status.to_s.titleize) %>
+              <span class="record-point-main">
+                <span class="record-point-title"><%= integration.name %></span>
+                <span class="record-point-meta">
+                  <span><%= integration.provider %></span>
+                  <span><%= integration.credential_label %></span>
+                  <% if integration.github_installation_id.present? %>
+                    <span>installation <%= integration.github_installation_id %></span>
+                  <% end %>
+                  <span><%= integration.updated_at ? "updated #{time_ago_in_words(integration.updated_at)} ago" : "not synced" %></span>
+                  <% if integration.metadata["last_repository_sync_count"].present? %>
+                    <span><%= pluralize(integration.metadata["last_repository_sync_count"], "repository") %> synced</span>
+                  <% end %>
+                </span>
+              </span>
+              <% if integration.repository_syncable? && permitted?(:manage_integrations) %>
+                <%= button_to "Sync repos",
+                      sync_repositories_integration_path(integration),
+                      method: :post,
+                      class: "app-btn app-btn-muted",
+                      form: { class: "contents" } %>
               <% end %>
-              <span><%= repo.url %></span>
-            </div>
-          </div>
-        <% end %>
-      <% end %>
-      <% if @repositories.empty? %>
-        <div class="linear-empty">
-          <p>Attach the repository that automation should branch from and open Change Requests against.</p>
-          <% if permitted?(:manage_integrations) %>
-            <%= link_to new_repository_connection_path, class: "app-btn app-btn-muted mt-4", data: side_panel_data do %>
-              <%= lucide_icon("folder-plus", class_name: "app-icon") %>
-              <span>Add repository</span>
-            <% end %>
+            </article>
+          <% end %>
+          <% if @integrations.empty? %>
+            <p class="linear-empty px-0 py-5 text-left">No integrations connected.</p>
           <% end %>
         </div>
-      <% end %>
+      </section>
+
+      <section class="ops-section">
+        <div class="ops-section-head">
+          <div>
+            <p class="app-eyebrow">Repositories</p>
+            <h2>Change Request targets</h2>
+          </div>
+          <span class="linear-count"><%= @repositories.size %></span>
+        </div>
+        <div class="ops-list">
+          <% @repositories.each do |repo| %>
+            <%= link_to edit_repository_connection_path(repo), class: "ops-row", data: side_panel_data do %>
+              <span class="record-point-main">
+                <span class="record-point-title"><%= repo.full_name.presence || repo.name %></span>
+                <span class="record-point-meta">
+                  <span><%= repo.provider %></span>
+                  <span><%= repo.default_branch %></span>
+                  <span><%= repo.integration_account&.name || "No account" %></span>
+                  <span class="break-all"><%= repo.url %></span>
+                </span>
+              </span>
+              <span class="linear-count">edit</span>
+            <% end %>
+          <% end %>
+          <% if @repositories.empty? %>
+            <div class="linear-empty px-0 py-5 text-left">
+              <p>Attach the repository that automation should branch from and open Change Requests against.</p>
+              <% if permitted?(:manage_integrations) %>
+                <%= link_to new_repository_connection_path, class: "app-btn app-btn-muted mt-4", data: side_panel_data do %>
+                  <%= lucide_icon("plus", class_name: "app-icon") %>
+                  <span>Add repository</span>
+                <% end %>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+      </section>
     </div>
-  </section>
+
+    <% if permitted?(:manage_integrations) %>
+      <aside class="ops-side">
+        <section class="ops-section">
+          <div class="ops-section-head">
+            <div>
+              <p class="app-eyebrow">Webhook intake</p>
+              <h2>Signed endpoint</h2>
+            </div>
+            <span class="linear-count">signed</span>
+          </div>
+          <dl class="ops-kv-list">
+            <div><dt>Endpoint</dt><dd class="truncate"><%= @webhook_endpoint %></dd></div>
+            <div><dt>Signature header</dt><dd>X-Xmode-Signature</dd></div>
+            <div><dt>Signing secret</dt><dd class="font-mono text-[11px]" title="<%= current_workspace.webhook_secret %>"><%= current_workspace.webhook_secret %></dd></div>
+          </dl>
+        </section>
+      </aside>
+    <% end %>
+  </div>
 </div>

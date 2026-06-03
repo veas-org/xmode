@@ -10,15 +10,26 @@ RSpec.describe "Event inbox", type: :request do
     get events_path
 
     expect(response).to have_http_status(:ok)
-    expect(response.body).to include("Event inbox")
-    expect(response.body).to include("Routing rules")
+    expect(response.body).to include("Event intake")
+    expect(response.body).to include("Latest events")
+    expect(response.body).to include("Rules")
     expect(response.body).to include("Critical delivery exceptions")
     expect(response.body).to include("Handle Production Event")
-    expect(response.body).to include("source: delivery-webhook")
-    expect(response.body).to include("severity: critical")
     expect(response.body).to include("Critical moon delivery failed")
     expect(response.body).to include("1 rule")
-    expect(response.body).to include("Event flow")
+    expect(response.body).to include("Event state")
+    expect(response.body).to include("Event libraries")
+    expect(response.body).to include("https://github.com/m9rc1n/xmode-events")
+    expect(response.body).to include("@xmode/events")
+    expect(response.body).to include("captureBug")
+    expect(response.body).to include("capture_warning")
+    expect(response.body).to include("/webhooks/events/#{workspace.slug}/{source}")
+    expect(response.body).to include("Settings -> Integrations")
+
+    doc = Nokogiri::HTML(response.body)
+    expect(doc.at_css(".ops-page")).to be_present
+    expect(doc.at_css(%(dd.break-all[title*="/webhooks/events/#{workspace.slug}/{source}"]))).to be_present
+    expect(doc.css(".linear-surface")).to be_empty
     expect(workspace.event_rules.count).to eq(1)
   end
 
@@ -40,9 +51,9 @@ RSpec.describe "Event inbox", type: :request do
     get event_path(event)
 
     expect(response).to have_http_status(:ok)
-    expect(response.body).to include("Event operating record")
-    expect(response.body).to include("Matched automation rules")
-    expect(response.body).to include("Related automation runs")
+    expect(response.body).to include("Routing contract")
+    expect(response.body).to include("Automation routing")
+    expect(response.body).to include("Related execution evidence")
     expect(response.body).to include("Normalized fields")
     expect(response.body).to include("Payload fields")
     expect(response.body).to include("Routing timeline")
@@ -56,5 +67,9 @@ RSpec.describe "Event inbox", type: :request do
     expect(response.body).to include('data-turbo-frame="side_panel"')
     expect(response.body).not_to include("<pre")
     expect(response.body).not_to include("app-btn-primary")
+
+    doc = Nokogiri::HTML(response.body)
+    expect(doc.at_css(".record-detail-layout.event-record-layout")).to be_present
+    expect(doc.css(".record-panel")).to be_empty
   end
 end

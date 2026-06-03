@@ -54,6 +54,9 @@ env:
     - ADMIN_PASSWORD
     - STRIPE_API_KEY
     - STRIPE_WEBHOOK_SECRET
+    - XMODE_GITHUB_APP_ID
+    - XMODE_GITHUB_APP_SLUG
+    - XMODE_GITHUB_APP_PRIVATE_KEY
 
 volumes:
   - "xmode_storage:/rails/storage"

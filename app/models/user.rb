@@ -8,6 +8,8 @@ class User < ApplicationRecord
   has_many :assigned_issues, class_name: "Issue", foreign_key: :assignee_id, inverse_of: :assignee, dependent: :nullify
   has_many :pipeline_runs, dependent: :nullify
   has_many :approvals, dependent: :nullify
+  has_many :audit_events, dependent: :nullify
+  has_many :sso_identities, dependent: :destroy
 
   normalizes :email, with: ->(email) { email.to_s.strip.downcase }
 

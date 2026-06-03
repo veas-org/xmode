@@ -17,11 +17,7 @@
       <%= render "shared/app_sidebar" %>
       <section class="app-main">
         <header class="app-topbar">
-          <div class="min-w-0">
-            <h1>
-              <%= content_for(:page_title) || "xmode" %>
-            </h1>
-          </div>
+          <%= render "shared/topbar_breadcrumbs" %>
           <div class="app-topbar-actions">
             <%= form_with url: issues_path, method: :get, class: "linear-command app-topbar-command hidden md:flex" do %>
               <%= hidden_field_tag :view, "inbox" %>
@@ -31,9 +27,9 @@
               </span>
               <span class="linear-kbd">Enter</span>
             <% end %>
-            <button class="app-icon-btn" type="button" data-action="theme#toggle" title="Settings" aria-label="Settings">
+            <%= link_to settings_path, class: "app-icon-btn", title: "Settings", aria: { label: "Settings" } do %>
               <%= lucide_icon("settings", class_name: "app-icon") %>
-            </button>
+            <% end %>
           </div>
         </header>
         <main class="app-content">

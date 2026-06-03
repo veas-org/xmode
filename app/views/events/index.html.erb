@@ -1,100 +1,136 @@
-<% content_for :page_title, "Event Inbox" %>
+<% content_for :page_title, "Events" %>
 
-<div class="app-page-actions">
-  <div>
-    <p class="app-eyebrow">Event intake</p>
-    <p class="mt-1 max-w-2xl text-sm text-muted-foreground">Webhook and system events land here before they become issues or trigger matched automation rules.</p>
-  </div>
-  <div class="flex flex-wrap gap-2">
-    <span class="status-pill"><%= pluralize(@events.count, "event") %></span>
-    <span class="status-pill"><%= @event_counts.fetch(:matched) %> matched</span>
-    <span class="status-pill"><%= @event_counts.fetch(:linked) %> linked</span>
-  </div>
-</div>
+<div class="ops-page">
+  <header class="ops-hero">
+    <div class="min-w-0">
+      <p class="app-eyebrow">Event intake</p>
+      <h1>Events</h1>
+      <p>Webhook and system events land here before they become issues or trigger matched automation rules.</p>
+      <div class="ops-summary" aria-label="Event inbox summary">
+        <span><strong><%= @events.count %></strong> events</span>
+        <span><strong><%= @event_counts.fetch(:new) %></strong> new</span>
+        <span><strong><%= @event_counts.fetch(:matched) %></strong> matched</span>
+        <span><strong><%= @event_counts.fetch(:linked) %></strong> linked</span>
+      </div>
+    </div>
+    <% if permitted?(:manage_pipelines) %>
+      <%= link_to new_event_rule_path, class: "app-btn app-btn-muted", title: "New event rule", aria: { label: "New event rule" }, data: side_panel_data do %>
+        <%= lucide_icon("plus", class_name: "app-icon") %>
+        <span>Rule</span>
+      <% end %>
+    <% end %>
+  </header>
 
-<div class="app-detail-grid">
-  <section class="linear-surface">
-    <div class="linear-toolbar">
-      <div class="flex min-w-0 items-center gap-2">
-        <%= lucide_icon("bell", class_name: "app-icon text-muted-foreground") %>
-        <h2 class="linear-title">Event inbox</h2>
+  <div class="ops-layout">
+    <section class="ops-section">
+      <div class="ops-section-head">
+        <div>
+          <p class="app-eyebrow">Inbox</p>
+          <h2>Latest events</h2>
+        </div>
         <span class="linear-count"><%= @events.size %></span>
       </div>
-    </div>
-    <div class="linear-list">
-      <% @event_rows.each do |row| %>
-        <% event = row.fetch(:event) %>
-        <% matched_rules = row.fetch(:matched_rules) %>
-        <%= link_to event_path(event), class: "linear-row" do %>
-          <span class="inbox-row-indicator"></span>
-          <div class="linear-row-main">
-            <p class="linear-row-title"><%= event.title %></p>
-            <div class="linear-row-meta">
-              <span><%= event.source %></span>
-              <span><%= event.event_type %></span>
-              <span><%= event.project&.title || "No project" %></span>
-              <% if event.issue %>
-                <span><%= event.issue.identifier %></span>
-              <% end %>
-              <span><%= time_ago_in_words(event.created_at) %> ago</span>
-            </div>
-          </div>
-          <div class="hidden flex-wrap justify-end gap-2 md:flex">
-            <% if matched_rules.any? %>
-              <span class="status-pill"><%= pluralize(matched_rules.size, "rule") %></span>
-            <% end %>
-            <span class="status-pill"><%= event.severity %></span>
-            <span class="status-pill"><%= event.status %></span>
-          </div>
-        <% end %>
-      <% end %>
-      <% if @events.empty? %><p class="linear-empty">No events yet.</p><% end %>
-    </div>
-  </section>
 
-  <aside class="space-y-4">
-    <section class="linear-surface">
-      <div class="linear-toolbar">
-        <div class="flex min-w-0 items-center gap-2">
-          <%= lucide_icon("route", class_name: "app-icon text-muted-foreground") %>
-          <h2 class="linear-title">Routing rules</h2>
+      <div class="ops-list">
+        <% @event_rows.each do |row| %>
+          <% event = row.fetch(:event) %>
+          <% matched_rules = row.fetch(:matched_rules) %>
+          <%= link_to event_path(event), class: "ops-row" do %>
+            <%= status_icon_pill(event.severity, title: "#{event.severity.titleize} severity") %>
+            <span class="record-point-main">
+              <span class="record-point-title"><%= event.title %></span>
+              <span class="record-point-meta">
+                <span><%= event.source %></span>
+                <span><%= event.event_type %></span>
+                <span><%= event.project&.title || "No project" %></span>
+                <% if event.issue %><span><%= event.issue.identifier %></span><% end %>
+                <span><%= time_ago_in_words(event.created_at) %> ago</span>
+              </span>
+            </span>
+            <span class="ops-row-trailing">
+              <% if matched_rules.any? %><span class="linear-count"><%= pluralize(matched_rules.size, "rule") %></span><% end %>
+              <span class="linear-count"><%= event.status %></span>
+            </span>
+          <% end %>
+        <% end %>
+        <% if @events.empty? %>
+          <p class="linear-empty px-0 py-6 text-left">No events yet.</p>
+        <% end %>
+      </div>
+    </section>
+
+    <aside class="ops-side">
+      <section class="ops-section">
+        <div class="ops-section-head">
+          <div>
+            <p class="app-eyebrow">Routing</p>
+            <h2>Rules</h2>
+          </div>
           <span class="linear-count"><%= @rules.size %></span>
         </div>
-      </div>
-      <div class="linear-list">
-        <% @rule_rows.each do |row| %>
-          <% rule = row.fetch(:rule) %>
-          <article class="linear-row">
-            <span class="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-muted/45 text-muted-foreground">
-              <%= lucide_icon(rule.active? ? "radio-tower" : "pause-circle", class_name: "app-icon") %>
-            </span>
-            <div class="linear-row-main">
-              <p class="linear-row-title"><%= rule.name %></p>
-              <div class="linear-row-meta">
-                <span><%= row.fetch(:matched_count) %> matches</span>
-                <span><%= rule.pipeline_definition&.name || "No pipeline" %></span>
-              </div>
-              <div class="mt-2 flex flex-wrap gap-1.5">
-                <% row.fetch(:condition_summary).each do |condition| %>
-                  <span class="app-badge"><%= condition %></span>
-                <% end %>
-              </div>
-            </div>
-            <span class="status-pill shrink-0"><%= rule.active? ? "active" : "paused" %></span>
-          </article>
-        <% end %>
-        <% if @rules.empty? %><p class="linear-empty">No routing rules configured.</p><% end %>
-      </div>
-    </section>
+        <div class="ops-list">
+          <% @rule_rows.each do |row| %>
+            <% rule = row.fetch(:rule) %>
+            <%= link_to permitted?(:manage_pipelines) ? edit_event_rule_path(rule) : events_path,
+                  class: "ops-row",
+                  data: permitted?(:manage_pipelines) ? side_panel_data : {} do %>
+              <span class="record-point-main">
+                <span class="record-point-title"><%= rule.name %></span>
+                <span class="record-point-meta">
+                  <span><%= row.fetch(:matched_count) %> matches</span>
+                  <span><%= rule.pipeline_definition&.name || "No pipeline" %></span>
+                </span>
+              </span>
+              <span class="linear-count"><%= rule.active? ? "active" : "paused" %></span>
+            <% end %>
+          <% end %>
+          <% if @rules.empty? %>
+            <p class="linear-empty px-0 py-4 text-left">No routing rules configured.</p>
+          <% end %>
+        </div>
+      </section>
 
-    <section class="linear-surface p-4">
-      <h3 class="font-medium text-foreground">Event flow</h3>
-      <div class="mt-3 grid gap-2 text-sm">
-        <div class="inbox-property"><span>New intake</span><strong><%= @event_counts.fetch(:new) %></strong></div>
-        <div class="inbox-property"><span>Matched to rules</span><strong><%= @event_counts.fetch(:matched) %></strong></div>
-        <div class="inbox-property"><span>Linked issues</span><strong><%= @event_counts.fetch(:linked) %></strong></div>
-      </div>
-      <p class="mt-3 text-sm leading-6 text-muted-foreground">Rules make event-based automation explicit: source and payload conditions choose a pipeline, while unresolved events can still be converted into issues through the event side panel flow.</p>
-    </section>
-  </aside>
+      <section class="ops-section">
+        <div class="ops-section-head">
+          <div>
+            <p class="app-eyebrow">Flow</p>
+            <h2>Event state</h2>
+          </div>
+        </div>
+        <dl class="ops-kv-list">
+          <div><dt>New intake</dt><dd><%= @event_counts.fetch(:new) %></dd></div>
+          <div><dt>Matched to rules</dt><dd><%= @event_counts.fetch(:matched) %></dd></div>
+          <div><dt>Linked issues</dt><dd><%= @event_counts.fetch(:linked) %></dd></div>
+        </dl>
+      </section>
+
+      <section class="ops-section">
+        <div class="ops-section-head">
+          <div>
+            <p class="app-eyebrow">SDK intake</p>
+            <h2>Event libraries</h2>
+          </div>
+          <%= link_to "GitHub", @event_sdk_repo_url, class: "linear-count", target: "_blank", rel: "noopener" %>
+        </div>
+        <div class="ops-list">
+          <% @event_sdk_rows.each do |language, package_name, helpers| %>
+            <article class="ops-row">
+              <span class="record-point-main">
+                <span class="record-point-title"><%= language %></span>
+                <span class="record-point-meta">
+                  <span><%= package_name %></span>
+                  <span><%= helpers %></span>
+                </span>
+              </span>
+            </article>
+          <% end %>
+        </div>
+        <dl class="ops-kv-list mt-4">
+          <div><dt>Endpoint</dt><dd class="break-all" title="<%= @webhook_endpoint %>"><%= @webhook_endpoint %></dd></div>
+          <div><dt>Signature</dt><dd>X-Xmode-Signature</dd></div>
+          <div><dt>Secret</dt><dd>Settings -> Integrations</dd></div>
+        </dl>
+      </section>
+    </aside>
+  </div>
 </div>

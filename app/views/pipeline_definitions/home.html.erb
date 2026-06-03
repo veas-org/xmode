@@ -1,0 +1,222 @@
+<% content_for :page_title, "Home" %>
+
+<div class="skill-home skill-home-minimal">
+  <header class="skill-home-header">
+    <div class="min-w-0">
+      <p class="app-eyebrow">Pipelines home</p>
+      <h1>Pipelines</h1>
+      <p>Reusable wrappers around actions that preserve objectives, plans, approvals, schedules, event triggers, snapshots, and Change Request boundaries.</p>
+      <div class="skill-home-summary" aria-label="Pipeline library summary">
+        <span><strong><%= @stats.fetch(:pipelines) %></strong> pipelines</span>
+        <span><strong><%= @stats.fetch(:triggers) %></strong> triggers</span>
+        <span><strong><%= @stats.fetch(:scheduled) %></strong> scheduled</span>
+        <span><strong><%= @stats.fetch(:runs) %></strong> runs</span>
+        <span><strong><%= @stats.fetch(:event_rules) %></strong> event rules</span>
+      </div>
+    </div>
+    <div class="skill-home-actions">
+      <%= link_to pipeline_runs_path, class: "app-btn app-btn-muted" do %>
+        <span>Runs</span>
+      <% end %>
+      <% if permitted?(:manage_pipelines) %>
+        <%= link_to new_pipeline_path, class: "app-btn app-btn-muted", data: side_panel_data do %>
+          <%= lucide_icon("plus", class_name: "app-icon") %>
+          <span>New</span>
+        <% end %>
+        <%= link_to import_pipelines_path, class: "app-btn app-btn-muted", data: side_panel_data do %>
+          <%= lucide_icon("upload", class_name: "app-icon") %>
+          <span>Import</span>
+        <% end %>
+      <% end %>
+    </div>
+  </header>
+
+  <div class="skill-home-spotlight-grid pipeline-home-spotlight-grid">
+    <section class="skill-home-section">
+      <div class="skill-section-title">
+        <div>
+          <p class="app-eyebrow">Favorites</p>
+          <h2>Pinned pipelines</h2>
+        </div>
+      </div>
+      <div class="skill-home-list">
+        <% @favorite_pipelines.each do |pipeline| %>
+          <% nodes = pipeline.graph.fetch("nodes", []) %>
+          <%= link_to pipeline_path(pipeline), class: "skill-home-row is-featured" do %>
+            <span class="record-point-main">
+              <span class="record-point-title"><%= pipeline.name %></span>
+              <span class="record-point-meta">
+                <span><%= pipeline.versioned_key %></span>
+                <span><%= pipeline.triggers.presence&.join(", ") || "manual" %></span>
+                <span><%= pluralize(nodes.size, "step") %></span>
+              </span>
+            </span>
+            <span class="linear-count"><%= pipeline.builtin? ? "built-in" : "workspace" %></span>
+          <% end %>
+        <% end %>
+        <% if @favorite_pipelines.empty? %>
+          <p class="linear-empty px-0 py-4 text-left">No favorite pipelines are defined for this workspace.</p>
+        <% end %>
+      </div>
+    </section>
+
+    <section class="skill-home-section">
+      <div class="skill-section-title">
+        <div>
+          <p class="app-eyebrow">Most used</p>
+          <h2>High-traffic pipelines</h2>
+        </div>
+      </div>
+      <div class="skill-home-list">
+        <% @high_leverage_pipelines.each do |pipeline| %>
+          <%= link_to pipeline_path(pipeline), class: "skill-home-row" do %>
+            <span class="record-point-main">
+              <span class="record-point-title"><%= pipeline.name %></span>
+              <span class="record-point-meta">
+                <span><%= pipeline.versioned_key %></span>
+                <span><%= pipeline.triggers.presence&.join(", ") || "manual" %></span>
+                <span><%= pluralize(pipeline.graph.fetch("nodes", []).size, "step") %></span>
+              </span>
+            </span>
+            <span class="linear-count"><%= pipeline_home_usage(pipeline) %></span>
+          <% end %>
+        <% end %>
+        <% if @high_leverage_pipelines.empty? %>
+          <p class="linear-empty px-0 py-4 text-left">No pipeline usage is available yet.</p>
+        <% end %>
+      </div>
+    </section>
+
+    <section class="skill-home-section">
+      <div class="skill-section-title">
+        <div>
+          <p class="app-eyebrow">Runs</p>
+          <h2>Recent executions</h2>
+        </div>
+        <%= link_to "All runs", pipeline_runs_path, class: "app-link text-sm" %>
+      </div>
+      <div class="skill-home-list">
+        <% @recent_runs.each do |run| %>
+          <% run_target = run.issue&.identifier || run.project&.title || run.event&.title || "Workspace" %>
+          <%= link_to pipeline_run_path(run), class: "skill-home-row" do %>
+            <%= status_icon_pill(run.status, title: run.display_status) %>
+            <span class="record-point-main">
+              <span class="record-point-title"><%= run.pipeline_definition&.name || "Run ##{run.id}" %></span>
+              <span class="record-point-meta">
+                <span><%= run.display_status %></span>
+                <span><%= run_target %></span>
+                <span><%= time_ago_in_words(run.created_at) %> ago</span>
+              </span>
+              <% if run.input_context["objective"].present? %>
+                <span class="pipeline-run-home-objective"><%= run.input_context["objective"] %></span>
+              <% end %>
+            </span>
+          <% end %>
+        <% end %>
+        <% if @recent_runs.empty? %>
+          <p class="linear-empty px-0 py-4 text-left">No pipeline runs yet. Start a pipeline from a project, issue, event, schedule, or pipeline page.</p>
+        <% end %>
+      </div>
+    </section>
+  </div>
+
+  <section class="skill-home-section skill-home-table-section">
+    <div class="skill-section-title">
+      <div>
+        <p class="app-eyebrow">Library</p>
+        <h2>All pipelines</h2>
+      </div>
+      <span class="linear-count"><%= @pagination.total_count %></span>
+    </div>
+
+    <%= form_with url: pipelines_home_path, method: :get, class: "catalog-home-filter" do %>
+      <label class="catalog-filter-field catalog-filter-search">
+        <%= lucide_icon("search", class_name: "app-icon") %>
+        <%= search_field_tag :q, @query, placeholder: "Filter pipelines...", class: "catalog-filter-input" %>
+      </label>
+      <label class="catalog-filter-field">
+        <span>Source</span>
+        <%= select_tag :source,
+              options_for_select([ [ "All", "" ], [ "Built-in", "built_in" ], [ "Workspace", "workspace" ] ], @source),
+              class: "catalog-filter-select" %>
+      </label>
+      <label class="catalog-filter-field">
+        <span>Trigger</span>
+        <%= select_tag :trigger,
+              options_for_select([ [ "All", "" ] ] + @trigger_options.map { |trigger| [ trigger.to_s.tr("_", " ").titleize, trigger ] }, @trigger),
+              class: "catalog-filter-select" %>
+      </label>
+      <label class="catalog-filter-field">
+        <span>Rows</span>
+        <%= select_tag :per_page, options_for_select(AuthenticatedController::CATALOG_PER_PAGE_OPTIONS, @pagination.per_page), class: "catalog-filter-select" %>
+      </label>
+      <button class="app-btn app-btn-muted" type="submit">
+        <span>Apply</span>
+      </button>
+      <% if @query.present? || @source.present? || @trigger.present? || @pagination.per_page != AuthenticatedController::CATALOG_PER_PAGE_OPTIONS.first %>
+        <%= link_to "Clear", pipelines_home_path, class: "app-btn app-btn-muted" %>
+      <% end %>
+    <% end %>
+
+    <% if @table_pipelines.any? %>
+      <div class="catalog-table-wrap skill-home-table-wrap">
+        <table class="app-table catalog-table skill-home-table">
+          <colgroup>
+            <col class="catalog-col-name">
+            <col class="catalog-col-source">
+            <col class="catalog-col-trigger">
+            <col class="catalog-col-compact">
+            <col class="catalog-col-wide">
+            <col class="catalog-col-wide">
+          </colgroup>
+          <thead>
+            <tr>
+              <th>Pipeline</th>
+              <th>Source</th>
+              <th>Trigger</th>
+              <th>Graph</th>
+              <th>Usage</th>
+              <th>Last run</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @table_pipelines.each do |pipeline| %>
+              <% nodes = pipeline.graph.fetch("nodes", []) %>
+              <% edges = pipeline.graph.fetch("edges", []) %>
+              <% latest_run = @latest_run_by_pipeline_id[pipeline.id] %>
+              <tr>
+                <td>
+                  <%= link_to pipeline_path(pipeline), class: "catalog-table-primary" do %>
+                    <span class="min-w-0">
+                      <span><%= pipeline.name %></span>
+                      <small><%= pipeline.versioned_key %></small>
+                    </span>
+                  <% end %>
+                </td>
+                <td><span class="catalog-table-muted"><%= pipeline.builtin? ? "Built-in" : "Workspace" %></span></td>
+                <td><span class="catalog-table-muted">@<%= pipeline.version %> · <%= pipeline.triggers.presence&.join(", ") || "manual" %></span></td>
+                <td><span class="catalog-table-muted"><%= pluralize(nodes.size, "step") %> · <%= pluralize(edges.size, "edge") %></span></td>
+                <td><span class="catalog-table-muted"><%= pipeline_home_usage(pipeline) %> references</span></td>
+                <td>
+                  <% if latest_run %>
+                    <%= link_to pipeline_run_path(latest_run), class: "catalog-table-link" do %>
+                      <%= latest_run.display_status %> · <%= time_ago_in_words(latest_run.created_at) %> ago
+                    <% end %>
+                  <% else %>
+                    <span class="catalog-table-muted">No runs</span>
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% else %>
+      <p class="linear-empty px-0 py-6 text-left">No pipelines match this filter.</p>
+    <% end %>
+
+    <%= render "shared/table_pagination",
+          pagination: @pagination,
+          filter_params: { q: @query, source: @source, trigger: @trigger, per_page: @pagination.per_page } %>
+  </section>
+</div>

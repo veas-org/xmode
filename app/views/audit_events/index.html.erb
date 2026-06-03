@@ -1,0 +1,54 @@
+<% content_for :page_title, "Audit Trail" %>
+
+<div class="ops-page">
+  <header class="ops-hero">
+    <div class="min-w-0">
+      <p class="app-eyebrow">Governance</p>
+      <h1>Audit Trail</h1>
+      <p>Workspace-level evidence for runs, approvals, Change Requests, integrations, repository changes, and security-sensitive actions.</p>
+      <div class="ops-summary" aria-label="Audit summary">
+        <span><strong><%= @event_counts.fetch(:total) %></strong> events</span>
+        <span><strong><%= @event_counts.fetch(:warnings) %></strong> warnings</span>
+        <span><strong><%= @event_counts.fetch(:errors) %></strong> errors</span>
+      </div>
+    </div>
+  </header>
+
+  <section class="ops-section">
+    <div class="ops-section-head">
+      <div>
+        <p class="app-eyebrow">Evidence</p>
+        <h2>Latest events</h2>
+      </div>
+      <span class="linear-count">last 200</span>
+    </div>
+
+    <div class="ops-list">
+      <% @audit_events.each do |event| %>
+        <% auditable_label = event.auditable ? "#{event.auditable_type} ##{event.auditable_id}" : "Workspace" %>
+        <article class="ops-row">
+          <%= status_icon_pill(event.severity == "warn" ? "warning" : event.severity, title: event.severity.titleize) %>
+          <span class="record-point-main">
+            <span class="record-point-title"><%= event.display_action %></span>
+            <span class="record-point-meta">
+              <span><%= event.user&.display_name || "System" %></span>
+              <span><%= event.source.titleize %></span>
+              <span><%= auditable_label %></span>
+              <span><%= time_ago_in_words(event.created_at) %> ago</span>
+            </span>
+            <% if event.metadata.present? %>
+              <details class="run-evidence-inline-details">
+                <summary>Metadata</summary>
+                <pre class="mt-2 overflow-x-auto whitespace-pre-wrap break-words text-[11px] leading-5"><%= JSON.pretty_generate(event.metadata) %></pre>
+              </details>
+            <% end %>
+          </span>
+        </article>
+      <% end %>
+
+      <% if @audit_events.empty? %>
+        <p class="linear-empty px-0 py-6 text-left">No audit events yet.</p>
+      <% end %>
+    </div>
+  </section>
+</div>

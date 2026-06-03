@@ -1,0 +1,23 @@
+<% content_for :page_title, "Invite member" %>
+
+<%= render layout: "shared/side_panel",
+      locals: {
+        title: "Invite member",
+        eyebrow: "Workspace access",
+        description: "Create an invite link for a teammate. Acceptance adds them to this workspace with the selected role.",
+        back_path: invitations_path
+      } do %>
+  <%= form_with model: @invitation, url: invitations_path, class: "space-y-4" do |form| %>
+    <%= render "shared/form_errors", object: @invitation %>
+    <div><%= form.label :email, class: "app-label" %><%= form.email_field :email, class: "app-input", required: true %></div>
+    <div>
+      <%= form.label :role, class: "app-label" %>
+      <%= form.select :role, Membership::ROLES.reject { |role| role == "owner" }.map { |role| [ role.titleize, role ] }, {}, class: "app-input" %>
+    </div>
+    <div>
+      <%= form.label :team_id, "Team", class: "app-label" %>
+      <%= form.collection_select :team_id, @teams, :id, :name, { include_blank: "Workspace only" }, class: "app-input" %>
+    </div>
+    <%= form.submit "Create invitation", class: "app-btn app-btn-primary" %>
+  <% end %>
+<% end %>

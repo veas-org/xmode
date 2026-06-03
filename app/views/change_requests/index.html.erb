@@ -1,38 +1,58 @@
 <% content_for :page_title, "Change Requests" %>
 
-<div class="app-page-actions">
-  <div>
-    <p class="app-eyebrow">Review boundary</p>
-    <p class="mt-1 max-w-2xl text-sm text-muted-foreground">Code-changing automation ends here: a new branch, provider-specific PR/MR record, check evidence, and links back to issue and run context.</p>
-  </div>
-  <span class="status-pill"><%= pluralize(@change_requests.count, "request") %></span>
-</div>
+<div class="ops-page">
+  <header class="ops-hero">
+    <div class="min-w-0">
+      <p class="app-eyebrow">Review boundary</p>
+      <h1>Change Requests</h1>
+      <p>Every code-changing automation ends with a branch, provider record, checks, and links back to issue and run context.</p>
+      <div class="ops-summary" aria-label="Change Request summary">
+        <span><strong><%= @change_request_counts.fetch(:total) %></strong> requests</span>
+        <span><strong><%= @change_request_counts.fetch(:open) %></strong> open</span>
+        <span><strong><%= @change_request_counts.fetch(:linked_runs) %></strong> run-linked</span>
+        <span><strong><%= @change_request_counts.fetch(:linked_issues) %></strong> issue-linked</span>
+      </div>
+    </div>
+  </header>
 
-<section class="linear-surface">
-  <div class="linear-toolbar">
-    <div class="flex min-w-0 items-center gap-2">
-      <%= lucide_icon("git-pull-request", class_name: "app-icon text-muted-foreground") %>
-      <h2 class="linear-title">Change Requests</h2>
+  <section class="ops-section">
+    <div class="ops-section-head">
+      <div>
+        <p class="app-eyebrow">Review queue</p>
+        <h2>Grouped by status</h2>
+      </div>
       <span class="linear-count"><%= @change_requests.size %></span>
     </div>
-  </div>
-  <div class="linear-list">
-    <% @change_requests.each do |cr| %>
-      <%= link_to change_request_path(cr), class: "linear-row" do %>
-        <span class="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-muted/45 text-muted-foreground">
-          <%= lucide_icon("git-branch", class_name: "app-icon") %>
-        </span>
-        <div class="linear-row-main">
-          <p class="linear-row-title"><%= cr.title %></p>
-          <div class="linear-row-meta">
-            <span><%= cr.provider %></span>
-            <span><%= cr.repository_connection.full_name.presence || cr.repository_connection.name %></span>
-            <span><%= cr.branch_name %></span>
+
+    <div class="ops-group-list">
+      <% @status_groups.each do |status, requests| %>
+        <section class="ops-group">
+          <div class="ops-group-head">
+            <h3><%= status.to_s.titleize %></h3>
+            <span class="linear-count"><%= requests.size %></span>
           </div>
-        </div>
-        <span class="status-pill"><%= cr.status %></span>
+          <div class="ops-list">
+            <% requests.each do |cr| %>
+              <%= link_to change_request_path(cr), class: "ops-row" do %>
+                <%= status_icon_pill(cr.status, title: cr.status.to_s.titleize) %>
+                <span class="record-point-main">
+                  <span class="record-point-title"><%= cr.title %></span>
+                  <span class="record-point-meta">
+                    <span><%= cr.provider %></span>
+                    <span><%= cr.repository_connection.full_name.presence || cr.repository_connection.name %></span>
+                    <span class="break-all"><%= cr.branch_name %></span>
+                    <% if cr.issue %><span><%= cr.issue.identifier %></span><% end %>
+                  </span>
+                </span>
+                <span class="linear-count"><%= cr.external_id.presence || "draft" %></span>
+              <% end %>
+            <% end %>
+          </div>
+        </section>
       <% end %>
-    <% end %>
-    <% if @change_requests.empty? %><p class="linear-empty">No Change Requests yet.</p><% end %>
-  </div>
-</section>
+      <% if @change_requests.empty? %>
+        <p class="linear-empty px-0 py-6 text-left">No Change Requests yet.</p>
+      <% end %>
+    </div>
+  </section>
+</div>

@@ -1,8 +1,19 @@
-<%= form_with model: skill_definition, url: skill_definition.persisted? ? skill_path(skill_definition) : skills_path, class: "space-y-4" do |form| %>
+<%= form_with model: skill_definition,
+      url: skill_definition.persisted? ? release_skill_path(skill_definition) : skills_path,
+      method: :post,
+      class: "space-y-4" do |form| %>
   <%= render "shared/form_errors", object: skill_definition %>
-  <div class="grid gap-4 sm:grid-cols-2">
+  <div class="grid gap-4 sm:grid-cols-3">
     <div><%= form.label :name, class: "app-label" %><%= form.text_field :name, class: "app-input", required: true %></div>
     <div><%= form.label :key, class: "app-label" %><%= form.text_field :key, class: "app-input", required: true %></div>
+    <div>
+      <%= form.label :version, class: "app-label" %>
+      <%= form.text_field :version,
+            class: "app-input",
+            required: true,
+            placeholder: "1.0.0",
+            readonly: skill_definition.persisted? %>
+    </div>
   </div>
   <div><%= form.label :category, class: "app-label" %><%= form.select :category, SkillDefinition::CATEGORIES, {}, class: "app-input" %></div>
   <%= render "shared/markdown_editor",
@@ -30,5 +41,33 @@
     <div><%= label_tag "skill_definition_output_schema_json", "Output schema JSON", class: "app-label" %><%= text_area_tag "skill_definition[output_schema_json]", JSON.pretty_generate(skill_definition.output_schema.presence || {}), rows: 8, class: "app-textarea font-mono text-xs" %></div>
   </div>
   <div><%= label_tag "skill_definition_metadata_json", "Metadata JSON", class: "app-label" %><%= text_area_tag "skill_definition[metadata_json]", JSON.pretty_generate(skill_definition.metadata.presence || {}), rows: 5, class: "app-textarea font-mono text-xs" %></div>
-  <%= form.submit class: "app-btn app-btn-primary" %>
+  <% if skill_definition.persisted? %>
+    <div class="catalog-source-note">
+      <div class="flex min-w-0 flex-wrap items-center justify-between gap-3">
+        <div class="min-w-0">
+          <p class="app-eyebrow">Release</p>
+          <div class="mt-1 flex min-w-0 flex-wrap items-center gap-2">
+            <strong class="text-sm font-semibold text-foreground"><%= skill_definition.versioned_key %></strong>
+            <% if skill_definition.latest_version? %>
+              <span class="linear-count">latest</span>
+            <% end %>
+          </div>
+        </div>
+        <div class="flex shrink-0 flex-wrap justify-end gap-2">
+          <% (@release_versions || {}).each do |level, version| %>
+            <%= button_tag type: "submit",
+                  name: "level",
+                  value: level,
+                  class: "app-btn app-btn-muted",
+                  data: { turbo_confirm: "Release #{skill_definition.key}@#{version}?" } do %>
+              <span><%= level.titleize %></span>
+              <span class="linear-count">@<%= version %></span>
+            <% end %>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  <% else %>
+    <%= form.submit class: "app-btn app-btn-primary" %>
+  <% end %>
 <% end %>

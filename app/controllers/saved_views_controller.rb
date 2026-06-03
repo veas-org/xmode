@@ -1,8 +1,27 @@
 class SavedViewsController < AuthenticatedController
+  ISSUE_VIEW_TYPES = %w[inbox my_issues backlog active_cycle].freeze
+  VIEW_ORDER = {
+    "inbox" => 0,
+    "my_issues" => 1,
+    "backlog" => 2,
+    "active_cycle" => 3,
+    "roadmap" => 4,
+    "automation_queue" => 5
+  }.freeze
+
   before_action :set_saved_view, only: :show
 
   def index
     load_view_rows
+    @view_counts = {
+      total: @view_rows.size,
+      issue_views: @view_rows.count { |row| row.fetch(:view).view_type.in?(ISSUE_VIEW_TYPES) },
+      roadmap: @view_rows.count { |row| row.dig(:view).view_type == "roadmap" },
+      automation: @view_rows.count { |row| row.dig(:view).view_type == "automation_queue" }
+    }
+    @view_tree = build_view_tree(@view_rows)
+    @primary_view_row = @view_rows.find { |row| row.fetch(:view).view_type == "inbox" } || @view_rows.first
+    @sibling_view_rows = sibling_rows_for(@primary_view_row)
   end
 
   def show
@@ -10,6 +29,8 @@ class SavedViewsController < AuthenticatedController
     @view_row = row_for(@saved_view)
     @view_description = description_for(@saved_view)
     @source_path = source_path_for(@saved_view)
+    @scope_label = @saved_view.team&.name || current_workspace.name
+    @sibling_view_rows = sibling_rows_for(@view_row)
 
     case @saved_view.view_type
     when "roadmap"
@@ -28,8 +49,35 @@ class SavedViewsController < AuthenticatedController
   end
 
   def load_view_rows
-    @views = current_workspace.saved_views.includes(:team).order(:name)
+    @views = current_workspace.saved_views.includes(:team).order(:team_id, :name)
     @view_rows = @views.map { |view| row_for(view) }
+  end
+
+  def build_view_tree(rows)
+    rows.group_by { |row| row.fetch(:view).team }.sort_by { |team, _team_rows| team&.name.to_s }.map do |team, team_rows|
+      {
+        key: team ? "team-#{team.id}" : "workspace",
+        label: team&.name || current_workspace.name,
+        subtitle: team ? "#{current_workspace.name} team" : "Workspace views",
+        count: team_rows.size,
+        rows: sort_view_rows(team_rows)
+      }
+    end
+  end
+
+  def sort_view_rows(rows)
+    rows.sort_by { |row| [ view_position(row.fetch(:view)), row.fetch(:view).name ] }
+  end
+
+  def sibling_rows_for(row)
+    return [] unless row
+
+    view = row.fetch(:view)
+    sort_view_rows(@view_rows.select { |candidate| candidate.fetch(:view).team_id == view.team_id })
+  end
+
+  def view_position(view)
+    VIEW_ORDER.fetch(view.view_type, VIEW_ORDER.length)
   end
 
   def row_for(view)

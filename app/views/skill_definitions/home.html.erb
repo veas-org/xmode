@@ -1,0 +1,182 @@
+<% content_for :page_title, "Home" %>
+
+<div class="skill-home skill-home-minimal">
+  <header class="skill-home-header">
+    <div class="min-w-0">
+      <p class="app-eyebrow">Skills home</p>
+      <h1>Skills</h1>
+      <p>Versioned playbooks that shape objectives, planning fallback, best practices, and evidence for reusable actions.</p>
+      <div class="skill-home-summary" aria-label="Skill library summary">
+        <span><strong><%= @stats.fetch(:skills) %></strong> skills</span>
+        <span><strong><%= @stats.fetch(:categories) %></strong> modes</span>
+        <span><strong><%= @stats.fetch(:actions) %></strong> bound actions</span>
+        <span><strong><%= @stats.fetch(:versioned) %></strong> versioned</span>
+      </div>
+    </div>
+    <div class="skill-home-actions">
+      <% if permitted?(:manage_pipelines) %>
+        <%= link_to new_skill_path, class: "app-btn app-btn-muted", data: side_panel_data do %>
+          <%= lucide_icon("plus", class_name: "app-icon") %>
+          <span>New</span>
+        <% end %>
+        <%= link_to import_skills_path, class: "app-btn app-btn-muted", data: side_panel_data do %>
+          <%= lucide_icon("upload", class_name: "app-icon") %>
+          <span>Import</span>
+        <% end %>
+      <% end %>
+    </div>
+  </header>
+
+  <div class="skill-home-spotlight-grid">
+    <section class="skill-home-section">
+      <div class="skill-section-title">
+        <div>
+          <p class="app-eyebrow">Favorites</p>
+          <h2>Pinned skills</h2>
+        </div>
+      </div>
+      <div class="skill-home-list">
+        <% @favorite_skills.each do |skill| %>
+          <%= link_to skill_path(skill), class: "skill-home-row is-featured" do %>
+            <span class="record-point-main">
+              <span class="record-point-title"><%= skill.name %></span>
+              <span class="record-point-meta">
+                <span><%= skill.versioned_key %></span>
+                <% if skill.latest_version? %>
+                  <span>latest</span>
+                <% end %>
+                <span><%= skill.category %></span>
+                <span><%= pluralize(skill.best_practices.size, "practice") %></span>
+              </span>
+            </span>
+            <span class="linear-count">@<%= skill.version %></span>
+          <% end %>
+        <% end %>
+        <% if @favorite_skills.empty? %>
+          <p class="linear-empty px-0 py-4 text-left">No favorite skills are defined for this workspace.</p>
+        <% end %>
+      </div>
+    </section>
+
+    <section class="skill-home-section">
+      <div class="skill-section-title">
+        <div>
+          <p class="app-eyebrow">Most used</p>
+          <h2>High-traffic skills</h2>
+        </div>
+      </div>
+      <div class="skill-home-list">
+        <% @high_leverage_skills.each do |skill| %>
+          <%= link_to skill_path(skill), class: "skill-home-row" do %>
+            <span class="record-point-main">
+              <span class="record-point-title"><%= skill.name %></span>
+              <span class="record-point-meta">
+                <span><%= skill.versioned_key %></span>
+                <% if skill.latest_version? %>
+                  <span>latest</span>
+                <% end %>
+                <span><%= skill.category %></span>
+                <span><%= pluralize(skill.action_definitions.size, "action") %></span>
+              </span>
+            </span>
+            <span class="linear-count"><%= skill.action_definitions.size %></span>
+          <% end %>
+        <% end %>
+        <% if @high_leverage_skills.empty? %>
+          <p class="linear-empty px-0 py-4 text-left">No skill usage is available yet.</p>
+        <% end %>
+      </div>
+    </section>
+  </div>
+
+  <section class="skill-home-section skill-home-table-section">
+    <div class="skill-section-title">
+      <div>
+        <p class="app-eyebrow">Library</p>
+        <h2>All skills</h2>
+      </div>
+      <span class="linear-count"><%= @pagination.total_count %></span>
+    </div>
+
+    <%= form_with url: skills_home_path, method: :get, class: "catalog-home-filter" do %>
+      <label class="catalog-filter-field catalog-filter-search">
+        <%= lucide_icon("search", class_name: "app-icon") %>
+        <%= search_field_tag :q, @query, placeholder: "Filter skills...", class: "catalog-filter-input" %>
+      </label>
+      <label class="catalog-filter-field">
+        <span>Category</span>
+        <%= select_tag :category,
+              options_for_select([ [ "All", "" ] ] + @category_options.map { |category| [ category.to_s.titleize, category ] }, @category),
+              class: "catalog-filter-select" %>
+      </label>
+      <label class="catalog-filter-field">
+        <span>Rows</span>
+        <%= select_tag :per_page, options_for_select(AuthenticatedController::CATALOG_PER_PAGE_OPTIONS, @pagination.per_page), class: "catalog-filter-select" %>
+      </label>
+      <button class="app-btn app-btn-muted" type="submit">
+        <span>Apply</span>
+      </button>
+      <% if @query.present? || @category.present? || @pagination.per_page != AuthenticatedController::CATALOG_PER_PAGE_OPTIONS.first %>
+        <%= link_to "Clear", skills_home_path, class: "app-btn app-btn-muted" %>
+      <% end %>
+    <% end %>
+
+    <% if @table_skills.any? %>
+      <div class="catalog-table-wrap skill-home-table-wrap">
+        <table class="app-table catalog-table skill-home-table">
+          <colgroup>
+            <col class="catalog-col-name">
+            <col class="catalog-col-source">
+            <col class="catalog-col-trigger">
+            <col class="catalog-col-compact">
+            <col class="catalog-col-wide">
+          </colgroup>
+          <thead>
+            <tr>
+              <th>Skill</th>
+              <th>Category</th>
+              <th>Version</th>
+              <th>Usage</th>
+              <th>Contract</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @table_skills.each do |skill| %>
+              <tr>
+                <td>
+                  <%= link_to skill_path(skill), class: "catalog-table-primary" do %>
+                    <span class="min-w-0">
+                      <span><%= skill.name %></span>
+                      <small>
+                        <%= skill.versioned_key %>
+                        <% if skill.latest_version? %>
+                          · latest
+                        <% end %>
+                      </small>
+                    </span>
+                  <% end %>
+                </td>
+                <td><span class="catalog-table-muted"><%= skill.category.to_s.titleize %></span></td>
+                <td><code class="catalog-table-code">@<%= skill.version %></code></td>
+                <td><span class="catalog-table-muted"><%= pluralize(skill.action_definitions.size, "action") %></span></td>
+                <td>
+                  <span class="catalog-table-muted">
+                    <%= skill.objective_template.present? ? "objective" : "no objective" %>
+                    ·
+                    <%= skill.plan_template.present? ? "plan" : "no plan" %>
+                  </span>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% else %>
+      <p class="linear-empty px-0 py-6 text-left">No skills match this filter.</p>
+    <% end %>
+
+    <%= render "shared/table_pagination",
+          pagination: @pagination,
+          filter_params: { q: @query, category: @category, per_page: @pagination.per_page } %>
+  </section>
+</div>

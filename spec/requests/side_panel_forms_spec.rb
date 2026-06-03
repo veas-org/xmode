@@ -67,9 +67,9 @@ RSpec.describe "Side panel forms", type: :request do
       cycle_path(cycle) => [ edit_cycle_path(cycle), new_issue_path(cycle_id: cycle.id) ],
       schedules_path => [ new_schedule_path ],
       schedule_path(schedule) => [ edit_schedule_path(schedule) ],
-      skills_path => [ import_skills_path, new_skill_path ],
-      actions_path => [ import_actions_path, new_action_path ],
-      pipelines_path => [ import_pipelines_path, new_pipeline_path ],
+      skills_home_path => [ import_skills_path, new_skill_path ],
+      actions_home_path => [ import_actions_path, new_action_path ],
+      pipelines_home_path => [ import_pipelines_path, new_pipeline_path ],
       pipeline_path(pipeline) => [ edit_pipeline_path(pipeline), new_schedule_path(pipeline_definition_id: pipeline.id) ],
       integrations_path => [ new_integration_path, new_repository_connection_path, edit_repository_connection_path(repository) ]
     }
@@ -83,6 +83,46 @@ RSpec.describe "Side panel forms", type: :request do
         expect(doc.at_css(selector)).to be_present, "#{page_path} should open #{panel_link} in the side panel"
       end
     end
+  end
+
+  it "exposes interactive pipeline node controls in the graph editor" do
+    Demo::PlanetExpressSeeder.call
+    user = User.find_by!(email: Demo::PlanetExpressSeeder::BENDER_EMAIL)
+
+    post login_path, params: { email: user.email, password: Demo::PlanetExpressSeeder::PASSWORD }
+    get new_pipeline_path
+
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include("Interactive")
+    expect(response.body).to include("Decision")
+    expect(response.body).to include("Follow-up")
+    expect(response.body).to include("Goal check")
+    expect(response.body).to include("pipeline-graph#addInteractionNode")
+  end
+
+  it "keeps invalid pipeline graph JSON visible as a side panel validation error" do
+    Demo::PlanetExpressSeeder.call
+    workspace = Workspace.find_by!(slug: "planet-express")
+    user = User.find_by!(email: Demo::PlanetExpressSeeder::BENDER_EMAIL)
+    pipeline = workspace.pipeline_definitions.first
+
+    post login_path, params: { email: user.email, password: Demo::PlanetExpressSeeder::PASSWORD }
+
+    patch pipeline_path(pipeline), params: {
+      pipeline_definition: {
+        name: pipeline.name,
+        key: pipeline.key,
+        graph_json: "{",
+        required_context_json: "{}"
+      }
+    }
+
+    expect(response).to have_http_status(:unprocessable_entity)
+    expect(response.body).to include("Graph must be valid JSON")
+    doc = Nokogiri::HTML(response.body)
+    graph_field = doc.at_css(%(textarea[name="pipeline_definition[graph_json]"]))
+    expect(graph_field&.text&.strip).to eq("{")
+    expect(response.body).to include("app-side-panel")
   end
 
   it "does not expose direct add edit or import links inside authenticated app pages" do
@@ -100,7 +140,7 @@ RSpec.describe "Side panel forms", type: :request do
       cycle_path(workspace.cycles.first),
       schedules_path,
       schedule_path(workspace.schedules.first),
-      skills_path,
+      skills_home_path,
       actions_path,
       pipelines_path,
       pipeline_path(workspace.pipeline_definitions.first),

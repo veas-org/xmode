@@ -1,18 +1,13 @@
 <% content_for :page_title, "Skills" %>
 
-<div class="app-page-actions">
-  <div>
-    <p class="app-eyebrow">Skill management</p>
-    <p class="mt-1 max-w-2xl text-sm text-muted-foreground">Reusable team capabilities. Each skill defines how objectives, plans, evidence, and best practices should flow into executable actions.</p>
-  </div>
-</div>
-
-<section class="linear-surface">
-  <div class="linear-toolbar">
-    <div class="flex min-w-0 items-center gap-2">
-      <%= lucide_icon("sparkles", class_name: "app-icon text-muted-foreground") %>
-      <h2 class="linear-title">Skills library</h2>
-      <span class="linear-count"><%= @skills.size %></span>
+<section class="ops-section catalog-index catalog-list-section">
+  <div class="catalog-list-head">
+    <div class="min-w-0">
+      <div class="flex min-w-0 items-center gap-2">
+        <h2 class="linear-title">Skills library</h2>
+        <span class="linear-count"><%= @pagination.total_count %></span>
+      </div>
+      <p class="mt-1 max-w-3xl truncate text-xs text-muted-foreground">Versioned playbooks for objectives, plans, evidence, and best practices.</p>
     </div>
     <% if permitted?(:manage_pipelines) %>
       <div class="flex items-center gap-1.5">
@@ -28,33 +23,116 @@
     <% end %>
   </div>
 
-  <div class="grid gap-2 p-2 md:grid-cols-2 xl:grid-cols-3">
-    <% @skills.each do |skill| %>
-      <%= link_to skill_path(skill), class: "rounded-lg bg-muted/30 p-4 transition-colors hover:bg-muted/55" do %>
-        <div class="flex items-start justify-between gap-3">
-          <div class="min-w-0">
-            <p class="app-eyebrow"><%= skill.category %></p>
-            <h3 class="mt-1 truncate text-sm font-semibold text-foreground"><%= skill.name %></h3>
-          </div>
-          <span class="status-pill"><%= pluralize(skill.action_definitions.size, "action") %></span>
-        </div>
-        <p class="mt-3 line-clamp-3 text-sm leading-6 text-muted-foreground"><%= strip_tags(render_markdown(skill.description)).presence || "No description." %></p>
-        <div class="mt-4 flex flex-wrap gap-2">
-          <span class="status-pill"><%= skill.objective_template.present? ? "objective template" : "custom objective" %></span>
-          <span class="status-pill"><%= skill.plan_template.present? ? "plan fallback" : "manual plan" %></span>
-        </div>
+  <%= form_with url: skills_path, method: :get, class: "catalog-filter-bar" do %>
+    <%= hidden_field_tag :mode, "list" %>
+    <label class="catalog-filter-field catalog-filter-search">
+      <%= lucide_icon("search", class_name: "app-icon") %>
+      <%= search_field_tag :q, @query, placeholder: "Filter skills...", class: "catalog-filter-input" %>
+    </label>
+    <label class="catalog-filter-field">
+      <span>Category</span>
+      <%= select_tag :category,
+            options_for_select([ [ "All", "" ] ] + @category_options.map { |category| [ category.to_s.titleize, category ] }, @category),
+            class: "catalog-filter-select" %>
+    </label>
+    <label class="catalog-filter-field">
+      <span>Rows</span>
+      <%= select_tag :per_page, options_for_select(AuthenticatedController::CATALOG_PER_PAGE_OPTIONS, @pagination.per_page), class: "catalog-filter-select" %>
+    </label>
+    <button class="app-btn app-btn-muted" type="submit">
+      <%= lucide_icon("list-filter", class_name: "app-icon") %>
+      <span>Apply</span>
+    </button>
+    <% if @query.present? || @category.present? || @pagination.per_page != AuthenticatedController::CATALOG_PER_PAGE_OPTIONS.first %>
+      <%= link_to skills_path(mode: "list"), class: "app-btn app-btn-muted" do %>
+        <%= lucide_icon("x", class_name: "app-icon") %>
+        <span>Clear</span>
       <% end %>
     <% end %>
-    <% if @skills.empty? %>
-      <div class="linear-empty md:col-span-2 xl:col-span-3">
-        <p>No skills are defined for this workspace.</p>
-        <% if permitted?(:manage_pipelines) %>
-          <%= link_to new_skill_path, class: "app-btn app-btn-muted mt-4", data: side_panel_data do %>
-            <%= lucide_icon("plus", class_name: "app-icon") %>
-            <span>Add skill</span>
+  <% end %>
+
+  <% if @skills.any? %>
+    <div class="catalog-table-wrap">
+      <table class="app-table catalog-table">
+        <colgroup>
+          <col class="catalog-col-name">
+          <col class="catalog-col-source">
+          <col class="catalog-col-trigger">
+          <col class="catalog-col-compact">
+          <col class="catalog-col-wide">
+          <col class="catalog-col-actions">
+        </colgroup>
+        <thead>
+          <tr>
+            <th>Skill</th>
+            <th>Category</th>
+            <th>Version</th>
+            <th>Usage</th>
+            <th>Contract</th>
+            <th aria-label="Actions"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @skills.each do |skill| %>
+            <tr>
+              <td>
+                <%= link_to skill_path(skill), class: "catalog-table-primary" do %>
+                  <span class="app-view-icon"><%= lucide_icon("sparkles", class_name: "app-icon") %></span>
+                  <span class="min-w-0">
+                    <span><%= skill.name %></span>
+                    <small>
+                      <%= skill.versioned_key %>
+                      <% if skill.latest_version? %>
+                        · latest
+                      <% end %>
+                    </small>
+                  </span>
+                <% end %>
+              </td>
+              <td><span class="status-pill"><%= skill.category.to_s.titleize %></span></td>
+              <td><code class="catalog-table-code">@<%= skill.version %></code></td>
+              <td>
+                <span class="catalog-table-muted"><%= pluralize(skill.action_definitions.size, "action") %></span>
+              </td>
+              <td>
+                <span class="catalog-table-muted">
+                  <%= skill.objective_template.present? ? "objective" : "no objective" %>
+                  ·
+                  <%= skill.plan_template.present? ? "plan" : "no plan" %>
+                  ·
+                  <%= pluralize(skill.best_practices.size, "practice") %>
+                </span>
+              </td>
+              <td>
+                <div class="catalog-table-actions">
+                  <%= link_to source_skill_path(skill), class: "app-icon-btn", title: "Source", aria: { label: "Source" }, data: side_panel_data do %>
+                    <%= lucide_icon("file-pen-line", class_name: "app-icon") %>
+                  <% end %>
+                  <% if permitted?(:manage_pipelines) %>
+                    <%= link_to edit_skill_path(skill), class: "app-icon-btn", title: "Edit skill", aria: { label: "Edit skill" }, data: side_panel_data do %>
+                      <%= lucide_icon("pencil", class_name: "app-icon") %>
+                    <% end %>
+                  <% end %>
+                </div>
+              </td>
+            </tr>
           <% end %>
+        </tbody>
+      </table>
+    </div>
+  <% else %>
+    <div class="linear-empty">
+      <p>No skills are defined for this workspace.</p>
+      <% if permitted?(:manage_pipelines) %>
+        <%= link_to new_skill_path, class: "app-btn app-btn-muted mt-4", data: side_panel_data do %>
+          <%= lucide_icon("plus", class_name: "app-icon") %>
+          <span>Add skill</span>
         <% end %>
-      </div>
-    <% end %>
-  </div>
+      <% end %>
+    </div>
+  <% end %>
+
+  <%= render "shared/table_pagination",
+        pagination: @pagination,
+        filter_params: { mode: params[:mode].presence, q: @query, category: @category, per_page: @pagination.per_page } %>
 </section>

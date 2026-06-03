@@ -1,5 +1,5 @@
 class PipelineRun < ApplicationRecord
-  STATUSES = %w[queued running waiting_for_approval completed failed canceled].freeze
+  STATUSES = %w[queued running waiting_for_approval waiting_for_input completed failed canceled].freeze
 
   belongs_to :workspace
   belongs_to :pipeline_definition, optional: true
@@ -12,6 +12,9 @@ class PipelineRun < ApplicationRecord
   has_many :run_logs, dependent: :destroy
   has_many :run_artifacts, dependent: :destroy
   has_many :approvals, dependent: :destroy
+  has_many :run_messages, dependent: :destroy
+  has_many :sandbox_sessions, dependent: :destroy
+  has_many :sandbox_commands, dependent: :destroy
   has_one :change_request, dependent: :nullify
 
   before_validation :capture_pipeline_snapshot, on: :create
@@ -34,6 +37,10 @@ class PipelineRun < ApplicationRecord
     else
       trigger.to_s.tr("_", " ").titleize
     end
+  end
+
+  def pending_run_message
+    run_messages.pending.order(:created_at).last
   end
 
   private

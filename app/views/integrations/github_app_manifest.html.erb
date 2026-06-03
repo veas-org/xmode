@@ -1,0 +1,34 @@
+<% content_for :page_title, "Create GitHub App" %>
+
+<div class="ops-page">
+  <header class="ops-hero">
+    <div class="min-w-0">
+      <p class="app-eyebrow">GitHub App manifest</p>
+      <h1>Create GitHub App</h1>
+      <p>xmode is sending a private, preconfigured GitHub App manifest to GitHub. You can review the app name and permissions there before creating it.</p>
+    </div>
+  </header>
+
+  <section class="ops-section max-w-3xl">
+    <div class="ops-section-head">
+      <div>
+        <p class="app-eyebrow">Redirect</p>
+        <h2>Continue to GitHub</h2>
+      </div>
+      <span class="linear-count">manifest</span>
+    </div>
+
+    <p class="text-sm leading-6 text-muted-foreground">
+      The manifest requests repository metadata, contents write access, pull request write access, and issue read access so xmode can import private repositories, push automation branches, and open Pull Requests.
+    </p>
+
+    <form id="github-app-manifest-form" class="mt-4" action="<%= @github_app_manifest_action %>" method="post">
+      <input type="hidden" name="manifest" value="<%= @github_app_manifest_json %>">
+      <button class="app-btn app-btn-primary" type="submit">Continue to GitHub</button>
+    </form>
+  </section>
+</div>
+
+<script>
+  document.getElementById("github-app-manifest-form")?.submit();
+</script>

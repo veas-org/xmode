@@ -14,6 +14,7 @@ Useful environment variables:
 
 - `LANDING_BASE_URL` - optional public marketing site URL used for product, pricing, security, privacy, and terms redirects.
 - `APP_BASE_URL` - optional canonical app URL used by external surfaces that link back into the product app.
+- `XMODE_GITHUB_APP_ID`, `XMODE_GITHUB_APP_SLUG`, and `XMODE_GITHUB_APP_PRIVATE_KEY` - optional GitHub App credentials for private repository import and Pull Request creation without user-managed personal tokens.
 
 ## Planning Docs
 
@@ -21,6 +22,7 @@ Useful environment variables:
 - [Product Plan](docs/product-plan.md)
 - [Domain Model](docs/domain-model.md)
 - [Automation Model](docs/automation-model.md)
+- [Agent Workflow Plan](docs/agent-workflow-plan.md)
 - [Architecture Plan](docs/architecture-plan.md)
 - [Commercialization Plan](docs/commercialization-plan.md)
 - [Implementation Roadmap](docs/implementation-roadmap.md)
@@ -29,6 +31,7 @@ Useful environment variables:
 - [Skill Authoring](docs/skill-authoring.md)
 - [Action Authoring](docs/action-authoring.md)
 - [Pipeline Authoring](docs/pipeline-authoring.md)
+- [Event SDKs](docs/event-sdks.md)
 - [Security Model](docs/security-model.md)
 
 ## Core Direction
@@ -42,6 +45,7 @@ Useful environment variables:
 - Email/password authentication initially
 - Multiple workspaces and teams
 - Skill management for reusable capabilities behind actions
+- Structured run chat for decisions, follow-ups, goal checks, approvals, and sandbox evidence
 - Stripe billing scaffold for future hosted SaaS
 - Seeded Planet Express demo workspace with Bender demo login
 - Fake Planet Express agent operations for demo pipeline runs

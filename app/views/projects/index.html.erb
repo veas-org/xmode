@@ -1,23 +1,98 @@
 <% content_for :page_title, "Projects" %>
-<div class="app-page-actions">
-  <p class="text-sm text-muted-foreground">Track delivery work, repositories, and automation defaults.</p>
-  <%= link_to new_project_path, class: "app-btn app-btn-primary", data: side_panel_data do %>
-    <%= lucide_icon("plus", class_name: "app-icon") %>
-    <span>Project</span>
-  <% end %>
-</div>
-<div class="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-  <% @projects.each do |project| %>
-    <%= link_to project_path(project), class: "linear-surface block p-5 transition-colors hover:bg-muted/50" do %>
-      <div class="flex items-center justify-between gap-3">
-        <h2 class="font-semibold text-foreground"><%= project.title %></h2>
-        <span class="status-pill"><%= project.status %></span>
+
+<div class="ops-page projects-page">
+  <header class="ops-hero">
+    <div class="min-w-0">
+      <p class="app-eyebrow">Project management</p>
+      <h1>Projects</h1>
+      <p>Projects are shown by team so sibling delivery tracks stay together. Status, repository, and issue count stay on the row.</p>
+      <div class="ops-summary" aria-label="Project summary">
+        <span><strong><%= @project_counts.fetch(:total) %></strong> projects</span>
+        <span><strong><%= @project_counts.fetch(:active) %></strong> active</span>
+        <span><strong><%= @project_counts.fetch(:repositories) %></strong> repositories</span>
+        <span><strong><%= @project_counts.fetch(:issues) %></strong> issues</span>
       </div>
-      <p class="mt-3 line-clamp-3 text-sm text-muted-foreground"><%= strip_tags(render_markdown(project.description)).presence || "No description." %></p>
-      <div class="mt-5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-        <span class="status-pill"><%= pluralize(project.issues.count, "issue") %></span>
-        <span><%= project.repository_url.presence || "No repository" %></span>
-      </div>
+    </div>
+    <%= link_to new_project_path, class: "app-btn app-btn-primary", data: side_panel_data do %>
+      <%= lucide_icon("plus", class_name: "app-icon") %>
+      <span>Project</span>
     <% end %>
-  <% end %>
+  </header>
+
+  <div class="views-layout">
+    <section class="views-tree-panel" aria-labelledby="projects-tree-title">
+      <div class="views-panel-head">
+        <div>
+          <p class="app-eyebrow">Outline</p>
+          <h2 id="projects-tree-title">Team projects</h2>
+        </div>
+        <span class="linear-count"><%= @projects.size %></span>
+      </div>
+
+      <% if @project_tree.any? %>
+        <div class="views-tree projects-tree">
+          <% @project_tree.each do |node| %>
+            <% team = node.fetch(:team) %>
+            <section class="views-tree-root">
+              <div class="views-root-head">
+                <span class="views-root-marker" aria-hidden="true"></span>
+                <span class="views-root-main">
+                  <span class="views-root-title"><%= team.name %></span>
+                  <span class="views-root-meta"><%= current_workspace.name %> team · <%= pluralize(node.fetch(:count), "project") %> · <%= node.fetch(:active) %> active</span>
+                </span>
+              </div>
+
+              <div class="views-sibling-list">
+                <% node.fetch(:projects).each do |project| %>
+                  <%= link_to project_path(project), class: "views-sibling-row #{'is-primary' if project == @primary_project}" do %>
+                    <span class="views-sibling-main">
+                      <span class="views-sibling-title"><%= project.title %></span>
+                      <span class="views-sibling-meta">
+                        <span><%= project.key %></span>
+                        <span><%= project.status.titleize %></span>
+                        <span><%= pluralize(project.issues.size, "issue") %></span>
+                        <span><%= project.repository_url.present? ? "Repository linked" : "No repository" %></span>
+                      </span>
+                    </span>
+                    <span class="views-sibling-count"><%= project.updated_at.strftime("%b %-d") %></span>
+                  <% end %>
+                <% end %>
+              </div>
+            </section>
+          <% end %>
+        </div>
+      <% else %>
+        <p class="linear-empty px-0 py-6 text-left">No projects yet.</p>
+      <% end %>
+    </section>
+
+    <aside class="views-preview-panel" aria-label="Project preview">
+      <% if @primary_project %>
+        <div class="views-panel-head">
+          <div>
+            <p class="app-eyebrow">Preview</p>
+            <h2><%= @primary_project.team.name %></h2>
+          </div>
+          <%= status_icon_pill(@primary_project.status, title: @primary_project.status.titleize) %>
+        </div>
+
+        <section class="views-preview-summary">
+          <p class="views-preview-title"><%= @primary_project.title %></p>
+          <p><%= @primary_project.description.presence || "No project brief has been written yet." %></p>
+          <dl class="views-preview-kv">
+            <div><dt>Status</dt><dd><%= @primary_project.status.titleize %></dd></div>
+            <div><dt>Key</dt><dd><%= @primary_project.key %></dd></div>
+            <div><dt>Issues</dt><dd><%= @primary_project.issues.size %></dd></div>
+            <div><dt>Repository</dt><dd><%= @primary_project.repository_url.present? ? "Linked" : "Missing" %></dd></div>
+          </dl>
+          <div class="views-preview-actions">
+            <%= link_to "Open project", project_path(@primary_project), class: "app-btn app-btn-primary" %>
+            <%= link_to "Edit", edit_project_path(@primary_project), class: "app-btn app-btn-muted", data: side_panel_data %>
+          </div>
+        </section>
+      <% else %>
+        <p class="linear-empty px-0 py-6 text-left">Create a project to see its team outline.</p>
+      <% end %>
+    </aside>
+  </div>
 </div>

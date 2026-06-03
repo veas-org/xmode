@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_05_31_040000) do
+ActiveRecord::Schema[8.0].define(version: 2026_06_02_021000) do
   create_table "action_definitions", force: :cascade do |t|
     t.integer "workspace_id"
     t.string "key", null: false
@@ -35,8 +35,9 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_31_040000) do
     t.text "plan_template"
     t.text "execution_guidance"
     t.json "best_practices", default: [], null: false
+    t.string "version", default: "1.0.0", null: false
     t.index ["skill_definition_id"], name: "index_action_definitions_on_skill_definition_id"
-    t.index ["workspace_id", "key"], name: "index_action_definitions_on_workspace_id_and_key", unique: true
+    t.index ["workspace_id", "key", "version"], name: "index_action_definitions_on_workspace_key_version", unique: true
     t.index ["workspace_id"], name: "index_action_definitions_on_workspace_id"
   end
 
@@ -72,6 +73,26 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_31_040000) do
     t.index ["user_id"], name: "index_approvals_on_user_id"
   end
 
+  create_table "audit_events", force: :cascade do |t|
+    t.integer "workspace_id", null: false
+    t.integer "user_id"
+    t.string "auditable_type"
+    t.bigint "auditable_id"
+    t.string "action", null: false
+    t.string "severity", default: "info", null: false
+    t.string "source", default: "app", null: false
+    t.string "ip_address"
+    t.string "user_agent"
+    t.json "metadata", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["auditable_type", "auditable_id"], name: "index_audit_events_on_auditable_type_and_auditable_id"
+    t.index ["user_id"], name: "index_audit_events_on_user_id"
+    t.index ["workspace_id", "action"], name: "index_audit_events_on_workspace_id_and_action"
+    t.index ["workspace_id", "created_at"], name: "index_audit_events_on_workspace_id_and_created_at"
+    t.index ["workspace_id"], name: "index_audit_events_on_workspace_id"
+  end
+
   create_table "billing_subscriptions", force: :cascade do |t|
     t.integer "workspace_id", null: false
     t.string "plan", default: "community", null: false
@@ -83,6 +104,24 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_31_040000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["workspace_id"], name: "index_billing_subscriptions_on_workspace_id"
+  end
+
+  create_table "catalog_versions", force: :cascade do |t|
+    t.integer "workspace_id"
+    t.string "versionable_type", null: false
+    t.integer "versionable_id", null: false
+    t.string "key", null: false
+    t.string "version", null: false
+    t.integer "revision", default: 1, null: false
+    t.string "source", default: "app", null: false
+    t.integer "created_by_id"
+    t.json "snapshot", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["created_by_id"], name: "index_catalog_versions_on_created_by_id"
+    t.index ["versionable_type", "versionable_id", "version", "revision"], name: "index_catalog_versions_on_record_version_revision", unique: true
+    t.index ["versionable_type", "versionable_id"], name: "index_catalog_versions_on_versionable"
+    t.index ["workspace_id", "versionable_type", "key", "version"], name: "index_catalog_versions_on_workspace_catalog_key"
   end
 
   create_table "change_requests", force: :cascade do |t|
@@ -148,6 +187,21 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_31_040000) do
     t.index ["issue_id"], name: "index_events_on_issue_id"
     t.index ["project_id"], name: "index_events_on_project_id"
     t.index ["workspace_id"], name: "index_events_on_workspace_id"
+  end
+
+  create_table "execution_environments", force: :cascade do |t|
+    t.integer "workspace_id", null: false
+    t.integer "project_id"
+    t.string "kind", default: "ephemeral_sandbox", null: false
+    t.string "status", default: "ready", null: false
+    t.string "name", null: false
+    t.json "metadata", default: {}, null: false
+    t.datetime "last_used_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["project_id"], name: "index_execution_environments_on_project_id"
+    t.index ["workspace_id", "project_id", "kind", "name"], name: "idx_on_workspace_id_project_id_kind_name_ce578388cf", unique: true
+    t.index ["workspace_id"], name: "index_execution_environments_on_workspace_id"
   end
 
   create_table "goals", force: :cascade do |t|
@@ -296,7 +350,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_31_040000) do
     t.boolean "builtin", default: false, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["workspace_id", "key"], name: "index_pipeline_definitions_on_workspace_id_and_key", unique: true
+    t.string "version", default: "1.0.0", null: false
+    t.index ["workspace_id", "key", "version"], name: "index_pipeline_definitions_on_workspace_key_version", unique: true
     t.index ["workspace_id"], name: "index_pipeline_definitions_on_workspace_id"
   end
 
@@ -316,6 +371,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_31_040000) do
     t.text "error_message"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "automation_seconds_used", default: 0, null: false
+    t.datetime "usage_recorded_at"
     t.index ["event_id"], name: "index_pipeline_runs_on_event_id"
     t.index ["issue_id"], name: "index_pipeline_runs_on_issue_id"
     t.index ["pipeline_definition_id"], name: "index_pipeline_runs_on_pipeline_definition_id"
@@ -391,6 +448,73 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_31_040000) do
     t.index ["pipeline_run_id"], name: "index_run_logs_on_pipeline_run_id"
   end
 
+  create_table "run_messages", force: :cascade do |t|
+    t.integer "pipeline_run_id", null: false
+    t.integer "action_run_step_id"
+    t.integer "user_id"
+    t.string "role", null: false
+    t.string "kind", default: "text", null: false
+    t.string "status", default: "resolved", null: false
+    t.text "content"
+    t.json "payload", default: {}, null: false
+    t.datetime "answered_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["action_run_step_id"], name: "index_run_messages_on_action_run_step_id"
+    t.index ["pipeline_run_id", "created_at"], name: "index_run_messages_on_pipeline_run_id_and_created_at"
+    t.index ["pipeline_run_id", "status"], name: "index_run_messages_on_pipeline_run_id_and_status"
+    t.index ["pipeline_run_id"], name: "index_run_messages_on_pipeline_run_id"
+    t.index ["user_id"], name: "index_run_messages_on_user_id"
+  end
+
+  create_table "sandbox_commands", force: :cascade do |t|
+    t.integer "sandbox_session_id", null: false
+    t.integer "pipeline_run_id", null: false
+    t.integer "action_run_step_id"
+    t.integer "user_id"
+    t.string "status", default: "queued", null: false
+    t.text "command", null: false
+    t.text "stdout"
+    t.text "stderr"
+    t.integer "exit_status"
+    t.datetime "started_at"
+    t.datetime "finished_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["action_run_step_id"], name: "index_sandbox_commands_on_action_run_step_id"
+    t.index ["pipeline_run_id", "status"], name: "index_sandbox_commands_on_pipeline_run_id_and_status"
+    t.index ["pipeline_run_id"], name: "index_sandbox_commands_on_pipeline_run_id"
+    t.index ["sandbox_session_id", "created_at"], name: "index_sandbox_commands_on_sandbox_session_id_and_created_at"
+    t.index ["sandbox_session_id"], name: "index_sandbox_commands_on_sandbox_session_id"
+    t.index ["user_id"], name: "index_sandbox_commands_on_user_id"
+  end
+
+  create_table "sandbox_sessions", force: :cascade do |t|
+    t.integer "workspace_id", null: false
+    t.integer "project_id"
+    t.integer "pipeline_run_id", null: false
+    t.integer "action_run_step_id"
+    t.string "kind", default: "docker_worktree", null: false
+    t.string "status", default: "provisioning", null: false
+    t.string "worktree_path"
+    t.string "container_id"
+    t.string "browser_session_id"
+    t.datetime "started_at"
+    t.datetime "finished_at"
+    t.datetime "expires_at"
+    t.json "metadata", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.integer "execution_environment_id"
+    t.index ["action_run_step_id", "kind"], name: "index_sandbox_sessions_on_action_run_step_id_and_kind"
+    t.index ["action_run_step_id"], name: "index_sandbox_sessions_on_action_run_step_id"
+    t.index ["execution_environment_id"], name: "index_sandbox_sessions_on_execution_environment_id"
+    t.index ["pipeline_run_id", "status"], name: "index_sandbox_sessions_on_pipeline_run_id_and_status"
+    t.index ["pipeline_run_id"], name: "index_sandbox_sessions_on_pipeline_run_id"
+    t.index ["project_id"], name: "index_sandbox_sessions_on_project_id"
+    t.index ["workspace_id"], name: "index_sandbox_sessions_on_workspace_id"
+  end
+
   create_table "saved_views", force: :cascade do |t|
     t.integer "workspace_id", null: false
     t.integer "team_id"
@@ -436,8 +560,47 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_31_040000) do
     t.boolean "builtin", default: false, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["workspace_id", "key"], name: "index_skill_definitions_on_workspace_id_and_key", unique: true
+    t.string "version", default: "1.0.0", null: false
+    t.index ["workspace_id", "key", "version"], name: "index_skill_definitions_on_workspace_key_version", unique: true
     t.index ["workspace_id"], name: "index_skill_definitions_on_workspace_id"
+  end
+
+  create_table "sso_identities", force: :cascade do |t|
+    t.integer "user_id", null: false
+    t.integer "sso_provider_id", null: false
+    t.string "provider_uid", null: false
+    t.string "email", default: "", null: false
+    t.string "name", default: "", null: false
+    t.json "raw_info", default: {}, null: false
+    t.datetime "last_sign_in_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["sso_provider_id", "email"], name: "index_sso_identities_on_sso_provider_id_and_email"
+    t.index ["sso_provider_id", "provider_uid"], name: "index_sso_identities_on_sso_provider_id_and_provider_uid", unique: true
+    t.index ["sso_provider_id"], name: "index_sso_identities_on_sso_provider_id"
+    t.index ["user_id"], name: "index_sso_identities_on_user_id"
+  end
+
+  create_table "sso_providers", force: :cascade do |t|
+    t.integer "workspace_id", null: false
+    t.string "name", null: false
+    t.string "provider_type", default: "oidc", null: false
+    t.string "status", default: "active", null: false
+    t.string "issuer"
+    t.string "authorization_endpoint"
+    t.string "token_endpoint"
+    t.string "userinfo_endpoint"
+    t.string "client_id"
+    t.string "client_secret_ciphertext"
+    t.string "scopes", default: "openid email profile", null: false
+    t.string "email_domain"
+    t.boolean "allow_signups", default: true, null: false
+    t.string "default_membership_role", default: "member", null: false
+    t.json "metadata", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["workspace_id", "name"], name: "index_sso_providers_on_workspace_id_and_name", unique: true
+    t.index ["workspace_id"], name: "index_sso_providers_on_workspace_id"
   end
 
   create_table "teams", force: :cascade do |t|
@@ -473,7 +636,9 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_31_040000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.boolean "demo", default: false, null: false
+    t.string "webhook_secret", null: false
     t.index ["slug"], name: "index_workspaces_on_slug", unique: true
+    t.index ["webhook_secret"], name: "index_workspaces_on_webhook_secret", unique: true
   end
 
   add_foreign_key "action_definitions", "skill_definitions"
@@ -483,6 +648,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_31_040000) do
   add_foreign_key "approvals", "action_run_steps"
   add_foreign_key "approvals", "pipeline_runs"
   add_foreign_key "approvals", "users"
+  add_foreign_key "audit_events", "users"
+  add_foreign_key "audit_events", "workspaces"
   add_foreign_key "billing_subscriptions", "workspaces"
   add_foreign_key "change_requests", "issues"
   add_foreign_key "change_requests", "pipeline_runs"
@@ -494,6 +661,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_31_040000) do
   add_foreign_key "events", "issues"
   add_foreign_key "events", "projects"
   add_foreign_key "events", "workspaces"
+  add_foreign_key "execution_environments", "projects"
+  add_foreign_key "execution_environments", "workspaces"
   add_foreign_key "goals", "workspaces"
   add_foreign_key "integration_accounts", "workspaces"
   add_foreign_key "invitations", "teams"
@@ -532,10 +701,25 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_31_040000) do
   add_foreign_key "run_artifacts", "pipeline_runs"
   add_foreign_key "run_logs", "action_run_steps"
   add_foreign_key "run_logs", "pipeline_runs"
+  add_foreign_key "run_messages", "action_run_steps"
+  add_foreign_key "run_messages", "pipeline_runs"
+  add_foreign_key "run_messages", "users"
+  add_foreign_key "sandbox_commands", "action_run_steps"
+  add_foreign_key "sandbox_commands", "pipeline_runs"
+  add_foreign_key "sandbox_commands", "sandbox_sessions"
+  add_foreign_key "sandbox_commands", "users"
+  add_foreign_key "sandbox_sessions", "action_run_steps"
+  add_foreign_key "sandbox_sessions", "execution_environments"
+  add_foreign_key "sandbox_sessions", "pipeline_runs"
+  add_foreign_key "sandbox_sessions", "projects"
+  add_foreign_key "sandbox_sessions", "workspaces"
   add_foreign_key "saved_views", "teams"
   add_foreign_key "saved_views", "workspaces"
   add_foreign_key "schedules", "pipeline_definitions"
   add_foreign_key "schedules", "workspaces"
   add_foreign_key "skill_definitions", "workspaces"
+  add_foreign_key "sso_identities", "sso_providers"
+  add_foreign_key "sso_identities", "users"
+  add_foreign_key "sso_providers", "workspaces"
   add_foreign_key "teams", "workspaces"
 end

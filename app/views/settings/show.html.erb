@@ -1,0 +1,536 @@
+<% content_for :page_title, "Settings" %>
+
+<div class="settings-shell">
+  <aside class="settings-nav" aria-label="Settings sections">
+    <div class="settings-nav-head">
+      <h2>Settings</h2>
+      <p><%= current_workspace.name %></p>
+    </div>
+    <nav class="settings-nav-list">
+      <a href="#overview" class="settings-nav-link is-active"><span>Overview</span><small><%= current_membership&.role&.titleize || "Member" %></small></a>
+      <% @settings_sections.each do |section| %>
+        <a href="#<%= section.fetch(:id) %>" class="settings-nav-link">
+          <span><%= section.fetch(:label) %></span>
+          <small><%= section.fetch(:detail) %></small>
+        </a>
+      <% end %>
+    </nav>
+  </aside>
+
+  <main class="settings-main">
+    <header class="settings-header">
+      <div class="min-w-0">
+        <p class="app-eyebrow">Workspace settings</p>
+        <h1>Settings</h1>
+        <p>One scrollable workspace control surface for identity, access, integrations, billing, audit evidence, and local appearance.</p>
+      </div>
+      <div class="settings-header-stats" aria-label="Settings summary">
+        <span><strong><%= current_workspace.projects.count %></strong> projects</span>
+        <span><strong><%= @member_counts.fetch(:total) %></strong> members</span>
+        <span><strong><%= @integration_counts.fetch(:repositories) %></strong> repositories</span>
+        <span><strong><%= @event_counts.fetch(:total) %></strong> audit events</span>
+      </div>
+    </header>
+
+    <section id="overview" class="settings-panel">
+      <div class="settings-panel-head">
+        <div>
+          <p class="app-eyebrow">Overview</p>
+          <h2>Workspace and account</h2>
+        </div>
+      </div>
+      <div class="settings-overview-grid">
+        <section>
+          <h3>Workspace</h3>
+          <dl class="settings-key-values">
+            <% @workspace_rows.each do |label, value| %>
+              <div><dt><%= label %></dt><dd><%= value %></dd></div>
+            <% end %>
+          </dl>
+        </section>
+        <section>
+          <h3>Account</h3>
+          <dl class="settings-key-values">
+            <% @account_rows.each do |label, value| %>
+              <div><dt><%= label %></dt><dd><%= value %></dd></div>
+            <% end %>
+          </dl>
+        </section>
+      </div>
+    </section>
+
+    <section id="workspace" class="settings-panel">
+      <div class="settings-panel-head">
+        <div>
+          <p class="app-eyebrow">Workspace</p>
+          <h2>Identity and governance</h2>
+        </div>
+        <% if permitted?(:manage_workspace) %>
+          <%= link_to admin_path, class: "app-btn app-btn-muted" do %>
+            <span>Open admin</span>
+          <% end %>
+        <% end %>
+      </div>
+      <div class="settings-overview-grid">
+        <section>
+          <h3>Operational state</h3>
+          <dl class="settings-key-values">
+            <div><dt>Workspace</dt><dd><%= current_workspace.name %></dd></div>
+            <div><dt>Slug</dt><dd><%= current_workspace.slug %></dd></div>
+            <div><dt>Plan</dt><dd><%= current_workspace.billing_plan.titleize %></dd></div>
+            <div><dt>Webhook intake</dt><dd><%= current_workspace.webhook_secret.present? ? "Signed" : "Missing" %></dd></div>
+          </dl>
+        </section>
+        <section>
+          <h3>Scope</h3>
+          <dl class="settings-key-values">
+            <div><dt>Projects</dt><dd><%= current_workspace.projects.count %></dd></div>
+            <div><dt>Teams</dt><dd><%= current_workspace.teams.count %></dd></div>
+            <div><dt>Repositories</dt><dd><%= @repository_count %></dd></div>
+            <div><dt>Runs</dt><dd><%= @run_count %></dd></div>
+          </dl>
+        </section>
+      </div>
+    </section>
+
+    <section id="members" class="settings-panel">
+      <div class="settings-panel-head">
+        <div>
+          <p class="app-eyebrow">Members</p>
+          <h2>Access control</h2>
+        </div>
+        <% if permitted?(:manage_members) %>
+          <%= link_to new_invitation_path, class: "app-btn app-btn-primary", data: side_panel_data do %>
+            <%= lucide_icon("plus", class_name: "app-icon") %>
+            <span>Invite</span>
+          <% end %>
+        <% end %>
+      </div>
+      <div class="settings-mini-stats">
+        <span><strong><%= @member_counts.fetch(:total) %></strong> members</span>
+        <span><strong><%= @member_counts.fetch(:owners) %></strong> owners</span>
+        <span><strong><%= @member_counts.fetch(:admins) %></strong> admins</span>
+        <span><strong><%= @member_counts.fetch(:pending_invites) %></strong> pending invites</span>
+      </div>
+      <div class="settings-list">
+        <% @memberships.each do |membership| %>
+          <article class="settings-list-row">
+            <%= status_icon_pill(membership.role, title: membership.role.titleize) %>
+            <span class="record-point-main">
+              <span class="record-point-title"><%= membership.user.display_name %></span>
+              <span class="record-point-meta">
+                <span><%= membership.user.email %></span>
+                <span><%= membership.team&.name || "Workspace" %></span>
+                <span><%= membership.role.titleize %></span>
+              </span>
+            </span>
+          </article>
+        <% end %>
+      </div>
+      <% if @invitations.any? %>
+        <div class="settings-subsection">
+          <h3>Invitations</h3>
+          <div class="settings-list">
+            <% @invitations.limit(6).each do |invitation| %>
+              <% invite_status = invitation.accepted? ? "accepted" : invitation.expired? ? "expired" : "pending" %>
+              <article class="settings-list-row">
+                <%= status_icon_pill(invite_status, title: invite_status.titleize) %>
+                <span class="record-point-main">
+                  <span class="record-point-title"><%= invitation.email %></span>
+                  <span class="record-point-meta">
+                    <span><%= invitation.role.titleize %></span>
+                    <span><%= invitation.team&.name || "Workspace" %></span>
+                    <span><%= invite_status.titleize %></span>
+                  </span>
+                </span>
+              </article>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+    </section>
+
+    <section id="security" class="settings-panel">
+      <div class="settings-panel-head">
+        <div>
+          <p class="app-eyebrow">Security</p>
+          <h2>Single sign-on</h2>
+        </div>
+        <% if permitted?(:manage_workspace) %>
+          <%= link_to new_sso_provider_path, class: "app-btn app-btn-primary", data: side_panel_data do %>
+            <%= lucide_icon("plus", class_name: "app-icon") %>
+            <span>Provider</span>
+          <% end %>
+        <% end %>
+      </div>
+      <div class="settings-mini-stats">
+        <span><strong><%= @sso_counts.fetch(:providers) %></strong> providers</span>
+        <span><strong><%= @sso_counts.fetch(:active) %></strong> active</span>
+        <span><strong><%= @sso_counts.fetch(:identities) %></strong> identities</span>
+        <span><strong><%= @sso_counts.fetch(:auto_join) %></strong> auto-join</span>
+      </div>
+      <div class="settings-list">
+        <% @sso_providers.each do |provider| %>
+          <article class="settings-list-row">
+            <%= status_icon_pill(provider.status, title: provider.status.titleize) %>
+            <span class="record-point-main">
+              <span class="record-point-title"><%= provider.name %></span>
+              <span class="record-point-meta">
+                <span><%= provider.provider_type.upcase %></span>
+                <span><%= provider.display_issuer %></span>
+                <span><%= provider.email_domain.presence || "Any email domain" %></span>
+                <span><%= provider.allow_signups? ? "Auto-join #{provider.default_membership_role}" : "Invite only" %></span>
+              </span>
+            </span>
+            <% if provider.active? %>
+              <%= link_to "Test", sso_start_path(provider_id: provider.id), class: "app-btn app-btn-muted" %>
+            <% end %>
+            <% if permitted?(:manage_workspace) %>
+              <%= link_to "Edit", edit_sso_provider_path(provider), class: "linear-count", data: side_panel_data %>
+            <% end %>
+          </article>
+        <% end %>
+        <% if @sso_providers.empty? %>
+          <p class="linear-empty px-0 py-5 text-left">No SSO providers configured. Add an OIDC provider to support Google Workspace, Okta, Auth0, Entra ID, GitLab, or another compatible identity provider.</p>
+        <% end %>
+      </div>
+    </section>
+
+    <section id="integrations" class="settings-panel settings-integrations-panel">
+      <div class="settings-panel-head settings-integrations-header">
+        <div>
+          <p class="app-eyebrow">Integrations</p>
+          <h2>Providers, repositories, and webhooks</h2>
+        </div>
+        <% if permitted?(:manage_integrations) %>
+          <div class="settings-integrations-actions">
+            <% if @github_app_install_account %>
+              <%= link_to github_app_integrations_path(account_id: @github_app_install_account.id), class: "app-btn app-btn-primary" do %>
+                <%= lucide_icon("plug-zap", class_name: "app-icon") %>
+                <span>Install GitHub App</span>
+              <% end %>
+            <% elsif @github_app_env_installable %>
+              <%= link_to github_app_integrations_path, class: "app-btn app-btn-primary" do %>
+                <%= lucide_icon("plug-zap", class_name: "app-icon") %>
+                <span>Install GitHub App</span>
+              <% end %>
+            <% end %>
+            <%= link_to new_integration_path, class: "app-btn app-btn-muted", data: side_panel_data do %>
+              <span>Manual token</span>
+            <% end %>
+            <%= link_to new_repository_connection_path, class: "app-btn app-btn-muted", data: side_panel_data do %>
+              <%= lucide_icon("plus", class_name: "app-icon") %>
+              <span>Repository</span>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+      <div class="settings-mini-stats">
+        <span><strong><%= @integration_counts.fetch(:accounts) %></strong> accounts</span>
+        <span><strong><%= @integration_counts.fetch(:repositories) %></strong> repositories</span>
+        <span><strong><%= @integration_counts.fetch(:active) %></strong> active</span>
+        <span><strong><%= @integration_counts.fetch(:providers) %></strong> providers</span>
+      </div>
+      <div class="settings-integrations-workspace">
+        <div class="settings-integrations-column">
+          <% if permitted?(:manage_integrations) %>
+            <section class="settings-integrations-block">
+              <div class="settings-integrations-block-head">
+                <div>
+                  <p class="app-eyebrow">GitHub App</p>
+                  <h3>Repository automation app</h3>
+                </div>
+                <span class="linear-count"><%= @github_app_accounts.size %> apps</span>
+              </div>
+
+              <div class="settings-integrations-app-grid">
+                <div class="settings-integrations-copy">
+                  <h3>Create GitHub App</h3>
+                  <p>
+                    Generate a private GitHub App for private repository import, automation branches, and Pull Requests. After GitHub creates it, xmode guides you through installation.
+                  </p>
+                  <%= form_with url: github_app_manifest_integrations_path, method: :post, class: "settings-integrations-form" do %>
+                    <div>
+                      <%= label_tag :github_owner, "GitHub organization", class: "app-label" %>
+                      <%= text_field_tag :github_owner, nil, class: "app-input", placeholder: "Optional, e.g. planet-express" %>
+                      <p class="settings-integrations-hint">Leave blank to create the app under your personal GitHub account.</p>
+                    </div>
+                    <button class="app-btn app-btn-primary" type="submit">
+                      <%= lucide_icon("plus", class_name: "app-icon") %>
+                      <span>Create GitHub App</span>
+                    </button>
+                  <% end %>
+                </div>
+
+                <div class="settings-integrations-list-wrap">
+                  <h3>Connected apps</h3>
+                  <div class="settings-integrations-scroll settings-integrations-scroll-sm">
+                    <div class="settings-list settings-integrations-list">
+                      <% @github_app_accounts.each do |integration| %>
+                        <article class="settings-list-row settings-integrations-row">
+                          <%= status_icon_pill(integration.status, title: integration.status.to_s.titleize) %>
+                          <span class="record-point-main">
+                            <span class="record-point-title"><%= integration.name %></span>
+                            <span class="record-point-meta">
+                              <span><%= integration.github_app_created_from_manifest? ? "Workspace app" : "Configured app" %></span>
+                              <% if integration.github_app_id.present? %>
+                                <span>app <%= integration.github_app_id %></span>
+                              <% end %>
+                              <% if integration.github_installation_id.present? %>
+                                <span>installation <%= integration.github_installation_id %></span>
+                              <% else %>
+                                <span>not installed</span>
+                              <% end %>
+                            </span>
+                          </span>
+                          <div class="settings-integrations-row-actions">
+                            <% if integration.github_installation_id.present? %>
+                              <%= button_to "Sync repos",
+                                    sync_repositories_integration_path(integration),
+                                    method: :post,
+                                    class: "app-btn app-btn-muted",
+                                    form: { class: "contents" } %>
+                            <% elsif integration.github_app_slug.present? %>
+                              <%= link_to "Install",
+                                    github_app_integrations_path(account_id: integration.id),
+                                    class: "app-btn app-btn-muted" %>
+                            <% end %>
+                          </div>
+                        </article>
+                      <% end %>
+                      <% if @github_app_accounts.empty? %>
+                        <p class="linear-empty px-0 py-5 text-left">No GitHub App has been created for this workspace yet.</p>
+                      <% end %>
+                    </div>
+                  </div>
+                  <% if @github_app_env_installable %>
+                    <%= link_to github_app_integrations_path, class: "app-btn app-btn-muted settings-integrations-link" do %>
+                      <span>Install configured hosted app</span>
+                    <% end %>
+                  <% end %>
+                </div>
+              </div>
+            </section>
+          <% end %>
+
+          <section class="settings-integrations-block">
+            <div class="settings-integrations-block-head">
+              <div>
+                <p class="app-eyebrow">Accounts</p>
+                <h3>Provider accounts</h3>
+              </div>
+              <span class="linear-count"><%= @integrations.size %></span>
+            </div>
+            <div class="settings-integrations-scroll settings-integrations-scroll-md">
+              <div class="settings-list settings-integrations-list">
+                <% @integrations.each do |integration| %>
+                  <article class="settings-list-row settings-integrations-row">
+                    <%= status_icon_pill(integration.status, title: integration.status.to_s.titleize) %>
+                    <span class="record-point-main">
+                      <span class="record-point-title"><%= integration.name %></span>
+                      <span class="record-point-meta">
+                        <span><%= integration.provider %></span>
+                        <span><%= integration.credential_label %></span>
+                        <% if integration.github_installation_id.present? %>
+                          <span>installation <%= integration.github_installation_id %></span>
+                        <% end %>
+                        <span><%= integration.updated_at ? "updated #{time_ago_in_words(integration.updated_at)} ago" : "not synced" %></span>
+                      </span>
+                    </span>
+                    <% if integration.repository_syncable? && permitted?(:manage_integrations) %>
+                      <div class="settings-integrations-row-actions">
+                        <%= button_to "Sync repos",
+                              sync_repositories_integration_path(integration),
+                              method: :post,
+                              class: "app-btn app-btn-muted",
+                              form: { class: "contents" } %>
+                      </div>
+                    <% end %>
+                  </article>
+                <% end %>
+                <% if @integrations.empty? %>
+                  <p class="linear-empty px-0 py-5 text-left">No integrations connected.</p>
+                <% end %>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <aside class="settings-integrations-column">
+          <section class="settings-integrations-block">
+            <div class="settings-integrations-block-head">
+              <div>
+                <p class="app-eyebrow">Repositories</p>
+                <h3>Change Request targets</h3>
+              </div>
+              <span class="linear-count"><%= @repositories.size %></span>
+            </div>
+            <div class="settings-integrations-scroll settings-integrations-scroll-lg">
+              <div class="settings-list settings-integrations-list">
+                <% @repositories.each do |repo| %>
+                  <%= link_to edit_repository_connection_path(repo), class: "settings-list-row settings-integrations-row", data: side_panel_data do %>
+                    <span class="record-point-main">
+                      <span class="record-point-title"><%= repo.full_name.presence || repo.name %></span>
+                      <span class="record-point-meta">
+                        <span><%= repo.provider %></span>
+                        <span><%= repo.default_branch %></span>
+                        <span class="settings-integrations-url"><%= repo.url %></span>
+                      </span>
+                    </span>
+                    <span class="linear-count">edit</span>
+                  <% end %>
+                <% end %>
+                <% if @repositories.empty? %>
+                  <p class="linear-empty px-0 py-5 text-left">No repository targets connected.</p>
+                <% end %>
+              </div>
+            </div>
+          </section>
+
+          <% if permitted?(:manage_integrations) %>
+            <section class="settings-integrations-block">
+              <div class="settings-integrations-block-head">
+                <div>
+                  <p class="app-eyebrow">Webhook intake</p>
+                  <h3>Signed endpoint</h3>
+                </div>
+                <span class="linear-count">signed</span>
+              </div>
+              <dl class="settings-key-values settings-integrations-kv">
+                <div><dt>Endpoint</dt><dd title="<%= @webhook_endpoint %>"><%= @webhook_endpoint %></dd></div>
+                <div><dt>Signature header</dt><dd>X-Xmode-Signature</dd></div>
+                <div><dt>Signing secret</dt><dd title="<%= current_workspace.webhook_secret %>"><%= current_workspace.webhook_secret %></dd></div>
+              </dl>
+            </section>
+          <% end %>
+        </aside>
+      </div>
+    </section>
+
+    <section id="billing" class="settings-panel">
+      <div class="settings-panel-head">
+        <div>
+          <p class="app-eyebrow">Billing</p>
+          <h2><%= @subscription.plan.titleize %> plan</h2>
+        </div>
+        <% if permitted?(:manage_billing) %>
+          <div class="flex flex-wrap gap-2">
+            <%= button_to checkout_billing_path, class: "app-btn app-btn-muted" do %>
+              <span>Start hosted plan</span>
+            <% end %>
+            <%= button_to portal_billing_path, class: "app-btn app-btn-muted" do %>
+              <span>Billing portal</span>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+      <div class="settings-mini-stats">
+        <span><strong><%= @subscription.status.to_s.titleize %></strong> status</span>
+        <span><strong><%= @seat_count %>/<%= @subscription.seats %></strong> seats</span>
+        <span><strong><%= @run_count %></strong> automation runs</span>
+        <span><strong><%= @change_request_count %></strong> Change Requests</span>
+      </div>
+      <div class="settings-subsection">
+        <div class="settings-panel-head">
+          <div>
+            <p class="app-eyebrow">Automation usage</p>
+            <h3>Runner minutes</h3>
+          </div>
+          <span class="linear-count">
+            <% if @usage_limit.present? %>
+              <%= @subscription.automation_minutes_used %>/<%= @usage_limit %> minutes
+            <% else %>
+              Custom allowance
+            <% end %>
+          </span>
+        </div>
+        <div class="cycle-progress" aria-label="Automation usage">
+          <span style="width: <%= @usage_percent %>%"></span>
+        </div>
+      </div>
+      <div class="settings-overview-grid">
+        <section>
+          <h3>Commercial readiness</h3>
+          <dl class="settings-key-values">
+            <% @readiness_rows.each do |label, value| %>
+              <div><dt><%= label %></dt><dd><%= value %></dd></div>
+            <% end %>
+          </dl>
+        </section>
+        <section>
+          <h3>Plan policy</h3>
+          <div class="settings-list">
+            <% @plan_rows.each do |name, description, boundary| %>
+              <article class="settings-list-row">
+                <span class="linear-count"><%= boundary %></span>
+                <span class="record-point-main">
+                  <span class="record-point-title"><%= name %></span>
+                  <span class="record-point-meta"><span><%= description %></span></span>
+                </span>
+                <% if @subscription.plan == name.downcase %>
+                  <span class="linear-count">Current</span>
+                <% end %>
+              </article>
+            <% end %>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <section id="audit" class="settings-panel">
+      <div class="settings-panel-head">
+        <div>
+          <p class="app-eyebrow">Audit</p>
+          <h2>Latest evidence</h2>
+        </div>
+        <% if permitted?(:view_audit_events) %>
+          <%= link_to audit_events_path, class: "app-btn app-btn-muted" do %>
+            <span>Full audit trail</span>
+          <% end %>
+        <% end %>
+      </div>
+      <div class="settings-mini-stats">
+        <span><strong><%= @event_counts.fetch(:total) %></strong> events</span>
+        <span><strong><%= @event_counts.fetch(:warnings) %></strong> warnings</span>
+        <span><strong><%= @event_counts.fetch(:errors) %></strong> errors</span>
+      </div>
+      <div class="settings-list">
+        <% @audit_events.each do |event| %>
+          <% auditable_label = event.auditable ? "#{event.auditable_type} ##{event.auditable_id}" : "Workspace" %>
+          <article class="settings-list-row">
+            <%= status_icon_pill(event.severity == "warn" ? "warning" : event.severity, title: event.severity.titleize) %>
+            <span class="record-point-main">
+              <span class="record-point-title"><%= event.display_action %></span>
+              <span class="record-point-meta">
+                <span><%= event.user&.display_name || "System" %></span>
+                <span><%= event.source.titleize %></span>
+                <span><%= auditable_label %></span>
+                <span><%= time_ago_in_words(event.created_at) %> ago</span>
+              </span>
+            </span>
+          </article>
+        <% end %>
+        <% if @audit_events.empty? %>
+          <p class="linear-empty px-0 py-6 text-left">No audit events yet.</p>
+        <% end %>
+      </div>
+    </section>
+
+    <section id="appearance" class="settings-panel">
+      <div class="settings-panel-head">
+        <div>
+          <p class="app-eyebrow">Appearance</p>
+          <h2>Local interface</h2>
+        </div>
+        <button class="app-btn app-btn-muted" type="button" data-action="theme#toggle">
+          <%= lucide_icon("sun-moon", class_name: "app-icon") %>
+          <span>Toggle theme</span>
+        </button>
+      </div>
+      <dl class="settings-key-values">
+        <div><dt>Theme preference</dt><dd><%= current_user.theme_preference.titleize %></dd></div>
+        <div><dt>Current workspace</dt><dd><%= current_workspace.name %></dd></div>
+      </dl>
+    </section>
+  </main>
+</div>

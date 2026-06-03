@@ -1,0 +1,27 @@
+<% schema = local_assigns.fetch(:schema, {}).to_h %>
+<% properties = schema.fetch("properties", {}).to_h %>
+<% required_fields = Array(schema.fetch("required", [])).map(&:to_s) %>
+
+<div class="catalog-schema-list">
+  <% properties.each do |name, field_schema| %>
+    <% field_schema = field_schema.to_h %>
+    <% required = required_fields.include?(name.to_s) %>
+    <% field_type = field_schema["type"].presence || field_schema["format"].presence || field_schema["$ref"].presence || "any" %>
+    <div class="catalog-schema-field <%= 'is-required' if required %>">
+      <div class="catalog-schema-main">
+        <span class="catalog-schema-name"><%= name %></span>
+        <span class="catalog-schema-meta">
+          <%= required ? "required" : "optional" %>
+          <% if field_schema["description"].present? %>
+            · <%= field_schema["description"] %>
+          <% end %>
+        </span>
+      </div>
+      <code class="catalog-schema-type"><%= field_type %></code>
+    </div>
+  <% end %>
+
+  <% if properties.empty? %>
+    <p class="linear-empty px-0 py-3 text-left">No named fields.</p>
+  <% end %>
+</div>

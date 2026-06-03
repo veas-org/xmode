@@ -1,0 +1,11 @@
+<% content_for :page_title, "Edit #{@sso_provider.name}" %>
+
+<%= render layout: "shared/side_panel",
+      locals: {
+        title: "Edit #{@sso_provider.name}",
+        eyebrow: "Workspace security",
+        description: "Update OIDC settings, signup policy, and the default workspace role.",
+        back_path: settings_path(anchor: "security")
+      } do %>
+  <%= render "form", sso_provider: @sso_provider %>
+<% end %>

@@ -1,8 +1,26 @@
 # Automation Model
 
+## Skills
+
+Skills are reusable team playbooks. They describe the capability the team trusts xmode to perform.
+
+Skill definitions should include:
+
+- Name
+- Description
+- Category/folder
+- Instructions
+- Best practices
+- Objective template
+- Plan fallback template
+- Input JSON Schema
+- Output JSON Schema
+- Evidence expectations
+- Version/export metadata
+
 ## Actions
 
-Actions are reusable primitives. They should be cataloged, versionable, importable, exportable, and editable.
+Skills are versioned playbooks, for example `software-implementation@1.0.0`. Actions are reusable primitives that bind to a specific skill version and should be cataloged, importable, exportable, and editable.
 
 Action categories:
 
@@ -19,6 +37,7 @@ Action definitions should include:
 - Name
 - Description
 - Category
+- Linked skill
 - Provider
 - Input JSON Schema
 - Output JSON Schema
@@ -30,6 +49,8 @@ Action definitions should include:
 - Artifact policy
 
 Most actions should ship with useful default schemas and defaults so users do not need to hand-design common cases.
+
+Actions should usually require an objective. If the objective is missing or unclear, the action should use the linked skill's plan fallback or pause the run for structured input.
 
 ## Providers
 
@@ -76,6 +97,9 @@ Pipeline definitions should include:
 - Edges
 - Conditions
 - Manual actions
+- Decision questions
+- Follow-up questions
+- Goal checks
 - Trigger rules
 - Permissions
 - Snapshot policy
@@ -108,6 +132,7 @@ The pipeline builder should be a canvas/graph editor.
 Graph behavior:
 
 - Actions are nodes.
+- Decisions, follow-ups, goal checks, and approvals are nodes.
 - Edges connect action outputs to later action inputs.
 - Edges can include conditions.
 - Inputs and outputs are validated with JSON Schema.
@@ -148,6 +173,39 @@ Code-changing runs should:
 - Run a built-in review pipeline before becoming ready.
 
 Each run stores a frozen snapshot of the exact action and pipeline definitions it executed, even if the catalog remains editable later.
+
+## Structured Run Chat
+
+The structured run chat is the primary operating surface for an active run.
+
+It should:
+
+- Show objective, plan, goals, selected pipeline, current step, and sandbox state.
+- Ask multiple-choice questions when a pipeline needs a discrete decision.
+- Ask open-ended follow-ups when the objective, plan, or context is incomplete.
+- Record goal checks and their pass/fail state.
+- Resume the pipeline once the required input is captured.
+- Persist messages from users, assistants, tools, approvals, and sandbox events.
+- Store structured answers as step outputs so later nodes can branch on them.
+
+## Sandbox Workbench
+
+Runs can create one or more sandbox sessions.
+
+Sandbox sessions should expose:
+
+- Runtime kind
+- Worktree path
+- Status
+- Files
+- Terminal commands
+- Logs
+- Artifacts
+- Structured outputs
+- Diff summary
+- Cleanup policy
+
+Local isolated worktrees and Docker execution are the first target. Cloud sandboxes, cloud browser sessions, and local browser takeover are later execution-environment types.
 
 ## Manual Actions
 

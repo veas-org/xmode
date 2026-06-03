@@ -1,0 +1,25 @@
+<%= link_to href, class: "catalog-item" do %>
+  <span class="catalog-item-icon">
+    <%= lucide_icon(icon, class_name: "app-icon", title: local_assigns[:icon_title]) %>
+  </span>
+  <span class="catalog-item-main">
+    <% if local_assigns[:eyebrow].present? %>
+      <span class="catalog-item-eyebrow"><%= eyebrow %></span>
+    <% end %>
+    <span class="catalog-item-title"><%= title %></span>
+    <% if local_assigns[:meta].present? %>
+      <span class="catalog-item-meta">
+        <% meta.compact_blank.each do |item| %>
+          <span><%= item %></span>
+        <% end %>
+      </span>
+    <% end %>
+  </span>
+  <% if local_assigns[:badges].present? %>
+    <span class="catalog-item-badges">
+      <% badges.compact_blank.first(2).each do |badge| %>
+        <span class="status-pill"><%= badge %></span>
+      <% end %>
+    </span>
+  <% end %>
+<% end %>

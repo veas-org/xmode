@@ -1,139 +1,229 @@
 <% content_for :page_title, @project.title %>
-<div class="app-page-actions">
-  <div class="min-w-0">
-    <p class="app-eyebrow"><%= @project.key %> · <%= @project.status %></p>
-    <p class="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-      Project command surface for issue scope, repository policy, scheduled automation, recent runs, and Change Request evidence.
-    </p>
-  </div>
-  <div class="flex flex-wrap gap-2">
-    <%= link_to edit_project_path(@project), class: "app-btn app-btn-muted", data: side_panel_data do %>
-      <%= lucide_icon("pencil", class_name: "app-icon") %>
-      <span>Edit</span>
-    <% end %>
-    <%= link_to new_issue_path(project_id: @project.id), class: "app-btn app-btn-primary", data: side_panel_data do %>
-      <%= lucide_icon("plus", class_name: "app-icon") %>
-      <span>Issue</span>
-    <% end %>
-  </div>
-</div>
 
-<div class="app-detail-grid">
-  <div class="space-y-5">
-    <section class="linear-surface p-5">
-      <div class="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p class="app-eyebrow">Project brief</p>
-          <h2 class="mt-1 font-semibold text-foreground"><%= @project.title %></h2>
-        </div>
-        <span class="status-pill"><%= @project.status.to_s.titleize %></span>
+<div class="project-record-layout">
+  <aside class="project-team-rail" aria-label="Team projects">
+    <section class="project-rail-section">
+      <div class="project-rail-head">
+        <p class="app-eyebrow">Team</p>
+        <h2><%= @project.team.name %></h2>
+        <span><%= pluralize(@sibling_projects.size, "project") %></span>
       </div>
-      <div class="rich-markdown mt-4 max-w-3xl">
+
+      <nav class="project-rail-list">
+        <% @sibling_projects.each do |project| %>
+          <%= link_to project_path(project), class: "project-rail-link #{'is-active' if project == @project}" do %>
+            <span class="min-w-0">
+              <strong><%= project.title %></strong>
+              <small><%= project.status.titleize %> · <%= pluralize(project.issues.size, "issue") %></small>
+            </span>
+          <% end %>
+        <% end %>
+      </nav>
+    </section>
+  </aside>
+
+  <main class="project-record-main">
+    <header class="record-doc-hero project-doc-hero">
+      <div class="record-doc-hero-top">
+        <div class="flex min-w-0 flex-wrap items-center gap-2">
+          <span class="linear-count">Project</span>
+          <span class="linear-count"><%= @project.key %></span>
+          <%= status_icon_pill(@project.status, title: @project.status.to_s.titleize) %>
+        </div>
+        <div class="record-detail-page-actions">
+          <%= link_to edit_project_path(@project), class: "app-icon-btn", title: "Edit project", aria: { label: "Edit project" }, data: side_panel_data do %>
+            <%= lucide_icon("pencil", class_name: "app-icon") %>
+          <% end %>
+          <%= link_to new_issue_path(project_id: @project.id), class: "app-btn app-btn-muted", data: side_panel_data do %>
+            <span>New issue</span>
+          <% end %>
+        </div>
+      </div>
+
+      <h2 class="record-detail-page-title"><%= @project.title %></h2>
+      <p class="project-record-subtitle">Project command surface for issue scope, repository policy, scheduled automation, recent runs, and Change Request evidence.</p>
+
+      <div class="project-record-meta">
+        <span><strong>Team</strong><%= @project.team.name %></span>
+        <span><strong>Issues</strong><%= @issues.size %></span>
+        <span><strong>Repository</strong><%= @project.repository_url.present? ? "linked" : "missing" %></span>
+      </div>
+    </header>
+
+    <section class="project-record-section">
+      <p class="app-eyebrow">Brief</p>
+      <div class="project-record-brief rich-markdown">
         <%= render_markdown(@project.description, empty: "No project brief has been added yet.") %>
       </div>
     </section>
 
-    <section class="linear-surface">
-      <div class="linear-toolbar">
-        <div class="flex min-w-0 items-center gap-2">
-          <%= lucide_icon("list", class_name: "app-icon text-muted-foreground") %>
-          <h2 class="linear-title">Issue flow</h2>
-          <span class="linear-count"><%= pluralize(@issues.size, "issue") %></span>
+    <section class="project-record-section">
+      <div class="record-detail-section-head">
+        <div>
+          <p class="app-eyebrow">Work</p>
+          <h3>Issue flow</h3>
+        </div>
+        <span class="linear-count"><%= pluralize(@issues.size, "issue") %></span>
+      </div>
+      <%= render "issues/list",
+            issues: @issues,
+            show_project: false,
+            show_cycle: true,
+            show_counts: true,
+            list_class: "record-detail-list",
+            row_class: "record-detail-row",
+            empty_message: "No project issues yet." %>
+    </section>
+
+    <section class="project-record-section project-workbench-section">
+      <div class="record-detail-section-head">
+        <div>
+          <p class="app-eyebrow">Sandbox</p>
+          <h3>Project workbench</h3>
+        </div>
+        <span class="linear-count"><%= @execution_environment.runner_mode.to_s.tr("_", " ").titleize %></span>
+      </div>
+
+      <p class="project-workbench-copy">
+        xmode clones this project into an isolated worktree, runs the agent command there, captures files, logs, command output, and opens a Change Request when code changes are detected.
+      </p>
+
+      <div class="project-contract-strip">
+        <div>
+          <span>Runtime</span>
+          <strong><%= [ @execution_environment.language&.titleize, @execution_environment.framework&.titleize ].compact.join(" / ").presence || "Shell" %></strong>
+        </div>
+        <div>
+          <span>Pipeline</span>
+          <strong><%= @sandbox_pipeline&.name || "Not configured" %></strong>
+        </div>
+        <div>
+          <span>Image</span>
+          <strong><%= @execution_environment.docker? ? @execution_environment.docker_image : "Host runtime" %></strong>
         </div>
       </div>
-      <%= render "issues/table", issues: @issues %>
     </section>
-  </div>
+  </main>
 
-  <aside class="space-y-4">
-    <section class="linear-surface p-4">
-      <h3 class="font-medium text-foreground">Repository</h3>
-      <dl class="mt-3 grid gap-2 text-sm">
-        <div class="inbox-property"><dt>Team</dt><dd><strong><%= @project.team.name %></strong></dd></div>
-        <div class="inbox-property"><dt>Key</dt><dd><strong><%= @project.key %></strong></dd></div>
-        <div class="app-flat-row">
-          <dt class="app-eyebrow">URL</dt>
-          <dd class="mt-1 break-all text-sm font-medium text-foreground"><%= @project.repository_url.presence || "-" %></dd>
-        </div>
+  <aside class="project-record-side">
+    <section class="record-detail-side-section">
+      <div class="record-detail-side-title">
+        <h3>Details</h3>
+      </div>
+      <dl class="catalog-contract-list">
+        <div><dt>Team</dt><dd><%= @project.team.name %></dd></div>
+        <div><dt>Status</dt><dd><%= @project.status.titleize %></dd></div>
+        <div><dt>Key</dt><dd><%= @project.key %></dd></div>
+        <div><dt>Repository</dt><dd class="break-all"><%= @project.repository_url.presence || "-" %></dd></div>
       </dl>
     </section>
 
-    <section class="linear-surface p-4">
-      <div class="flex items-center justify-between gap-3">
-        <h3 class="font-medium text-foreground">Scheduled pipelines</h3>
+    <section class="record-detail-side-section">
+      <div class="record-detail-side-title">
+        <h3>Start sandbox</h3>
+      </div>
+      <p class="project-side-copy">Run the configured fixture pipeline and inspect the resulting terminal, files, artifacts, and Change Request package.</p>
+      <% if @sandbox_pipeline && permitted?("run_code_actions") %>
+        <%= button_to "Run sandbox",
+              run_sandbox_project_path(@project),
+              method: :post,
+              class: "app-btn app-btn-primary w-full justify-center",
+              form: { class: "mt-3" } %>
+      <% else %>
+        <p class="linear-empty px-0 py-3 text-left">Sandbox pipeline is not available.</p>
+      <% end %>
+    </section>
+
+    <section class="record-detail-side-section">
+      <div class="record-detail-side-title">
+        <h3>Recent sandboxes</h3>
+        <span class="linear-count"><%= @sandbox_runs.size %></span>
+      </div>
+      <div class="project-side-list">
+        <% @sandbox_runs.each do |run| %>
+          <% sandbox = run.sandbox_sessions.first %>
+          <%= link_to pipeline_run_path(run), class: "project-side-row" do %>
+            <span class="record-point-main">
+              <span class="record-point-title"><%= run.pipeline_definition&.name || "Sandbox run" %></span>
+              <span class="record-point-meta">
+                <span><%= sandbox&.execution_environment&.runner_mode.to_s.tr("_", " ").titleize.presence || "Sandboxed agent" %></span>
+                <span><%= sandbox&.execution_environment&.docker? ? sandbox.execution_environment.docker_image : "host runtime" %></span>
+              </span>
+            </span>
+            <%= status_icon_pill(run.status, title: run.display_status) %>
+          <% end %>
+        <% end %>
+        <% if @sandbox_runs.empty? %>
+          <p class="linear-empty px-0 py-3 text-left">No sandbox runs yet.</p>
+        <% end %>
+      </div>
+    </section>
+
+    <section class="record-detail-side-section">
+      <div class="record-detail-side-title">
+        <h3>Scheduled pipelines</h3>
         <span class="linear-count"><%= @schedules.size %></span>
       </div>
-      <div class="mt-3 space-y-2">
+      <div class="project-side-list">
         <% @schedules.each do |schedule| %>
-          <%= link_to schedule_path(schedule), class: "app-flat-row block rounded-md px-3 py-3 transition-colors hover:bg-muted/45" do %>
-            <span class="flex min-w-0 items-start justify-between gap-3">
-              <span class="min-w-0">
-                <span class="block text-sm font-medium text-foreground"><%= schedule.pipeline_definition.name %></span>
-                <span class="linear-row-meta">
-                  <%= lucide_icon("clock", class_name: "app-icon") %>
-                  <span><%= schedule.kind.to_s.tr("_", " ").titleize %></span>
-                  <span><%= schedule.run_at&.strftime("%b %-d, %-I:%M %p") || schedule.cron %></span>
-                </span>
+          <%= link_to schedule_path(schedule), class: "project-side-row" do %>
+            <span class="record-point-main">
+              <span class="record-point-title"><%= schedule.pipeline_definition.name %></span>
+              <span class="record-point-meta">
+                <span><%= schedule.kind.to_s.tr("_", " ").titleize %></span>
+                <span><%= schedule.run_at&.strftime("%b %-d, %-I:%M %p") || schedule.cron %></span>
               </span>
-              <span class="status-pill shrink-0"><%= schedule.status.to_s.titleize %></span>
             </span>
+            <%= status_icon_pill(schedule.status, title: schedule.status.to_s.titleize) %>
           <% end %>
         <% end %>
         <% if @schedules.empty? %>
-          <p class="linear-empty">No project schedules yet.</p>
+          <p class="linear-empty px-0 py-3 text-left">No project schedules yet.</p>
         <% end %>
       </div>
     </section>
 
-    <section class="linear-surface p-4">
-      <div class="flex items-center justify-between gap-3">
-        <h3 class="font-medium text-foreground">Recent runs</h3>
+    <section class="record-detail-side-section">
+      <div class="record-detail-side-title">
+        <h3>Recent runs</h3>
         <span class="linear-count"><%= @runs.size %></span>
       </div>
-      <div class="mt-3 space-y-2">
+      <div class="project-side-list">
         <% @runs.each do |run| %>
-          <%= link_to pipeline_run_path(run), class: "app-flat-row block rounded-md px-3 py-3 transition-colors hover:bg-muted/45" do %>
-            <span class="flex min-w-0 items-start justify-between gap-3">
-              <span class="min-w-0">
-                <span class="block text-sm font-medium text-foreground"><%= run.pipeline_definition&.name || "Pipeline run" %></span>
-                <span class="linear-row-meta">
-                  <%= lucide_icon(run.status == "completed" ? "check" : "activity", class_name: "app-icon") %>
-                  <span><%= run.display_trigger %></span>
-                  <span><%= time_ago_in_words(run.created_at) %> ago</span>
-                </span>
+          <%= link_to pipeline_run_path(run), class: "project-side-row" do %>
+            <span class="record-point-main">
+              <span class="record-point-title"><%= run.pipeline_definition&.name || "Pipeline run" %></span>
+              <span class="record-point-meta">
+                <span><%= run.display_trigger %></span>
+                <span><%= time_ago_in_words(run.created_at) %> ago</span>
               </span>
-              <span class="status-pill shrink-0"><%= run.display_status %></span>
             </span>
+            <%= status_icon_pill(run.status, title: run.display_status) %>
           <% end %>
         <% end %>
         <% if @runs.empty? %>
-          <p class="linear-empty">No project runs yet.</p>
+          <p class="linear-empty px-0 py-3 text-left">No project runs yet.</p>
         <% end %>
       </div>
     </section>
 
-    <section class="linear-surface p-4">
-      <div class="flex items-center justify-between gap-3">
-        <h3 class="font-medium text-foreground">Change Requests</h3>
+    <section class="record-detail-side-section">
+      <div class="record-detail-side-title">
+        <h3>Change Requests</h3>
         <span class="linear-count"><%= @change_requests.size %></span>
       </div>
-      <div class="mt-3 space-y-2">
+      <div class="project-side-list">
         <% @change_requests.each do |change_request| %>
-          <%= link_to change_request_path(change_request), class: "app-flat-row block rounded-md px-3 py-3 transition-colors hover:bg-muted/45" do %>
-            <span class="flex min-w-0 items-start justify-between gap-3">
-              <span class="min-w-0">
-                <span class="block text-sm font-medium leading-5 text-foreground"><%= change_request.title %></span>
-                <span class="linear-row-meta">
-                  <%= lucide_icon("git-pull-request", class_name: "app-icon") %>
-                  <span class="break-all"><%= change_request.branch_name %></span>
-                </span>
-              </span>
-              <span class="status-pill shrink-0"><%= change_request.status.to_s.titleize %></span>
+          <%= link_to change_request_path(change_request), class: "project-side-row" do %>
+            <span class="record-point-main">
+              <span class="record-point-title"><%= change_request.title %></span>
+              <span class="record-point-meta"><span class="min-w-0 truncate"><%= change_request.branch_name %></span></span>
             </span>
+            <%= status_icon_pill(change_request.status, title: change_request.status.to_s.titleize) %>
           <% end %>
         <% end %>
         <% if @change_requests.empty? %>
-          <p class="linear-empty">No Change Requests for this project yet.</p>
+          <p class="linear-empty px-0 py-3 text-left">No Change Requests for this project yet.</p>
         <% end %>
       </div>
     </section>

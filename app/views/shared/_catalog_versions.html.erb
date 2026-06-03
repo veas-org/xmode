@@ -1,0 +1,32 @@
+<% versions = local_assigns.fetch(:versions) { record.catalog_versions.order(created_at: :desc, revision: :desc).limit(8) } %>
+
+<section class="catalog-doc-panel">
+  <div class="flex items-center justify-between gap-3">
+    <h3>Version history</h3>
+    <div class="flex min-w-0 flex-wrap justify-end gap-2">
+      <span class="linear-count"><%= record.versioned_key %></span>
+      <% if record.latest_version? %>
+        <span class="linear-count">latest</span>
+      <% end %>
+    </div>
+  </div>
+
+  <div class="catalog-doc-link-list">
+    <% if versions.any? %>
+      <% versions.each do |catalog_version| %>
+        <div>
+          <span><%= catalog_version.key %>@<%= catalog_version.version %> rev <%= catalog_version.revision %></span>
+          <small>
+            <%= catalog_version.source.to_s.titleize %>
+            <% if catalog_version.created_by %>
+              · <%= catalog_version.created_by.name.presence || catalog_version.created_by.email %>
+            <% end %>
+            · <%= time_ago_in_words(catalog_version.created_at) %> ago
+          </small>
+        </div>
+      <% end %>
+    <% else %>
+      <p class="linear-empty px-0 py-3 text-left">No revisions recorded yet. The next save will create one.</p>
+    <% end %>
+  </div>
+</section>

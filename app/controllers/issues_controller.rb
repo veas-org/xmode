@@ -5,14 +5,23 @@ class IssuesController < AuthenticatedController
   def index
     @view = params[:view].presence || "inbox"
     @query = params[:q].to_s.strip
-    base_scope = current_workspace.issues.includes(:team, :project, :cycle, :issue_status, :assignee).order(updated_at: :desc)
+    base_scope = current_workspace.issues
+      .includes(:team, :project, :cycle, :issue_status, :assignee, :pipeline_runs, :change_requests)
+      .order(updated_at: :desc)
     @issue_counts = issue_counts(base_scope)
     @issues = base_scope
     @issues = @issues.where(assignee: current_user) if @view == "my"
     @issues = @issues.where(cycle: current_team.cycles.where(status: "active")) if @view == "active_cycle" && current_team
     @issues = @issues.joins(:issue_status).where(issue_statuses: { category: "backlog" }) if @view == "backlog"
     @issues = @issues.where("issues.title LIKE :query OR issues.identifier LIKE :query", query: "%#{@query}%") if @query.present?
-    @selected_issue = @issues.first
+    @selected_issue = selected_issue_for(@issues)
+    @selected_runs = @selected_issue ? @selected_issue.pipeline_runs
+      .includes(:pipeline_definition, :change_request, :run_messages, :run_logs, :approvals)
+      .order(created_at: :desc)
+      .limit(5) : []
+    @selected_change_requests = @selected_issue ? @selected_issue.change_requests.includes(:repository_connection).order(updated_at: :desc).limit(3) : []
+    @selected_recommended_pipelines = @selected_issue ? prioritized_issue_pipelines(current_workspace.pipeline_definitions.order(:name).to_a).first(2) : []
+    @selected_conversation_items = @selected_issue ? issue_conversation_items(@selected_issue, @selected_runs, @selected_change_requests) : []
   end
 
   def show
@@ -104,8 +113,103 @@ class IssuesController < AuthenticatedController
     {
       inbox: base_scope.count,
       my: base_scope.where(assignee: current_user).count,
-      active_cycle: current_team ? base_scope.where(cycle: current_team.cycles.where(status: "active")).count : 0
+      active_cycle: current_team ? base_scope.where(cycle: current_team.cycles.where(status: "active")).count : 0,
+      backlog: base_scope.joins(:issue_status).where(issue_statuses: { category: "backlog" }).count
     }
+  end
+
+  def selected_issue_for(scope)
+    selected = scope.find { |issue| issue.id.to_s == params[:selected].to_s } if params[:selected].present?
+    selected || scope.first
+  end
+
+  def issue_conversation_items(issue, runs, change_requests)
+    items = [
+      {
+        type: "issue",
+        actor: issue.assignee&.display_name || "xmode",
+        title: "#{issue.identifier} opened",
+        content: issue.description.presence || "No objective or description has been captured yet.",
+        status: issue.display_status,
+        created_at: issue.created_at,
+        markdown: true,
+        href: issue_path(issue)
+      }
+    ]
+
+    issue.events.order(created_at: :asc).limit(4).each do |event|
+      items << {
+        type: "event",
+        actor: event.source.to_s.titleize,
+        title: event.title,
+        content: "#{event.event_type} · #{event.status}",
+        status: event.severity,
+        created_at: event.created_at,
+        href: event_path(event)
+      }
+    end
+
+    runs.each do |run|
+      items << {
+        type: "run",
+        actor: "xmode",
+        title: run.pipeline_definition&.name || "Pipeline run",
+        content: "#{run.display_trigger} · #{run.display_status}",
+        status: run.status,
+        created_at: run.created_at,
+        href: pipeline_run_path(run)
+      }
+
+      run.run_messages.order(:created_at).last(3).each do |message|
+        items << {
+          type: "message",
+          actor: message.user&.display_name || message.role.to_s.titleize,
+          title: message.kind.to_s.tr("_", " ").titleize,
+          content: message.content,
+          status: message.status,
+          created_at: message.created_at,
+          href: pipeline_run_path(run)
+        }
+      end
+
+      run.approvals.order(:created_at).last(2).each do |approval|
+        items << {
+          type: "approval",
+          actor: approval.user&.display_name || "Approval gate",
+          title: approval.action_run_step&.name || "Manual approval",
+          content: approval.notes.presence || approval.display_status,
+          status: approval.status,
+          created_at: approval.created_at,
+          href: pipeline_run_path(run)
+        }
+      end
+
+      run.run_logs.order(:created_at).last(3).each do |log|
+        items << {
+          type: "log",
+          actor: "Run log",
+          title: log.action_run_step&.name || log.level.to_s.titleize,
+          content: log.message,
+          status: log.level,
+          created_at: log.created_at,
+          href: pipeline_run_path(run)
+        }
+      end
+    end
+
+    change_requests.each do |change_request|
+      items << {
+        type: "change_request",
+        actor: change_request.provider.to_s.titleize,
+        title: change_request.title,
+        content: "#{change_request.branch_name} · #{change_request.status.to_s.tr("_", " ")}",
+        status: change_request.status,
+        created_at: change_request.created_at,
+        href: change_request_path(change_request)
+      }
+    end
+
+    items.compact.sort_by { |item| item[:created_at] || Time.zone.at(0) }
   end
 
   def issue_context_records(association_name)

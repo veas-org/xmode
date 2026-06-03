@@ -1,4 +1,6 @@
 class BillingsController < AuthenticatedController
+  before_action -> { require_permission!("manage_billing") }, only: %i[checkout portal]
+
   def show
     @subscription = current_workspace.billing_subscriptions.order(created_at: :desc).first ||
       current_workspace.billing_subscriptions.create!(plan: current_workspace.billing_plan, status: "inactive", seats: current_workspace.memberships.count)
@@ -12,6 +14,30 @@ class BillingsController < AuthenticatedController
     @usage_limit = automation_minutes_limit_for(@subscription.plan)
     @usage_percent = usage_percent
     @readiness_rows = readiness_rows
+  end
+
+  def checkout
+    result = Billing::StripeCheckout.call(
+      workspace: current_workspace,
+      user: current_user,
+      success_url: billing_url,
+      cancel_url: billing_url
+    )
+    return redirect_to billing_path, alert: result.error unless result.success?
+
+    audit!("billing.checkout_started", session_id: result.session.id)
+    redirect_to_stripe(result.url)
+  end
+
+  def portal
+    result = Billing::StripePortal.call(
+      workspace: current_workspace,
+      return_url: billing_url
+    )
+    return redirect_to billing_path, alert: result.error unless result.success?
+
+    audit!("billing.portal_opened", session_id: result.session.id)
+    redirect_to_stripe(result.url)
   end
 
   private
@@ -63,5 +89,29 @@ class BillingsController < AuthenticatedController
 
   def count_label(count, noun)
     "#{count} #{noun.pluralize(count)}"
+  end
+
+  def redirect_to_stripe(url)
+    uri = URI.parse(url.to_s)
+    unless uri.is_a?(URI::HTTPS) && uri.host.to_s.end_with?("stripe.com")
+      redirect_to billing_path, alert: "Stripe returned an invalid redirect URL."
+      return
+    end
+
+    redirect_to uri.to_s, allow_other_host: true
+  rescue URI::InvalidURIError
+    redirect_to billing_path, alert: "Stripe returned an invalid redirect URL."
+  end
+
+  def audit!(action, metadata = {})
+    Audit::Recorder.call(
+      workspace: current_workspace,
+      user: current_user,
+      auditable: current_workspace,
+      action: action,
+      source: "app",
+      metadata: metadata,
+      request: request
+    )
   end
 end

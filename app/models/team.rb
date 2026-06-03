@@ -2,6 +2,7 @@ class Team < ApplicationRecord
   belongs_to :workspace
 
   has_many :memberships, dependent: :destroy
+  has_many :invitations, dependent: :destroy
   has_many :projects, dependent: :destroy
   has_many :cycles, dependent: :destroy
   has_many :issue_statuses, dependent: :destroy

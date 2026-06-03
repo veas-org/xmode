@@ -8,6 +8,15 @@
       <%= submit_tag "Sign in", class: "app-btn app-btn-primary w-full" %>
     <% end %>
     <%= link_to "Forgot password?", new_password_reset_path, class: "mt-4 block text-sm text-foreground" %>
+    <div class="my-6 h-px bg-border/60"></div>
+    <%= form_with url: sso_start_path, method: :get, class: "space-y-3" do %>
+      <div>
+        <%= label_tag :workspace_slug, "Workspace SSO", class: "app-label" %>
+        <%= text_field_tag :workspace_slug, nil, class: "app-input", placeholder: "planet-express", autocomplete: "organization" %>
+      </div>
+      <%= submit_tag "Continue with SSO", class: "app-btn app-btn-muted w-full" %>
+      <p class="text-xs leading-5 text-muted-foreground">Use the workspace slug configured by your admin.</p>
+    <% end %>
     <%= render "demo_workspace" %>
   </div>
 </section>

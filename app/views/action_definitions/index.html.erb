@@ -1,18 +1,13 @@
 <% content_for :page_title, "Actions" %>
 
-<div class="app-page-actions">
-  <div>
-    <p class="app-eyebrow">Action catalog</p>
-    <p class="mt-1 max-w-2xl text-sm text-muted-foreground">Executable steps used by pipelines. Actions bind a skill to a provider, permissions, objective handling, inputs, outputs, and evidence rules.</p>
-  </div>
-</div>
-
-<section class="linear-surface">
-  <div class="linear-toolbar">
-    <div class="flex min-w-0 items-center gap-2">
-      <%= lucide_icon("play", class_name: "app-icon text-muted-foreground") %>
-      <h2 class="linear-title">Executable actions</h2>
-      <span class="linear-count"><%= @actions.size %></span>
+<section class="ops-section catalog-index catalog-list-section">
+  <div class="catalog-list-head">
+    <div class="min-w-0">
+      <div class="flex min-w-0 items-center gap-2">
+        <h2 class="linear-title">Executable actions</h2>
+        <span class="linear-count"><%= @pagination.total_count %></span>
+      </div>
+      <p class="mt-1 max-w-3xl truncate text-xs text-muted-foreground">Executable steps with skill binding, provider, permissions, objective handling, inputs, outputs, and evidence rules.</p>
     </div>
     <% if permitted?(:manage_pipelines) %>
       <div class="flex items-center gap-1.5">
@@ -28,38 +23,130 @@
     <% end %>
   </div>
 
-  <div class="linear-list">
-    <% @actions.each do |action| %>
-      <%= link_to action_path(action), class: "linear-row" do %>
-        <span class="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-muted/45 text-muted-foreground">
-          <%= lucide_icon(action.provider == "manual" ? "hand" : "terminal", class_name: "app-icon") %>
-        </span>
-        <div class="linear-row-main">
-          <p class="linear-row-title"><%= action.name %></p>
-          <div class="linear-row-meta">
-            <span><%= action.skill_definition&.name || "No skill" %></span>
-            <span><%= action.category %></span>
-            <span><%= action.provider %></span>
-          </div>
-        </div>
-        <div class="hidden flex-wrap justify-end gap-2 md:flex">
-          <span class="status-pill"><%= action.requires_objective? ? "objective required" : "objective optional" %></span>
-          <% if action.plan_required_when_objective_unclear? %>
-            <span class="status-pill">plan fallback</span>
-          <% end %>
-        </div>
+  <%= form_with url: actions_path, method: :get, class: "catalog-filter-bar" do %>
+    <%= hidden_field_tag :mode, "list" %>
+    <label class="catalog-filter-field catalog-filter-search">
+      <%= lucide_icon("search", class_name: "app-icon") %>
+      <%= search_field_tag :q, @query, placeholder: "Filter actions...", class: "catalog-filter-input" %>
+    </label>
+    <label class="catalog-filter-field">
+      <span>Category</span>
+      <%= select_tag :category,
+            options_for_select([ [ "All", "" ] ] + @category_options.map { |category| [ category.to_s.titleize, category ] }, @category),
+            class: "catalog-filter-select" %>
+    </label>
+    <label class="catalog-filter-field">
+      <span>Provider</span>
+      <%= select_tag :provider,
+            options_for_select([ [ "All", "" ] ] + @provider_options.map { |provider| [ provider.to_s.tr("_", " ").titleize, provider ] }, @provider),
+            class: "catalog-filter-select" %>
+    </label>
+    <label class="catalog-filter-field">
+      <span>Rows</span>
+      <%= select_tag :per_page, options_for_select(AuthenticatedController::CATALOG_PER_PAGE_OPTIONS, @pagination.per_page), class: "catalog-filter-select" %>
+    </label>
+    <button class="app-btn app-btn-muted" type="submit">
+      <%= lucide_icon("list-filter", class_name: "app-icon") %>
+      <span>Apply</span>
+    </button>
+    <% if @query.present? || @category.present? || @provider.present? || @pagination.per_page != AuthenticatedController::CATALOG_PER_PAGE_OPTIONS.first %>
+      <%= link_to actions_path(mode: "list"), class: "app-btn app-btn-muted" do %>
+        <%= lucide_icon("x", class_name: "app-icon") %>
+        <span>Clear</span>
       <% end %>
     <% end %>
-    <% if @actions.empty? %>
-      <div class="linear-empty">
-        <p>No actions are defined for this workspace.</p>
-        <% if permitted?(:manage_pipelines) %>
-          <%= link_to new_action_path, class: "app-btn app-btn-muted mt-4", data: side_panel_data do %>
-            <%= lucide_icon("plus", class_name: "app-icon") %>
-            <span>Add action</span>
+  <% end %>
+
+  <% if @actions.any? %>
+    <div class="catalog-table-wrap">
+      <table class="app-table catalog-table">
+        <colgroup>
+          <col class="catalog-col-name">
+          <col class="catalog-col-source">
+          <col class="catalog-col-wide">
+          <col class="catalog-col-trigger">
+          <col class="catalog-col-wide">
+          <col class="catalog-col-wide">
+          <col class="catalog-col-actions">
+        </colgroup>
+        <thead>
+          <tr>
+            <th>Action</th>
+            <th>Category</th>
+            <th>Skill</th>
+            <th>Provider</th>
+            <th>Contract</th>
+            <th>Runtime</th>
+            <th aria-label="Actions"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @actions.each do |action| %>
+            <tr>
+              <td>
+                <%= link_to action_path(action), class: "catalog-table-primary" do %>
+                  <span class="app-view-icon"><%= lucide_icon("play", class_name: "app-icon") %></span>
+                  <span class="min-w-0">
+                    <span><%= action.name %></span>
+                    <small><%= action.versioned_key %></small>
+                  </span>
+                <% end %>
+              </td>
+              <td><span class="status-pill"><%= action.category.to_s.titleize %></span></td>
+              <td>
+                <% if action.skill_definition %>
+                  <%= link_to action.skill_definition.display_name, skill_path(action.skill_definition), class: "catalog-table-link" %>
+                <% else %>
+                  <span class="catalog-table-muted">No skill</span>
+                <% end %>
+              </td>
+              <td><span class="catalog-table-muted"><%= action.provider.to_s.tr("_", " ").titleize %></span></td>
+              <td>
+                <span class="catalog-table-muted">
+                  <%= action.requires_objective? ? "objective required" : "objective optional" %>
+                  ·
+                  <%= action.plan_required_when_objective_unclear? ? "plan fallback" : "plan optional" %>
+                </span>
+              </td>
+              <td>
+                <span class="catalog-table-muted">
+                  @<%= action.version %>
+                  ·
+                  <%= action.timeout_seconds %>s
+                  ·
+                  <%= action.permissions.presence&.join(", ") || "no permissions" %>
+                </span>
+              </td>
+              <td>
+                <div class="catalog-table-actions">
+                  <%= link_to source_action_path(action), class: "app-icon-btn", title: "Source", aria: { label: "Source" }, data: side_panel_data do %>
+                    <%= lucide_icon("file-pen-line", class_name: "app-icon") %>
+                  <% end %>
+                  <% if permitted?(:manage_pipelines) %>
+                    <%= link_to edit_action_path(action), class: "app-icon-btn", title: "Edit action", aria: { label: "Edit action" }, data: side_panel_data do %>
+                      <%= lucide_icon("pencil", class_name: "app-icon") %>
+                    <% end %>
+                  <% end %>
+                </div>
+              </td>
+            </tr>
           <% end %>
+        </tbody>
+      </table>
+    </div>
+  <% else %>
+    <div class="linear-empty">
+      <p>No actions are defined for this workspace.</p>
+      <% if permitted?(:manage_pipelines) %>
+        <%= link_to new_action_path, class: "app-btn app-btn-muted mt-4", data: side_panel_data do %>
+          <%= lucide_icon("plus", class_name: "app-icon") %>
+          <span>Add action</span>
         <% end %>
-      </div>
-    <% end %>
-  </div>
+      <% end %>
+    </div>
+  <% end %>
+
+  <%= render "shared/table_pagination",
+        pagination: @pagination,
+        filter_params: { mode: params[:mode].presence, q: @query, category: @category, provider: @provider, per_page: @pagination.per_page } %>
 </section>

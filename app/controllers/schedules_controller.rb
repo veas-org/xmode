@@ -3,6 +3,13 @@ class SchedulesController < AuthenticatedController
 
   def index
     @schedules = current_workspace.schedules.includes(:pipeline_definition, :schedulable).order(created_at: :desc)
+    @status_groups = @schedules.group_by(&:status).sort_by { |status, _schedules| status.to_s }
+    @schedule_counts = {
+      total: @schedules.size,
+      active: @schedules.count { |schedule| schedule.status == "active" },
+      recurring: @schedules.count { |schedule| schedule.kind == "recurring" },
+      one_off: @schedules.count { |schedule| schedule.kind == "one_off" }
+    }
   end
 
   def show
@@ -11,11 +18,13 @@ class SchedulesController < AuthenticatedController
     @target_project = target_project
     @nodes = @pipeline.graph.fetch("nodes", [])
     @edges = @pipeline.graph.fetch("edges", [])
-    @actions_by_key = current_workspace
+    actions = current_workspace
       .action_definitions
       .includes(:skill_definition)
-      .where(key: @nodes.filter_map { |node| node["action_key"] })
-      .index_by(&:key)
+      .where(key: @nodes.filter_map { |node| node["action_key"].to_s.split("@", 2).first })
+      .to_a
+    @actions_by_reference = actions.index_by(&:versioned_key)
+    @actions_by_key = actions.group_by(&:key).transform_values { |records| Catalog::Versions.latest(records) }
     @recent_runs = recent_schedule_runs
     @change_requests = current_workspace
       .change_requests
@@ -105,7 +114,9 @@ class SchedulesController < AuthenticatedController
   end
 
   def safety_rows
-    manual_steps = @actions_by_key.values.count { |action| action.provider == "manual" }
+    manual_steps = @nodes.count do |node|
+      action_for_node(node)&.provider == "manual"
+    end
     [
       [ "Definition snapshot", "Pipeline and action definitions are frozen per run." ],
       [ "Code boundary", "New branch and Change Request for every code-changing schedule run." ],
@@ -120,5 +131,17 @@ class SchedulesController < AuthenticatedController
 
   def dispatch_label
     @schedule.run_at&.strftime("%b %-d, %Y %-I:%M %p") || @schedule.cron
+  end
+
+  def action_for_node(node)
+    reference = action_reference_for(node)
+    @actions_by_reference[reference] || @actions_by_key[reference.to_s.split("@", 2).first]
+  end
+  helper_method :action_for_node
+
+  def action_reference_for(node)
+    key = node["action_key"].to_s
+    version = node["action_version"].presence
+    version.present? && key.exclude?("@") ? "#{key}@#{version}" : key
   end
 end

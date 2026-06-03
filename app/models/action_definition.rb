@@ -1,6 +1,9 @@
 class ActionDefinition < ApplicationRecord
   CATEGORIES = %w[planning coding verification review release incident maintenance manual].freeze
   PROVIDERS = %w[manual local_shell codex openai claude github_actions gitlab_ci mcp].freeze
+  SEMVER_PATTERN = CatalogVersioning::SEMVER_PATTERN
+
+  include CatalogVersioning
 
   belongs_to :workspace, optional: true
   belongs_to :skill_definition, optional: true
@@ -8,8 +11,8 @@ class ActionDefinition < ApplicationRecord
 
   before_validation :assign_default_objective_template
 
-  validates :key, :name, presence: true
-  validates :key, uniqueness: { scope: :workspace_id }
+  validates :key, :name, :version, presence: true
+  validates :key, uniqueness: { scope: %i[workspace_id version] }
   validates :category, inclusion: { in: CATEGORIES }
   validates :provider, inclusion: { in: PROVIDERS }
   validates :objective_template, presence: true, if: :requires_objective?
@@ -35,6 +38,8 @@ class ActionDefinition < ApplicationRecord
     context["action"] = {
       "key" => key,
       "name" => name,
+      "version" => version,
+      "reference" => versioned_key,
       "guidance" => execution_guidance,
       "best_practices" => best_practices
     }
@@ -101,6 +106,8 @@ class ActionDefinition < ApplicationRecord
     {
       "key" => skill_definition.key,
       "name" => skill_definition.name,
+      "version" => skill_definition.version,
+      "reference" => skill_definition.versioned_key,
       "category" => skill_definition.category,
       "instructions" => skill_definition.instructions,
       "best_practices" => skill_definition.best_practices

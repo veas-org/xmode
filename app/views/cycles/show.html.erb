@@ -1,186 +1,170 @@
 <% content_for :page_title, @cycle.name %>
 
-<div class="app-page-actions">
-  <div class="min-w-0">
-    <p class="app-eyebrow"><%= @cycle.team.name %> · <%= @cycle.status %></p>
-    <p class="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-      Sprint operating surface for committed issues, objective context, automation evidence, and Change Requests.
-    </p>
-  </div>
-  <div class="flex items-center gap-1.5">
-    <span class="status-pill"><%= @cycle_window_label %></span>
-    <%= link_to edit_cycle_path(@cycle), class: "app-icon-btn", title: "Edit cycle", aria: { label: "Edit cycle" }, data: side_panel_data do %>
-      <%= lucide_icon("pencil", class_name: "app-icon") %>
-    <% end %>
-  </div>
-</div>
-
-<div class="app-detail-grid">
-  <div class="space-y-5">
-    <section class="linear-surface p-5">
-      <div class="flex flex-wrap items-start justify-between gap-4">
+<div class="record-detail-layout cycle-record-layout">
+  <main class="record-detail-main">
+    <header class="record-doc-hero">
+      <div class="record-doc-hero-top">
         <div class="min-w-0">
-          <p class="app-eyebrow">Cycle brief</p>
-          <h2 class="mt-1 text-xl font-semibold tracking-normal text-foreground"><%= @cycle.name %></h2>
-          <p class="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-            <%= pluralize(@issue_total, "committed issue") %>, <%= pluralize(@estimate_total, "point") %>, and <%= @cycle_completion %>% complete.
-          </p>
+          <p class="app-eyebrow"><%= @cycle.team.name %></p>
+          <h2 class="record-detail-page-title"><%= @cycle.name %></h2>
+          <div class="record-detail-page-meta">
+            <span><%= @cycle_window_label %></span>
+            <span><%= pluralize(@issue_total, "committed issue") %></span>
+            <span><%= @cycle_completion %>% complete</span>
+          </div>
         </div>
-        <span class="status-pill"><%= @cycle.status.to_s.titleize %></span>
+        <div class="record-detail-page-controls">
+          <%= status_icon_pill(@cycle.status, title: @cycle.status.to_s.titleize) %>
+          <%= link_to edit_cycle_path(@cycle), class: "app-icon-btn", title: "Edit cycle", aria: { label: "Edit cycle" }, data: side_panel_data do %>
+            <%= lucide_icon("pencil", class_name: "app-icon") %>
+          <% end %>
+          <%= link_to new_issue_path(cycle_id: @cycle.id), class: "app-icon-btn", title: "New issue", aria: { label: "New issue" }, data: side_panel_data do %>
+            <%= lucide_icon("plus", class_name: "app-icon") %>
+          <% end %>
+        </div>
       </div>
+      <p class="mt-4 max-w-3xl text-sm leading-6 text-muted-foreground">
+        Sprint operating surface for committed issues, objective context, automation evidence, and Change Requests.
+      </p>
+    </header>
 
-      <div class="mt-5 cycle-progress" aria-label="Cycle completion">
+    <section class="record-detail-section">
+      <div class="record-detail-section-head">
+        <div>
+          <p class="app-eyebrow">Progress</p>
+          <h3>Cycle brief</h3>
+        </div>
+      </div>
+      <div class="cycle-progress" aria-label="Cycle completion">
         <span style="width: <%= @cycle_completion %>%"></span>
       </div>
-
-      <dl class="mt-5 grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-4">
-        <div class="inbox-property"><dt>Committed</dt><dd><strong><%= @issue_total %></strong></dd></div>
-        <div class="inbox-property"><dt>Completed</dt><dd><strong><%= @completed_issues %></strong></dd></div>
-        <div class="inbox-property"><dt>Estimate</dt><dd><strong><%= @estimate_total %></strong></dd></div>
-        <div class="inbox-property">
-          <dt>Remaining</dt>
-          <dd><strong><%= @days_remaining.nil? ? "-" : pluralize([ @days_remaining, 0 ].max, "day") %></strong></dd>
-        </div>
+      <dl class="mt-4 grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-4">
+        <div class="record-key-value"><dt>Committed</dt><dd><strong><%= @issue_total %></strong></dd></div>
+        <div class="record-key-value"><dt>Completed</dt><dd><strong><%= @completed_issues %></strong></dd></div>
+        <div class="record-key-value"><dt>Estimate</dt><dd><strong><%= @estimate_total %></strong></dd></div>
+        <div class="record-key-value"><dt>Remaining</dt><dd><strong><%= @days_remaining.nil? ? "-" : pluralize([ @days_remaining, 0 ].max, "day") %></strong></dd></div>
       </dl>
     </section>
 
-    <section class="linear-surface">
-      <div class="linear-toolbar">
-        <div class="flex min-w-0 items-center gap-2">
-          <%= lucide_icon("calendar", class_name: "app-icon text-muted-foreground") %>
-          <h2 class="linear-title">Cycle work</h2>
-          <span class="linear-count"><%= @issue_total %></span>
+    <section class="record-detail-section">
+      <div class="record-detail-section-head">
+        <div>
+          <p class="app-eyebrow">Work</p>
+          <h3>Cycle work</h3>
         </div>
-        <%= link_to new_issue_path(cycle_id: @cycle.id), class: "app-icon-btn", title: "New issue", aria: { label: "New issue" }, data: side_panel_data do %>
-          <%= lucide_icon("plus", class_name: "app-icon") %>
-        <% end %>
+        <span class="linear-count"><%= @issue_total %></span>
       </div>
 
-      <div class="linear-list">
-        <% @issues.each do |issue| %>
-          <%= link_to issue_path(issue), class: "linear-row" do %>
-            <span class="inbox-row-indicator"></span>
-            <span class="font-mono text-xs text-muted-foreground"><%= issue.identifier %></span>
-            <span class="linear-row-main">
-              <span class="linear-row-title"><%= issue.title %></span>
-              <span class="linear-row-meta">
-                <span><%= issue.project&.title || "No project" %></span>
-                <span><%= issue.assignee&.display_name || "Unassigned" %></span>
-                <span><%= issue.priority %></span>
-                <span><%= issue.estimate ? "#{issue.estimate} pts" : "No estimate" %></span>
-                <% if issue.due_on.present? %>
-                  <span>Due <%= issue.due_on.strftime("%b %-d") %></span>
-                <% end %>
-              </span>
-            </span>
-            <span class="hidden shrink-0 items-center gap-1.5 md:flex">
-              <% if issue.pipeline_runs.any? %>
-                <span class="status-pill"><%= pluralize(issue.pipeline_runs.size, "run") %></span>
-              <% end %>
-              <% if issue.change_requests.any? %>
-                <span class="status-pill"><%= pluralize(issue.change_requests.size, "CR") %></span>
-              <% end %>
-              <span class="status-pill"><%= issue.display_status %></span>
-            </span>
-          <% end %>
-        <% end %>
-        <% if @issues.empty? %>
-          <div class="linear-empty">
-            <p>No committed issues yet. Add work here once the team has a clear objective for this cycle.</p>
-          </div>
-        <% end %>
-      </div>
+      <%= render "issues/list",
+            issues: @issues,
+            show_project: true,
+            show_estimate: true,
+            show_due: true,
+            show_updated: false,
+            show_counts: true,
+            list_class: "record-detail-list",
+            row_class: "record-detail-row",
+            empty_message: "No committed issues yet. Add work here once the team has a clear objective for this cycle." %>
     </section>
-  </div>
+  </main>
 
-  <aside class="space-y-4">
-    <section class="linear-surface p-4">
-      <h3 class="font-medium text-foreground">Cycle health</h3>
-      <dl class="mt-3 grid gap-2 text-sm">
+  <aside class="record-detail-side">
+    <section class="record-detail-side-section">
+      <div class="record-detail-side-title">
+        <h3>Cycle health</h3>
+      </div>
+      <dl class="record-detail-list">
         <% @status_rows.each do |name, category, count| %>
-          <div class="inbox-property"><dt><%= name %></dt><dd><strong><%= count %> · <%= category %></strong></dd></div>
+          <div class="record-key-value record-detail-property"><dt><%= name %></dt><dd><strong><%= count %> · <%= category %></strong></dd></div>
         <% end %>
         <% if @status_rows.empty? %>
-          <div class="linear-empty px-0 py-4">No status mix yet.</div>
+          <div class="linear-empty px-0 py-4 text-left">No status mix yet.</div>
         <% end %>
       </dl>
       <% if @priority_counts.any? %>
-        <div class="mt-4 flex flex-wrap gap-2">
+        <div class="mt-3 flex flex-wrap gap-1.5">
           <% @priority_counts.each do |priority, count| %>
-            <span class="status-pill"><%= priority %> <%= count %></span>
+            <span class="inline-flex items-center gap-1.5">
+              <%= status_icon_pill(priority, title: "#{priority.titleize} priority") %>
+              <span class="linear-count"><%= count %></span>
+            </span>
           <% end %>
         </div>
       <% end %>
     </section>
 
-    <section class="linear-surface p-4">
-      <h3 class="font-medium text-foreground">Objective, plan, goal</h3>
-      <div class="mt-3 space-y-2">
+    <section class="record-detail-side-section">
+      <div class="record-detail-side-title">
+        <h3>Objective, plan, goal</h3>
+      </div>
+      <div class="record-detail-list">
         <% @cycle_objectives.each do |objective| %>
-          <article class="app-flat-row rounded-md px-3 py-2">
-            <p class="app-eyebrow">Objective</p>
-            <p class="mt-1 text-sm font-medium text-foreground"><%= objective.title %></p>
+          <article class="record-detail-row">
+            <span class="record-point-main">
+              <span class="app-eyebrow">Objective</span>
+              <span class="record-point-title mt-1"><%= objective.title %></span>
+            </span>
           </article>
         <% end %>
         <% @cycle_plans.each do |plan| %>
-          <article class="app-flat-row rounded-md px-3 py-2">
-            <p class="app-eyebrow">Plan · <%= plan.status %></p>
-            <p class="mt-1 text-sm font-medium text-foreground"><%= plan.title %></p>
+          <article class="record-detail-row">
+            <%= status_icon_pill(plan.status, title: "Plan #{plan.status}") %>
+            <span class="record-point-main">
+              <span class="app-eyebrow">Plan</span>
+              <span class="record-point-title mt-1"><%= plan.title %></span>
+            </span>
           </article>
         <% end %>
         <% @cycle_goals.each do |goal| %>
-          <article class="app-flat-row rounded-md px-3 py-2">
-            <p class="app-eyebrow">Goal · <%= goal.status %></p>
-            <p class="mt-1 text-sm font-medium text-foreground"><%= goal.title %></p>
-            <% if goal.metric.present? %>
-              <p class="mt-1 text-xs text-muted-foreground"><%= goal.metric %>: <%= goal.current_value.presence || "-" %> / <%= goal.target_value.presence || "-" %></p>
-            <% end %>
+          <article class="record-detail-row">
+            <%= status_icon_pill(goal.status, title: "Goal #{goal.status}") %>
+            <span class="record-point-main">
+              <span class="app-eyebrow">Goal</span>
+              <span class="record-point-title mt-1"><%= goal.title %></span>
+              <% if goal.metric.present? %>
+                <span class="record-point-meta"><%= goal.metric %>: <%= goal.current_value.presence || "-" %> / <%= goal.target_value.presence || "-" %></span>
+              <% end %>
+            </span>
           </article>
         <% end %>
         <% if @cycle_objectives.empty? && @cycle_plans.empty? && @cycle_goals.empty? %>
-          <p class="linear-empty px-0 py-4">No objective, plan, or goal has been linked through this cycle's projects yet.</p>
+          <p class="linear-empty px-0 py-4 text-left">No objective, plan, or goal has been linked through this cycle's projects yet.</p>
         <% end %>
       </div>
     </section>
 
-    <section class="linear-surface p-4">
-      <div class="flex items-center justify-between gap-3">
-        <h3 class="font-medium text-foreground">Automation evidence</h3>
+    <section class="record-detail-side-section">
+      <div class="record-detail-side-title">
+        <h3>Automation evidence</h3>
         <span class="linear-count"><%= @cycle_runs.size + @cycle_change_requests.size %></span>
       </div>
-      <div class="mt-3 space-y-2">
+      <div class="record-detail-list">
         <% @cycle_runs.each do |run| %>
-          <%= link_to pipeline_run_path(run), class: "app-flat-row block rounded-md px-3 py-2 transition-colors hover:bg-muted/45" do %>
-            <span class="flex min-w-0 items-start justify-between gap-3">
-              <span class="min-w-0">
-                <span class="block text-sm font-medium text-foreground"><%= run.pipeline_definition&.name || "Pipeline run" %></span>
-                <span class="linear-row-meta">
-                  <%= lucide_icon(run.status == "completed" ? "check" : "activity", class_name: "app-icon") %>
-                  <span><%= run.issue&.identifier || "Cycle" %></span>
-                  <span><%= run.display_status %></span>
-                </span>
+          <%= link_to pipeline_run_path(run), class: "record-detail-row" do %>
+            <span class="record-point-main">
+              <span class="record-point-title"><%= run.pipeline_definition&.name || "Pipeline run" %></span>
+              <span class="record-point-meta">
+                <span><%= run.issue&.identifier || "Cycle" %></span>
+                <span><%= run.display_trigger %></span>
               </span>
-              <span class="status-pill shrink-0"><%= run.display_trigger %></span>
             </span>
+            <%= status_icon_pill(run.status, title: run.display_status) %>
           <% end %>
         <% end %>
         <% @cycle_change_requests.each do |change_request| %>
-          <%= link_to change_request_path(change_request), class: "app-flat-row block rounded-md px-3 py-2 transition-colors hover:bg-muted/45" do %>
-            <span class="flex min-w-0 items-start justify-between gap-3">
-              <span class="min-w-0">
-                <span class="block text-sm font-medium text-foreground"><%= change_request.title %></span>
-                <span class="linear-row-meta">
-                  <%= lucide_icon("git-pull-request", class_name: "app-icon") %>
-                  <span><%= change_request.issue&.identifier || "No issue" %></span>
-                  <span class="break-all"><%= change_request.branch_name %></span>
-                </span>
+          <%= link_to change_request_path(change_request), class: "record-detail-row" do %>
+            <span class="record-point-main">
+              <span class="record-point-title"><%= change_request.title %></span>
+              <span class="record-point-meta">
+                <span><%= change_request.issue&.identifier || "No issue" %></span>
+                <span class="break-all"><%= change_request.branch_name %></span>
               </span>
-              <span class="status-pill shrink-0"><%= change_request.status.to_s.titleize %></span>
             </span>
+            <%= status_icon_pill(change_request.status, title: change_request.status.to_s.titleize) %>
           <% end %>
         <% end %>
         <% if @cycle_runs.empty? && @cycle_change_requests.empty? %>
-          <p class="linear-empty px-0 py-4">No automation evidence has landed for this cycle yet.</p>
+          <p class="linear-empty px-0 py-4 text-left">No automation evidence has landed for this cycle yet.</p>
         <% end %>
       </div>
     </section>

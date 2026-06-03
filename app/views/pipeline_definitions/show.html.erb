@@ -1,156 +1,219 @@
 <% content_for :page_title, @pipeline.name %>
-<div class="app-page-actions">
-  <div class="min-w-0">
-    <p class="app-eyebrow"><%= @pipeline.key %></p>
-    <p class="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-      Reusable wrapper around actions. Every run freezes this definition, then records objectives, plans, approvals, logs, artifacts, and Change Request evidence.
-    </p>
-  </div>
-  <div class="flex flex-wrap gap-2">
-    <%= link_to edit_pipeline_path(@pipeline), class: "app-btn app-btn-muted", data: side_panel_data do %>
-      <%= lucide_icon("workflow", class_name: "app-icon") %>
-      <span>Edit graph</span>
-    <% end %>
-    <%= link_to export_pipeline_path(@pipeline), class: "app-btn app-btn-muted" do %>
-      <%= lucide_icon("download", class_name: "app-icon") %>
-      <span>YAML</span>
-    <% end %>
-    <%= link_to new_schedule_path(pipeline_definition_id: @pipeline.id), class: "app-btn app-btn-muted", data: side_panel_data do %>
-      <%= lucide_icon("clock", class_name: "app-icon") %>
-      <span>Schedule</span>
-    <% end %>
-    <%= button_to run_pipeline_path(@pipeline), method: :post, class: "app-btn app-btn-primary" do %>
-      <%= lucide_icon("play", class_name: "app-icon") %>
-      <span>Run</span>
-    <% end %>
-  </div>
-</div>
 
-<div class="app-detail-grid">
-  <div class="space-y-5">
-    <section class="linear-surface p-5">
-      <div class="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p class="app-eyebrow">Action graph</p>
-          <h2 class="mt-1 font-semibold text-foreground"><%= @pipeline.name %></h2>
+<div class="catalog-doc-page">
+  <%= render "shared/catalog_doc_tree", tree: @catalog_navigation, home_path: pipelines_home_path, list_path: pipelines_path(mode: "list"), import_path: import_pipelines_path, new_path: new_pipeline_path %>
+
+  <article class="catalog-doc-article">
+    <header class="catalog-doc-hero">
+      <div class="flex min-w-0 flex-wrap items-center gap-2">
+        <span class="linear-count">Pipeline</span>
+        <span class="linear-count"><%= @pipeline.versioned_key %></span>
+        <span class="linear-count"><%= pluralize(@nodes.size, "step") %></span>
+      </div>
+      <h2><%= @pipeline.name %></h2>
+      <p>
+        Reusable wrapper around actions. Every run freezes this definition, then records objectives, plans, approvals, logs, artifacts, and Change Request evidence.
+      </p>
+      <div class="catalog-doc-tags">
+        <span>@<%= @pipeline.version %></span>
+        <% if @pipeline.latest_version? %>
+          <span>latest</span>
+        <% end %>
+        <span><%= @pipeline.triggers.presence&.join(", ") || "manual" %></span>
+        <span><%= pluralize(@edges.size, "edge") %></span>
+        <span><%= @pipeline.builtin? ? "built-in" : "workspace" %></span>
+        <span>snapshotted per run</span>
+      </div>
+    </header>
+
+    <section class="catalog-doc-section">
+      <p class="app-eyebrow">Run contract</p>
+      <h3>What this pipeline needs</h3>
+      <p>
+        Required context and permissions define whether a run can start. The graph then decides which action, manual gate, or structured follow-up should happen next.
+      </p>
+      <div class="catalog-contract-grid">
+        <div class="catalog-contract-item is-primary">
+          <span>Version</span>
+          <strong>@<%= @pipeline.version %></strong>
+          <small>Runs freeze this exact pipeline definition.</small>
         </div>
-        <span class="status-pill"><%= pluralize(@nodes.size, "step") %></span>
+        <div class="catalog-contract-item">
+          <span>Trigger</span>
+          <strong><%= @pipeline.triggers.presence&.join(", ") || "manual" %></strong>
+          <small>Determines how runs enter this pipeline.</small>
+        </div>
+        <div class="catalog-contract-item">
+          <span>Context</span>
+          <strong><%= @pipeline.required_context.keys.size %> required</strong>
+          <small><%= @pipeline.required_context.keys.presence&.join(", ") || "No required context." %></small>
+        </div>
+        <div class="catalog-contract-item">
+          <span>Permissions</span>
+          <strong><%= @pipeline.permissions.presence&.join(", ") || "none" %></strong>
+          <small>Capabilities granted during execution.</small>
+        </div>
+        <div class="catalog-contract-item">
+          <span>Snapshot</span>
+          <strong>Frozen per run</strong>
+          <small>Definitions are copied into each run for auditability.</small>
+        </div>
       </div>
-      <div class="mt-4 space-y-0">
-        <% @nodes.each_with_index do |node, index| %>
-          <% action = @actions_by_key[node["action_key"]] %>
-          <% next_edge = @edges.find { |edge| edge["from"] == node["id"] } %>
-          <article class="app-run-step">
-            <div class="flex min-w-0 items-start gap-3">
-              <span class="status-pill shrink-0"><%= index + 1 %></span>
-              <div class="min-w-0 flex-1">
-                <div class="flex flex-wrap items-center justify-between gap-2">
-                  <h3 class="text-sm font-semibold text-foreground"><%= node["label"] || action&.name || node["action_key"] %></h3>
-                  <% if next_edge %>
-                    <span class="status-pill"><%= next_edge["condition"].presence || "next" %></span>
-                  <% end %>
-                </div>
-                <p class="mt-1 text-xs text-muted-foreground">
-                  <%= action&.skill_definition&.name || "No skill" %> · <%= (action&.provider || "provider").to_s.tr("_", " ").titleize %>
-                </p>
-                <% if action %>
-                  <div class="mt-3 grid gap-2 text-sm md:grid-cols-2">
-                    <div class="inbox-property"><span>Objective</span><strong><%= action.requires_objective? ? "Required" : "Optional" %></strong></div>
-                    <div class="inbox-property"><span>Plan</span><strong><%= action.plan_required_when_objective_unclear? ? "Fallback" : "Optional" %></strong></div>
-                  </div>
-                <% end %>
-              </div>
-            </div>
-          </article>
-        <% end %>
-      </div>
-    </section>
 
-    <section class="linear-surface p-5">
-      <div class="flex flex-wrap items-center justify-between gap-3">
-        <h2 class="font-semibold text-foreground">Recent runs</h2>
-        <span class="linear-count"><%= @runs.size %></span>
-      </div>
-      <div class="mt-3 space-y-2">
-        <% @runs.each do |run| %>
-          <%= link_to pipeline_run_path(run), class: "linear-row" do %>
-            <%= lucide_icon(run.status == "completed" ? "check" : "activity", class_name: "app-icon text-muted-foreground") %>
-            <span class="linear-row-main">
-              <span class="linear-row-title"><%= run.issue&.identifier || run.project&.title || "Workspace run" %></span>
-              <span class="linear-row-meta">
-                <span><%= run.display_trigger %></span>
-                <span><%= time_ago_in_words(run.created_at) %> ago</span>
-              </span>
-            </span>
-            <span class="status-pill shrink-0"><%= run.display_status %></span>
-          <% end %>
-        <% end %>
-        <% if @runs.empty? %>
-          <p class="linear-empty">No runs recorded for this pipeline yet.</p>
-        <% end %>
-      </div>
-    </section>
-  </div>
-
-  <aside class="space-y-4">
-    <section class="linear-surface p-4">
-      <h3 class="font-medium text-foreground">Run contract</h3>
-      <dl class="mt-3 grid gap-2 text-sm">
-        <div class="inbox-property"><dt>Triggers</dt><dd><strong><%= @pipeline.triggers.presence&.join(", ") || "manual" %></strong></dd></div>
-        <div class="inbox-property"><dt>Required context</dt><dd><strong><%= @pipeline.required_context.keys.presence&.join(", ") || "none" %></strong></dd></div>
-        <div class="inbox-property"><dt>Edges</dt><dd><strong><%= @edges.size %></strong></dd></div>
-        <div class="inbox-property"><dt>Definition</dt><dd><strong><%= @pipeline.builtin? ? "built-in" : "workspace" %></strong></dd></div>
-        <div class="inbox-property"><dt>Snapshot</dt><dd><strong>Frozen per run</strong></dd></div>
+      <dl class="catalog-contract-list">
+        <div><dt>key</dt><dd><%= @pipeline.key %></dd></div>
+        <div><dt>version</dt><dd>@<%= @pipeline.version %></dd></div>
+        <div><dt>steps</dt><dd><%= @nodes.size %></dd></div>
+        <div><dt>edges</dt><dd><%= @edges.size %></dd></div>
+        <div><dt>definition</dt><dd><%= @pipeline.builtin? ? "built-in" : "workspace" %></dd></div>
       </dl>
     </section>
 
-    <section class="linear-surface p-4">
-      <div class="flex items-center justify-between gap-3">
-        <h3 class="font-medium text-foreground">Schedules</h3>
-        <span class="linear-count"><%= @schedules.size %></span>
-      </div>
-      <div class="mt-3 space-y-2">
-        <% @schedules.each do |schedule| %>
-          <%= link_to schedule_path(schedule), class: "linear-row" do %>
-            <%= lucide_icon("clock", class_name: "app-icon text-muted-foreground") %>
-            <span class="linear-row-main">
-              <span class="linear-row-title"><%= schedule.schedulable&.try(:title) || schedule.schedulable&.try(:name) || "Workspace" %></span>
-              <span class="linear-row-meta"><span><%= schedule.run_at&.strftime("%b %-d, %-I:%M %p") || schedule.cron %></span></span>
-            </span>
-            <span class="status-pill shrink-0"><%= schedule.status.to_s.titleize %></span>
-          <% end %>
-        <% end %>
-        <% if @schedules.empty? %>
-          <div class="linear-empty">
-            <p>No schedules use this pipeline yet.</p>
-            <%= link_to new_schedule_path(pipeline_definition_id: @pipeline.id), class: "app-btn app-btn-muted mt-4", data: side_panel_data do %>
-              <%= lucide_icon("clock", class_name: "app-icon") %>
-              <span>Add schedule</span>
-            <% end %>
-          </div>
+    <section class="catalog-doc-section">
+      <p class="app-eyebrow">Action graph</p>
+      <h3>Execution order</h3>
+      <div class="catalog-doc-step-list">
+        <% @nodes.each_with_index do |node, index| %>
+          <% action_key = node["action_key"].to_s %>
+          <% action_version = node["action_version"].presence %>
+          <% action_reference = action_version.present? && action_key.exclude?("@") ? "#{action_key}@#{action_version}" : action_key %>
+          <% action = @actions_by_reference[action_reference] || @actions_by_key[action_reference.split("@", 2).first] %>
+          <% node_type = node["type"].presence || "action" %>
+          <% next_edge = @edges.find { |edge| edge["from"] == node["id"] } %>
+          <article class="catalog-doc-step">
+            <span class="catalog-doc-step-index"><%= index + 1 %></span>
+            <div class="min-w-0">
+              <div class="catalog-doc-step-head">
+                <h4><%= node["label"] || action&.name || node["action_key"] || node_type.titleize %></h4>
+                <% if next_edge %>
+                  <span class="linear-count"><%= next_edge["condition"].presence || "next" %></span>
+                <% end %>
+              </div>
+              <p>
+                <% if action %>
+                  <%= action.display_name %> · <%= action.skill_definition&.display_name || "No skill" %> · <%= action.provider.to_s.tr("_", " ").titleize %>
+                <% else %>
+                  Interactive · <%= node_type.to_s.tr("_", " ").titleize %>
+                <% end %>
+              </p>
+              <% if action %>
+                <dl class="catalog-doc-step-contract">
+                  <div><dt>Objective</dt><dd><%= action.requires_objective? ? "Required" : "Optional" %></dd></div>
+                  <div><dt>Plan</dt><dd><%= action.plan_required_when_objective_unclear? ? "Fallback" : "Optional" %></dd></div>
+                </dl>
+              <% elsif node["question"].present? || node["prompt"].present? %>
+                <p class="mt-2"><%= node["question"].presence || node["prompt"] %></p>
+              <% end %>
+            </div>
+          </article>
         <% end %>
       </div>
     </section>
 
-    <section class="linear-surface p-4">
-      <div class="flex items-center justify-between gap-3">
-        <h3 class="font-medium text-foreground">Event rules</h3>
-        <span class="linear-count"><%= @event_rules.size %></span>
+    <section class="catalog-doc-section">
+      <div class="flex min-w-0 items-center justify-between gap-3">
+        <div>
+          <p class="app-eyebrow">Recent runs</p>
+          <h3>Execution history</h3>
+        </div>
+        <span class="linear-count"><%= @runs.size %></span>
       </div>
-      <div class="mt-3 space-y-2">
+      <div class="catalog-doc-link-list">
+        <% @runs.each do |run| %>
+          <%= link_to pipeline_run_path(run) do %>
+            <span><%= run.issue&.identifier || run.project&.title || "Workspace run" %></span>
+            <small><%= run.display_trigger %> · <%= run.display_status %> · <%= time_ago_in_words(run.created_at) %> ago</small>
+          <% end %>
+        <% end %>
+        <% if @runs.empty? %>
+          <p class="linear-empty px-0 py-3 text-left">No runs recorded for this pipeline yet.</p>
+        <% end %>
+      </div>
+    </section>
+  </article>
+
+  <aside class="catalog-doc-aside">
+    <section class="catalog-doc-panel">
+      <p class="app-eyebrow">Markdown definition</p>
+      <div class="mt-3 flex flex-wrap gap-2">
+        <%= link_to edit_pipeline_path(@pipeline), class: "app-btn app-btn-muted", data: side_panel_data do %>
+          <%= lucide_icon("workflow", class_name: "app-icon") %>
+          <span>Edit graph</span>
+        <% end %>
+        <%= link_to source_pipeline_path(@pipeline), class: "app-btn app-btn-muted", data: side_panel_data do %>
+          <%= lucide_icon("file-pen-line", class_name: "app-icon") %>
+          <span>Source</span>
+        <% end %>
+        <%= link_to export_pipeline_path(@pipeline), class: "app-btn app-btn-muted" do %>
+          <%= lucide_icon("download", class_name: "app-icon") %>
+          <span>YAML</span>
+        <% end %>
+      </div>
+    </section>
+
+    <section class="catalog-doc-panel">
+      <h3>Run</h3>
+      <div class="mt-3 flex flex-wrap gap-2">
+        <%= button_to run_pipeline_path(@pipeline), method: :post, class: "app-btn app-btn-primary" do %>
+          <%= lucide_icon("play", class_name: "app-icon") %>
+          <span>Run</span>
+        <% end %>
+        <%= link_to new_schedule_path(pipeline_definition_id: @pipeline.id), class: "app-btn app-btn-muted", data: side_panel_data do %>
+          <%= lucide_icon("clock", class_name: "app-icon") %>
+          <span>Schedule</span>
+        <% end %>
+      </div>
+    </section>
+
+    <section class="catalog-doc-panel">
+      <h3>Definition</h3>
+      <dl class="catalog-contract-list">
+        <div><dt>Steps</dt><dd><%= @nodes.size %></dd></div>
+        <div><dt>Edges</dt><dd><%= @edges.size %></dd></div>
+        <div><dt>Required</dt><dd><%= @pipeline.required_context.keys.presence&.join(", ") || "none" %></dd></div>
+        <div><dt>Snapshot</dt><dd><%= @pipeline.versioned_key %></dd></div>
+      </dl>
+    </section>
+
+    <%= render "shared/catalog_versions", record: @pipeline, versions: @catalog_versions %>
+
+    <section class="catalog-doc-panel">
+      <div class="flex items-center justify-between gap-3">
+        <h3>Schedules</h3>
+        <span class="linear-count"><%= @schedules.size %></span>
+      </div>
+      <div class="catalog-doc-link-list">
+        <% @schedules.each do |schedule| %>
+          <%= link_to schedule_path(schedule) do %>
+            <span><%= schedule.schedulable&.try(:title) || schedule.schedulable&.try(:name) || "Workspace" %></span>
+            <small><%= schedule.run_at&.strftime("%b %-d, %-I:%M %p") || schedule.cron || schedule.status.to_s.titleize %></small>
+          <% end %>
+        <% end %>
+        <% if @schedules.empty? %>
+          <p class="linear-empty px-0 py-3 text-left">No schedules use this pipeline yet.</p>
+        <% end %>
+      </div>
+    </section>
+
+    <section class="catalog-doc-panel">
+      <div class="flex items-center justify-between gap-3">
+        <h3>Event rules</h3>
+        <div class="flex items-center gap-2">
+          <span class="linear-count"><%= @event_rules.size %></span>
+          <%= link_to new_event_rule_path(pipeline_definition_id: @pipeline.id), class: "app-icon-btn", title: "New event rule", aria: { label: "New event rule" }, data: side_panel_data do %>
+            <%= lucide_icon("plus", class_name: "app-icon") %>
+          <% end %>
+        </div>
+      </div>
+      <div class="catalog-doc-link-list">
         <% @event_rules.each do |rule| %>
-          <article class="app-flat-row rounded-md px-3 py-3">
-            <div class="flex min-w-0 items-start justify-between gap-3">
-              <div class="min-w-0">
-                <p class="text-sm font-medium text-foreground"><%= rule.name %></p>
-                <p class="mt-1 text-xs text-muted-foreground"><%= rule.source %> · <%= rule.event_type %></p>
-              </div>
-              <span class="status-pill shrink-0"><%= rule.active? ? "Active" : "Paused" %></span>
-            </div>
-          </article>
+          <%= link_to edit_event_rule_path(rule), data: side_panel_data do %>
+            <span><%= rule.name %></span>
+            <small><%= rule.source %> · <%= rule.event_type %> · <%= rule.active? ? "Active" : "Paused" %></small>
+          <% end %>
         <% end %>
         <% if @event_rules.empty? %>
-          <p class="linear-empty">No event rules use this pipeline yet.</p>
+          <p class="linear-empty px-0 py-3 text-left">No event rules use this pipeline yet.</p>
         <% end %>
       </div>
     </section>

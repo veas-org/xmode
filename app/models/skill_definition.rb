@@ -1,11 +1,14 @@
 class SkillDefinition < ApplicationRecord
   CATEGORIES = %w[planning coding verification review release incident maintenance manual].freeze
+  SEMVER_PATTERN = CatalogVersioning::SEMVER_PATTERN
+
+  include CatalogVersioning
 
   belongs_to :workspace, optional: true
   has_many :action_definitions, dependent: :nullify
 
-  validates :key, :name, presence: true
-  validates :key, uniqueness: { scope: :workspace_id }
+  validates :key, :name, :version, presence: true
+  validates :key, uniqueness: { scope: %i[workspace_id version] }
   validates :category, inclusion: { in: CATEGORIES }
   validate :schemas_are_valid
   validate :best_practices_are_strings

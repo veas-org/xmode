@@ -1,0 +1,15 @@
+<% content_for :page_title, "Edit #{@pipeline.name} source" %>
+<%= render layout: "shared/side_panel",
+      locals: {
+        title: "Edit #{@pipeline.name} source",
+        eyebrow: "Pipeline markdown",
+        description: "Edit this pipeline as YAML frontmatter plus markdown context.",
+        back_path: pipeline_path(@pipeline),
+        wide: true
+      } do %>
+  <%= render "shared/catalog_source_form",
+        record: @pipeline,
+        kind: "Pipeline",
+        path: source_pipeline_path(@pipeline),
+        back_path: pipeline_path(@pipeline) %>
+<% end %>

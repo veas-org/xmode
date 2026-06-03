@@ -64,22 +64,114 @@ module ApplicationHelper
     )
   end
 
+  def issue_inbox_reason(issue)
+    latest_run = issue.pipeline_runs.max_by(&:updated_at)
+    latest_change_request = issue.change_requests.max_by(&:updated_at)
+
+    if latest_run&.status.in?(%w[waiting_for_approval waiting_for_input failed])
+      "Run needs attention"
+    elsif latest_run
+      "#{latest_run.pipeline_definition&.name || "Pipeline"} #{latest_run.display_status.downcase}"
+    elsif latest_change_request
+      "Change Request #{latest_change_request.status.to_s.tr("_", " ")}"
+    elsif issue.assignee
+      "Assigned to #{issue.assignee.display_name}"
+    else
+      "Issue update"
+    end
+  end
+
+  def issue_inbox_state(issue)
+    latest_run = issue.pipeline_runs.max_by(&:updated_at)
+    return latest_run.status if latest_run&.status.in?(%w[waiting_for_approval waiting_for_input failed running queued])
+    return issue.priority if issue.priority.in?(%w[urgent high])
+
+    issue.display_status
+  end
+
+  def inbox_thread_icon(type)
+    case type.to_s
+    when "issue"
+      "circle-dot"
+    when "event"
+      "radio-tower"
+    when "run"
+      "workflow"
+    when "message"
+      "message-square"
+    when "approval"
+      "hand"
+    when "log"
+      "activity"
+    when "change_request"
+      "git-pull-request"
+    else
+      "circle-dot"
+    end
+  end
+
+  def app_topbar_breadcrumbs(page_title)
+    title = page_title.to_s.presence || "xmode"
+    section = app_topbar_section
+    return [ { label: title } ] if section.blank?
+    return [ section ] if section[:label] == title
+
+    [ section, { label: title } ]
+  end
+
   private
+
+  def app_topbar_section
+    case controller_name
+    when "app"
+      { label: "Command Center", href: app_path }
+    when "issues"
+      { label: action_name == "index" && params[:view].to_s == "inbox" ? "Inbox" : "Issues", href: issues_path(view: "inbox") }
+    when "projects"
+      { label: "Projects", href: projects_path }
+    when "cycles"
+      { label: "Cycles", href: cycles_path }
+    when "saved_views"
+      { label: "Views", href: views_path }
+    when "events"
+      { label: "Events", href: events_path }
+    when "skill_definitions"
+      { label: "Skills", href: skills_home_path }
+    when "action_definitions"
+      { label: "Actions", href: actions_home_path }
+    when "pipeline_definitions"
+      { label: "Pipelines", href: pipelines_home_path }
+    when "pipeline_runs"
+      { label: "Pipeline Runs", href: pipeline_runs_path }
+    when "schedules"
+      { label: "Schedules", href: schedules_path }
+    when "change_requests"
+      { label: "Change Requests", href: change_requests_path }
+    when "integrations", "repository_connections", "admin", "invitations", "audit_events", "billings"
+      { label: "Settings", href: settings_path }
+    when "settings"
+      { label: "Settings", href: settings_path }
+    end
+  end
 
   def status_icon_name(value)
     case value.to_s.parameterize
-    when "done", "completed", "complete", "closed", "merged", "current", "active", "ready", "isolated", "linked", "captured", "present", "passed", "approved", "saved"
+    when "done", "completed", "complete", "closed", "merged", "current", "active", "ready", "isolated", "linked", "matched", "resolved", "captured", "present", "passed", "approved", "saved"
       "check-circle"
-    when "in-progress", "running", "processing", "open"
+    when "in-progress", "running", "processing", "open", "triaged", "info"
       "activity"
-    when "waiting-for-approval", "waiting", "pending", "approval", "manual", "manual-package", "manual-change"
+    when "waiting-for-approval", "waiting-for-input", "waiting", "pending", "approval", "manual", "manual-package", "manual-change"
       "hand"
-    when "failed", "failure", "canceled", "cancelled", "rejected", "blocked", "critical", "urgent", "missing"
+    when "failed", "failure", "canceled", "cancelled", "rejected", "blocked", "critical", "urgent", "error", "missing"
       "ban"
-    when "planned", "backlog", "todo", "new", "queued", "draft", "local-draft", "needed", "needs-base", "unassigned", "not-run", "not-opened", "none-captured"
+    when "planned", "backlog", "todo", "new", "queued", "draft", "local-draft", "needed", "needs-base", "unassigned", "not-run", "not-opened", "none-captured", "provisioning", "destroyed"
       "circle-dot"
-    when "high", "medium", "low", "info"
+    when "paused"
+      "pause-circle"
+    when "high", "medium", "low", "warning"
       "activity"
+    when "ignored"
+      "circle-dot"
     else
       "circle-dot"
     end
@@ -87,15 +179,15 @@ module ApplicationHelper
 
   def status_icon_tone(value)
     case value.to_s.parameterize
-    when "done", "completed", "complete", "closed", "merged", "current", "active", "ready", "isolated", "linked", "captured", "present", "passed", "approved", "saved"
+    when "done", "completed", "complete", "closed", "merged", "current", "active", "ready", "isolated", "linked", "matched", "resolved", "captured", "present", "passed", "approved", "saved"
       "is-success"
-    when "in-progress", "running", "processing", "open"
+    when "in-progress", "running", "processing", "open", "triaged", "info"
       "is-info"
-    when "waiting-for-approval", "waiting", "pending", "approval", "planned", "backlog", "queued", "draft", "local-draft", "manual", "manual-package", "manual-change"
+    when "waiting-for-approval", "waiting-for-input", "waiting", "pending", "approval", "planned", "backlog", "queued", "draft", "local-draft", "manual", "manual-package", "manual-change", "paused", "ignored", "provisioning", "sleeping", "destroyed"
       "is-muted"
-    when "failed", "failure", "canceled", "cancelled", "rejected", "blocked", "critical", "urgent", "missing"
+    when "failed", "failure", "canceled", "cancelled", "rejected", "blocked", "critical", "urgent", "error", "missing"
       "is-danger"
-    when "high", "needed", "needs-base", "unassigned", "not-run", "not-opened", "none-captured"
+    when "high", "warning", "needed", "needs-base", "unassigned", "not-run", "not-opened", "none-captured"
       "is-warning"
     when "medium"
       "is-info"
@@ -137,6 +229,10 @@ module ApplicationHelper
     when "check"
       [
         tag.path(d: "M20 6 9 17l-5-5")
+      ]
+    when "chevron-right"
+      [
+        tag.path(d: "m9 18 6-6-6-6")
       ]
     when "clock"
       [
@@ -186,6 +282,11 @@ module ApplicationHelper
     when "folder"
       [
         tag.path(d: "M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z")
+      ]
+    when "file"
+      [
+        tag.path(d: "M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"),
+        tag.path(d: "M14 2v4a2 2 0 0 0 2 2h4")
       ]
     when "folder-git-2"
       [
@@ -265,6 +366,10 @@ module ApplicationHelper
     when "minus"
       [
         tag.path(d: "M5 12h14")
+      ]
+    when "message-square"
+      [
+        tag.path(d: "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z")
       ]
     when "link"
       [
@@ -360,6 +465,12 @@ module ApplicationHelper
       [
         tag.path(d: "M9 14 4 9l5-5"),
         tag.path(d: "M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11")
+      ]
+    when "upload"
+      [
+        tag.path(d: "M12 3v12"),
+        tag.path(d: "m17 8-5-5-5 5"),
+        tag.path(d: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4")
       ]
     when "eye"
       [

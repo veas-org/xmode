@@ -15,6 +15,7 @@ class RepositoryConnectionsController < AuthenticatedController
     @repository_connection = current_workspace.repository_connections.new(repository_connection_params)
 
     if @repository_connection.save
+      audit!("repository.created", @repository_connection)
       redirect_to integrations_path, notice: "Repository connected."
     else
       render :new, status: :unprocessable_entity
@@ -26,6 +27,7 @@ class RepositoryConnectionsController < AuthenticatedController
 
   def update
     if @repository_connection.update(repository_connection_params)
+      audit!("repository.updated", @repository_connection)
       redirect_to integrations_path, notice: "Repository updated."
     else
       render :edit, status: :unprocessable_entity
@@ -44,5 +46,21 @@ class RepositoryConnectionsController < AuthenticatedController
 
   def repository_connection_params
     params.require(:repository_connection).permit(:integration_account_id, :provider, :name, :full_name, :url, :default_branch)
+  end
+
+  def audit!(action, repository)
+    Audit::Recorder.call(
+      workspace: current_workspace,
+      user: current_user,
+      auditable: repository,
+      action: action,
+      source: "app",
+      metadata: {
+        provider: repository.provider,
+        repository: repository.full_name.presence || repository.name,
+        default_branch: repository.default_branch
+      }.compact,
+      request: request
+    )
   end
 end

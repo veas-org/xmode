@@ -46,6 +46,12 @@ Rails.application.configure do
   # Raise an error on page load if there are pending migrations.
   config.active_record.migration_error = :page_load
 
+  # Development-only encryption keys keep local provider token setup usable.
+  # Production must provide real keys through credentials or environment variables.
+  config.active_record.encryption.primary_key = ENV["ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY"].presence || "xmode-development-primary-key"
+  config.active_record.encryption.deterministic_key = ENV["ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY"].presence || "xmode-development-deterministic-key"
+  config.active_record.encryption.key_derivation_salt = ENV["ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT"].presence || "xmode-development-key-derivation-salt"
+
   # Highlight code that triggered database queries in logs.
   config.active_record.verbose_query_logs = true
 

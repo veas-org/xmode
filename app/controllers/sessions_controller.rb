@@ -15,6 +15,10 @@ class SessionsController < ApplicationController
     if user&.authenticate(params[:password])
       user.update!(last_sign_in_at: Time.current)
       session[:user_id] = user.id
+      if session[:invitation_token].present?
+        accept_pending_invitation(user)
+        return
+      end
       redirect_to session.delete(:return_to).presence || app_path, notice: "Signed in."
     else
       flash.now[:alert] = "Invalid email or password."
@@ -48,5 +52,21 @@ class SessionsController < ApplicationController
   def destroy
     reset_session
     redirect_to root_path, notice: "Signed out."
+  end
+
+  private
+
+  def accept_pending_invitation(user)
+    token = session.delete(:invitation_token).presence
+    return unless token
+
+    result = Invitations::Accepter.call(user, token)
+    if result.success?
+      switch_workspace!(result.workspace)
+      switch_team!(result.team) if result.team
+      redirect_to app_path, notice: "Joined #{result.workspace.name}."
+    else
+      redirect_to app_path, alert: result.error
+    end
   end
 end

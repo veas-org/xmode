@@ -10,7 +10,28 @@
   <div class="grid gap-4 sm:grid-cols-2">
     <div><%= form.label :status, class: "app-label" %><%= form.select :status, Project::STATUSES, {}, class: "app-input" %></div>
     <div><%= form.label :team_id, "Team", class: "app-label" %><%= form.collection_select :team_id, current_workspace.teams.order(:name), :id, :name, {}, class: "app-input" %></div>
-    <div><%= form.label :repository_url, class: "app-label" %><%= form.url_field :repository_url, class: "app-input" %></div>
+    <div><%= form.label :repository_url, "Repository URL or path", class: "app-label" %><%= form.text_field :repository_url, class: "app-input" %></div>
+  </div>
+  <div class="project-sandbox-form-block">
+    <div class="mb-3">
+      <p class="app-eyebrow">Sandbox</p>
+      <p class="mt-1 text-sm text-muted-foreground">Project runs clone the repository into an isolated worktree. Docker mode mounts that worktree at <code>/workspace</code> inside the selected image.</p>
+    </div>
+    <div class="grid gap-4 sm:grid-cols-2">
+      <div>
+        <%= label_tag :runner_mode, "Runner mode", class: "app-label" %>
+        <%= select_tag :runner_mode,
+              options_for_select([ [ "Local worktree", "local_worktree" ], [ "Docker image", "docker" ] ], @execution_environment&.runner_mode || "local_worktree"),
+              class: "app-input" %>
+      </div>
+      <div>
+        <%= label_tag :docker_image, "Docker image", class: "app-label" %>
+        <%= text_field_tag :docker_image,
+              @execution_environment&.docker_image || ExecutionEnvironment::DEFAULT_DOCKER_IMAGE,
+              class: "app-input",
+              placeholder: @execution_environment&.docker_image || ExecutionEnvironment::DEFAULT_DOCKER_IMAGE %>
+      </div>
+    </div>
   </div>
   <%= form.submit class: "app-btn app-btn-primary" %>
 <% end %>

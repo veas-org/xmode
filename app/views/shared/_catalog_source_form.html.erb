@@ -1,0 +1,26 @@
+<% definition_markdown = params[:definition_markdown].presence || Catalog::MarkdownCodec.dump(record) %>
+
+<%= form_with url: path, method: :patch, class: "space-y-4" do %>
+  <%= render "shared/form_errors", object: record %>
+
+  <div class="catalog-source-note">
+    <p class="font-medium text-foreground">Definition document</p>
+    <p class="mt-1 text-sm leading-6 text-muted-foreground">
+      Use YAML frontmatter for stable machine-readable fields, then markdown sections for instructions, objectives, plans, and practices.
+    </p>
+  </div>
+
+  <div>
+    <%= label_tag :definition_markdown, "#{kind} markdown", class: "app-label" %>
+    <%= text_area_tag :definition_markdown,
+          definition_markdown,
+          rows: 30,
+          spellcheck: false,
+          class: "app-textarea catalog-source-editor font-mono text-xs" %>
+  </div>
+
+  <div class="flex flex-wrap gap-2">
+    <%= submit_tag "Save source", class: "app-btn app-btn-primary" %>
+    <%= link_to "Cancel", back_path, class: "app-btn app-btn-muted" %>
+  </div>
+<% end %>

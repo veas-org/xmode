@@ -4,7 +4,8 @@
     <div><%= form.label :name, class: "app-label" %><%= form.text_field :name, class: "app-input", required: true %></div>
     <div><%= form.label :key, class: "app-label" %><%= form.text_field :key, class: "app-input", required: true %></div>
   </div>
-  <div class="grid gap-4 sm:grid-cols-3">
+  <div class="grid gap-4 sm:grid-cols-4">
+    <div><%= form.label :version, class: "app-label" %><%= form.text_field :version, class: "app-input", required: true, placeholder: "1.0.0" %></div>
     <div><%= form.label :category, class: "app-label" %><%= form.select :category, ActionDefinition::CATEGORIES, {}, class: "app-input" %></div>
     <div><%= form.label :provider, class: "app-label" %><%= form.select :provider, ActionDefinition::PROVIDERS, {}, class: "app-input" %></div>
     <div><%= form.label :timeout_seconds, class: "app-label" %><%= form.number_field :timeout_seconds, class: "app-input" %></div>
@@ -12,7 +13,7 @@
   <div class="grid gap-4 sm:grid-cols-3">
     <div class="sm:col-span-2">
       <%= form.label :skill_definition_id, "Skill", class: "app-label" %>
-      <%= form.collection_select :skill_definition_id, @skills || current_workspace.skill_definitions.order(:category, :name), :id, :name, { include_blank: "No skill" }, class: "app-input" %>
+      <%= form.collection_select :skill_definition_id, @skills || current_workspace.skill_definitions.order(:category, :name, :version), :id, :display_name, { include_blank: "No skill" }, class: "app-input" %>
     </div>
     <div class="space-y-3 pt-6 text-sm text-muted-foreground">
       <label class="flex items-center gap-2"><%= form.check_box :requires_objective %> Requires objective</label>

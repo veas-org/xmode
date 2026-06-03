@@ -1,0 +1,18 @@
+<% page_title = content_for(:page_title).presence || "xmode" %>
+<% breadcrumbs = app_topbar_breadcrumbs(page_title) %>
+
+<div class="app-topbar-title">
+  <nav class="app-breadcrumbs" aria-label="Breadcrumbs">
+    <% breadcrumbs.each_with_index do |crumb, index| %>
+      <% is_last = index == breadcrumbs.size - 1 %>
+      <% if crumb[:href].present? && !is_last %>
+        <%= link_to crumb[:label], crumb[:href], class: "app-breadcrumb-link" %>
+      <% else %>
+        <span class="app-breadcrumb-current"><%= crumb[:label] %></span>
+      <% end %>
+      <% unless is_last %>
+        <span class="app-breadcrumb-separator" aria-hidden="true">/</span>
+      <% end %>
+    <% end %>
+  </nav>
+</div>

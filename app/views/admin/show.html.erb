@@ -1,0 +1,133 @@
+<% content_for :page_title, "Workspace Admin" %>
+
+<div class="ops-page">
+  <header class="ops-hero">
+    <div class="min-w-0">
+      <p class="app-eyebrow">Workspace administration</p>
+      <h1>Operational readiness</h1>
+      <p>A compact control surface for governance, billing readiness, security posture, and automation health.</p>
+      <div class="ops-summary" aria-label="Workspace snapshot">
+        <% @admin_counts.each do |label, value| %>
+          <span><strong><%= value %></strong> <%= label.to_s.tr("_", " ") %></span>
+        <% end %>
+      </div>
+    </div>
+    <div class="flex flex-wrap gap-2">
+      <%= link_to audit_events_path, class: "app-btn app-btn-muted" do %>
+        <span>Audit</span>
+      <% end %>
+      <%= link_to integrations_path, class: "app-btn app-btn-muted" do %>
+        <span>Integrations</span>
+      <% end %>
+    </div>
+  </header>
+
+  <div class="ops-layout">
+    <main class="min-w-0 space-y-5">
+      <section class="ops-section">
+        <div class="ops-section-head">
+          <div>
+            <p class="app-eyebrow">Workspace snapshot</p>
+            <h2>Readiness</h2>
+          </div>
+        </div>
+        <div class="ops-list">
+          <% @readiness_rows.each do |row| %>
+            <article class="ops-row">
+              <%= status_icon_pill(row.fetch(:status), title: row.fetch(:status).titleize) %>
+              <span class="record-point-main">
+                <span class="record-point-title"><%= row.fetch(:label) %></span>
+                <span class="record-point-meta"><span><%= row.fetch(:detail) %></span></span>
+              </span>
+            </article>
+          <% end %>
+        </div>
+      </section>
+
+      <section class="ops-section">
+        <div class="ops-section-head">
+          <div>
+            <p class="app-eyebrow">Recent audit</p>
+            <h2>Latest governance events</h2>
+          </div>
+          <%= link_to "View all", audit_events_path, class: "app-link text-xs" %>
+        </div>
+        <div class="ops-list">
+          <% @recent_audit_events.each do |event| %>
+            <article class="ops-row">
+              <%= status_icon_pill(event.severity == "warn" ? "warning" : event.severity, title: event.severity.titleize) %>
+              <span class="record-point-main">
+                <span class="record-point-title"><%= event.display_action %></span>
+                <span class="record-point-meta">
+                  <span><%= event.user&.display_name || "System" %></span>
+                  <span><%= event.source.titleize %></span>
+                  <span><%= time_ago_in_words(event.created_at) %> ago</span>
+                </span>
+              </span>
+            </article>
+          <% end %>
+          <% if @recent_audit_events.empty? %><p class="linear-empty px-0 py-5 text-left">No audit events yet.</p><% end %>
+        </div>
+      </section>
+    </main>
+
+    <aside class="ops-side">
+      <section class="ops-section">
+        <div class="ops-section-head">
+          <div>
+            <p class="app-eyebrow">Security posture</p>
+            <h2>Risk indicators</h2>
+          </div>
+        </div>
+        <dl class="ops-kv-list">
+          <% @security_rows.each do |label, value| %>
+            <div><dt><%= label %></dt><dd><%= value %></dd></div>
+          <% end %>
+        </dl>
+      </section>
+
+      <section class="ops-section">
+        <div class="ops-section-head">
+          <div>
+            <p class="app-eyebrow">Open approvals</p>
+            <h2>Manual gates</h2>
+          </div>
+          <span class="linear-count"><%= @open_approvals.size %></span>
+        </div>
+        <div class="ops-list">
+          <% @open_approvals.each do |approval| %>
+            <%= link_to pipeline_run_path(approval.pipeline_run), class: "ops-row" do %>
+              <span class="record-point-main">
+                <span class="record-point-title"><%= approval.action_run_step&.name || "Approval" %></span>
+                <span class="record-point-meta"><span><%= time_ago_in_words(approval.created_at) %> ago</span></span>
+              </span>
+            <% end %>
+          <% end %>
+          <% if @open_approvals.empty? %><p class="linear-empty px-0 py-5 text-left">No pending approvals.</p><% end %>
+        </div>
+      </section>
+
+      <section class="ops-section">
+        <div class="ops-section-head">
+          <div>
+            <p class="app-eyebrow">Failed runs</p>
+            <h2>Needs review</h2>
+          </div>
+          <span class="linear-count"><%= @recent_failed_runs.size %></span>
+        </div>
+        <div class="ops-list">
+          <% @recent_failed_runs.each do |run| %>
+            <%= link_to pipeline_run_path(run), class: "ops-row" do %>
+              <%= status_icon_pill(run.status, title: run.display_status) %>
+              <span class="record-point-main">
+                <span class="record-point-title"><%= run.pipeline_definition&.name || "Pipeline run" %></span>
+                <span class="record-point-meta"><span><%= run.display_status %></span><span><%= time_ago_in_words(run.updated_at) %> ago</span></span>
+              </span>
+            <% end %>
+          <% end %>
+          <% if @recent_failed_runs.empty? %><p class="linear-empty px-0 py-5 text-left">No failed runs.</p><% end %>
+        </div>
+      </section>
+    </aside>
+  </div>
+</div>

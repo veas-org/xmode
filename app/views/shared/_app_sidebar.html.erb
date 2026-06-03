@@ -17,18 +17,11 @@ end %>
     "Automation",
     [
       [ "Events", events_path, "bell" ],
-      [ "Skills", skills_path, "sparkles" ],
-      [ "Pipelines", pipelines_path, "workflow" ],
-      [ "Actions", actions_path, "play" ],
+      [ "Skills", skills_home_path, "sparkles" ],
+      [ "Pipelines", pipelines_home_path, "workflow" ],
+      [ "Actions", actions_home_path, "play" ],
       [ "Schedules", schedules_path, "clock" ],
       [ "Change Requests", change_requests_path, "git-pull-request" ]
-    ]
-  ],
-  [
-    "Settings",
-    [
-      [ "Integrations", integrations_path, "plug" ],
-      [ "Billing", billing_path, "credit-card" ]
     ]
   ]
 ] %>
@@ -75,6 +68,12 @@ end %>
         <span class="app-sidebar-account-name"><%= user_name %></span>
         <span class="app-sidebar-account-meta"><%= current_team&.name || current_workspace&.name || "No team" %></span>
       </span>
+      <%= link_to settings_path,
+            class: "app-sidebar-icon-action #{'is-active' if request.path == settings_path}",
+            title: "Settings",
+            aria: { label: "Settings" } do %>
+        <%= lucide_icon("settings", class_name: "app-icon") %>
+      <% end %>
       <%= button_to logout_path,
             method: :delete,
             form: { class: "shrink-0" },

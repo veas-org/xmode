@@ -1,0 +1,22 @@
+<%= form_with model: event_rule, class: "space-y-4" do |form| %>
+  <%= render "shared/form_errors", object: event_rule %>
+  <div><%= form.label :name, class: "app-label" %><%= form.text_field :name, class: "app-input", required: true %></div>
+  <div><%= form.label :pipeline_definition_id, "Pipeline", class: "app-label" %><%= form.collection_select :pipeline_definition_id, pipelines, :id, :name, { include_blank: "No pipeline" }, class: "app-input" %></div>
+  <div class="grid gap-4 sm:grid-cols-2">
+    <div><%= form.label :source, class: "app-label" %><%= form.text_field :source, class: "app-input", placeholder: "delivery-webhook" %></div>
+    <div><%= form.label :event_type, "Event type", class: "app-label" %><%= form.text_field :event_type, class: "app-input", placeholder: "delivery.failed" %></div>
+  </div>
+  <div>
+    <%= form.label :conditions_text, "Conditions", class: "app-label" %>
+    <%= form.text_area :conditions_text,
+          value: conditions_text,
+          class: "app-textarea",
+          placeholder: "severity=critical\nrepository=planet-express/delivery-automation" %>
+    <p class="mt-2 text-xs leading-5 text-muted-foreground">Use one key=value condition per line. Conditions match normalized fields first, then payload fields.</p>
+  </div>
+  <label class="flex items-center gap-2 text-sm text-muted-foreground">
+    <%= form.check_box :active, class: "h-4 w-4 rounded border-border bg-muted" %>
+    <span>Active rule</span>
+  </label>
+  <%= form.submit class: "app-btn app-btn-primary" %>
+<% end %>

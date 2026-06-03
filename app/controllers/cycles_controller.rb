@@ -2,7 +2,14 @@ class CyclesController < AuthenticatedController
   before_action :set_cycle, only: %i[show edit update]
 
   def index
-    @cycles = current_workspace.cycles.includes(:team).order(starts_on: :desc, created_at: :desc)
+    @cycles = current_workspace.cycles.includes(:team, :issues, :goals).order(starts_on: :desc, created_at: :desc)
+    @cycle_counts = {
+      total: @cycles.size,
+      active: @cycles.count { |cycle| cycle.status == "active" },
+      planned: @cycles.count { |cycle| cycle.status == "planned" },
+      committed_issues: @cycles.sum { |cycle| cycle.issues.size }
+    }
+    @status_groups = @cycles.group_by(&:status).sort_by { |status, _cycles| Cycle::STATUSES.index(status) || Cycle::STATUSES.size }
   end
 
   def show

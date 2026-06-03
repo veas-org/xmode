@@ -11,7 +11,7 @@ RSpec.describe "Schedules", type: :request do
     get schedule_path(schedule)
 
     expect(response).to have_http_status(:ok)
-    expect(response.body).to include("Schedule operating record")
+    expect(response.body).to include("Schedule")
     expect(response.body).to include("Trigger contract")
     expect(response.body).to include("Action path")
     expect(response.body).to include("Recent scheduled runs")
@@ -25,7 +25,11 @@ RSpec.describe "Schedules", type: :request do
     expect(response.body).to include("update-dependencies-report.md")
 
     doc = Nokogiri::HTML(response.body)
+    expect(doc.at_css(".record-detail-layout")).to be_present
+    expect(doc.at_css(".record-doc-hero")).to be_present
+    expect(doc.css(".linear-surface")).to be_empty
     expect(doc.at_css(%(a[href="#{edit_schedule_path(schedule)}"][data-turbo-frame="side_panel"]))).to be_present
+    expect(doc.at_css(%(button[aria-label="Run now"]))).to be_present
     expect(doc.css("a.app-btn-primary, button.app-btn-primary, input.app-btn-primary")).to be_empty
   end
 end

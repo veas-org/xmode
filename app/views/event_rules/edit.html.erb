@@ -1,0 +1,11 @@
+<% content_for :page_title, "Edit event rule" %>
+
+<%= render layout: "shared/side_panel",
+      locals: {
+        title: "Edit #{@event_rule.name}",
+        eyebrow: "Event routing",
+        description: "Adjust the event match conditions and the pipeline this rule starts.",
+        back_path: events_path
+      } do %>
+  <%= render "form", event_rule: @event_rule, pipelines: @pipelines, conditions_text: @conditions_text %>
+<% end %>

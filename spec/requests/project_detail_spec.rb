@@ -14,6 +14,8 @@ RSpec.describe "Project detail", type: :request do
     expect(response.body).to include("Project command surface")
     expect(response.body).to include("Repository")
     expect(response.body).to include("https://github.com/planet-express/delivery-automation.git")
+    expect(response.body).to include("Project workbench")
+    expect(response.body).to include("Run sandbox")
     expect(response.body).to include("Issue flow")
     expect(response.body).to include("Recent runs")
     expect(response.body).to include("Sandboxed agent")
@@ -34,5 +36,100 @@ RSpec.describe "Project detail", type: :request do
     expect(response.body).to include("Scheduled pipelines")
     expect(response.body).to include("Update Dependencies")
     expect(response.body).to include("0 9 * * 1")
+  end
+
+  it "starts a project sandbox run with the configured execution environment" do
+    workspace = Workspace.create!(name: "Spec")
+    team = workspace.teams.create!(name: "Engineering")
+    user = User.create!(name: "Ada", email: "ada@example.com", password: "password123")
+    workspace.memberships.create!(user: user, role: "owner")
+    project = workspace.projects.create!(team: team, title: "Sandbox Fixture", repository_url: "/tmp/hello-world-typescript")
+    action = workspace.action_definitions.create!(
+      key: "verify-typescript-sandbox",
+      name: "Verify TypeScript Sandbox",
+      version: "1.0.0",
+      category: "verification",
+      provider: "local_shell",
+      defaults: { "command" => "printf ok" },
+      input_schema: { "type" => "object" },
+      output_schema: { "type" => "object" }
+    )
+    pipeline = workspace.pipeline_definitions.create!(
+      key: "verify-sandbox-fixture",
+      name: "Verify Sandbox Fixture",
+      version: "1.0.0",
+      graph: {
+        "nodes" => [
+          { "id" => "verify", "type" => "action", "action_key" => action.key }
+        ],
+        "edges" => []
+      }
+    )
+    workspace.execution_environments.create!(
+      project: project,
+      kind: "ephemeral_sandbox",
+      name: "#{project.key} sandbox",
+      status: "ready",
+      metadata: {
+        "runner_mode" => "docker",
+        "docker_image" => "ghcr.io/acme/xmode-agent:1"
+      }
+    )
+
+    post login_path, params: { email: user.email, password: "password123" }
+
+    expect {
+      post run_sandbox_project_path(project), params: { objective: "Verify the sandbox fixture" }
+    }.to change(workspace.pipeline_runs, :count).by(1)
+
+    run = workspace.pipeline_runs.order(:created_at).last
+    expect(response).to redirect_to(pipeline_run_path(run))
+    expect(run.pipeline_definition).to eq(pipeline)
+    expect(run.trigger).to eq("sandbox")
+    expect(run.input_context).to include(
+      "objective" => "Verify the sandbox fixture",
+      "runner_mode" => "docker",
+      "docker_image" => "ghcr.io/acme/xmode-agent:1"
+    )
+  end
+
+  it "uses the Rails sandbox pipeline for Ruby Rails projects" do
+    workspace = Workspace.create!(name: "Spec")
+    team = workspace.teams.create!(name: "Engineering")
+    user = User.create!(name: "Ada", email: "ada-rails@example.com", password: "password123")
+    workspace.memberships.create!(user: user, role: "owner")
+    project = workspace.projects.create!(team: team, title: "Rails Sandbox Verification", repository_url: "/tmp/hello-world-rails")
+    action = workspace.action_definitions.create!(
+      key: "verify-ruby-rails-sandbox",
+      name: "Verify Ruby Rails Sandbox",
+      version: "1.0.0",
+      category: "verification",
+      provider: "local_shell",
+      defaults: { "command" => "printf ok" },
+      input_schema: { "type" => "object" },
+      output_schema: { "type" => "object" }
+    )
+    pipeline = workspace.pipeline_definitions.create!(
+      key: "verify-rails-sandbox-fixture",
+      name: "Verify Rails Sandbox Fixture",
+      version: "1.0.0",
+      graph: {
+        "nodes" => [
+          { "id" => "verify", "type" => "action", "action_key" => action.key }
+        ],
+        "edges" => []
+      }
+    )
+
+    post login_path, params: { email: user.email, password: "password123" }
+    post run_sandbox_project_path(project), params: { objective: "Verify the Rails sandbox fixture" }
+
+    run = workspace.pipeline_runs.order(:created_at).last
+    expect(response).to redirect_to(pipeline_run_path(run))
+    expect(run.pipeline_definition).to eq(pipeline)
+    expect(run.input_context).to include(
+      "objective" => "Verify the Rails sandbox fixture",
+      "docker_image" => ExecutionEnvironment::DEFAULT_RUBY_DOCKER_IMAGE
+    )
   end
 end

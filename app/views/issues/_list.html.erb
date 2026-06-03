@@ -1,0 +1,102 @@
+<% issues = local_assigns.fetch(:issues) %>
+<% variant = local_assigns.fetch(:variant, :linear).to_sym %>
+<% selected_issue = local_assigns[:selected_issue] %>
+<% list_class = local_assigns.fetch(:list_class, variant == :inbox ? "inbox-list" : "record-detail-list") %>
+<% row_class = local_assigns.fetch(:row_class, variant == :inbox ? "inbox-row" : "record-detail-row") %>
+<% empty_message = local_assigns.fetch(:empty_message, "No issues yet.") %>
+<% show_project = local_assigns.fetch(:show_project, true) %>
+<% show_cycle = local_assigns.fetch(:show_cycle, false) %>
+<% show_assignee = local_assigns.fetch(:show_assignee, true) %>
+<% show_estimate = local_assigns.fetch(:show_estimate, false) %>
+<% show_due = local_assigns.fetch(:show_due, false) %>
+<% show_updated = local_assigns.fetch(:show_updated, true) %>
+<% show_counts = local_assigns.fetch(:show_counts, false) %>
+<% inbox_params = local_assigns.fetch(:inbox_params, {}) %>
+
+<div class="<%= list_class %>">
+  <% issues.each do |issue| %>
+    <% selected_class = selected_issue == issue ? "is-selected" : nil %>
+    <% row_href = variant == :inbox ? issues_path(inbox_params.merge(selected: issue.id).compact_blank) : issue_path(issue) %>
+    <%= link_to row_href, class: [ row_class, selected_class ].compact.join(" ") do %>
+      <% if variant == :inbox %>
+        <span class="inbox-row-unread" aria-hidden="true"></span>
+        <span class="inbox-row-main">
+          <span class="inbox-row-overline"><%= issue_inbox_reason(issue) %></span>
+          <span class="inbox-row-title-line">
+            <span class="font-mono text-xs text-muted-foreground"><%= issue.identifier %></span>
+            <span class="record-point-title"><%= issue.title %></span>
+          </span>
+          <span class="inbox-row-meta">
+            <% if show_project %>
+              <span><%= issue.project&.title || "No project" %></span>
+            <% end %>
+            <% if show_cycle %>
+              <span><%= issue.cycle&.name || "No cycle" %></span>
+            <% end %>
+            <% if show_assignee %>
+              <span><%= issue.assignee&.display_name || "Unassigned" %></span>
+            <% end %>
+            <% if show_estimate %>
+              <span><%= issue.estimate ? "#{issue.estimate} pts" : "No estimate" %></span>
+            <% end %>
+            <% if show_due && issue.due_on.present? %>
+              <span>Due <%= issue.due_on.strftime("%b %-d") %></span>
+            <% end %>
+          </span>
+        </span>
+        <span class="inbox-row-trailing">
+          <%= status_icon_pill(issue_inbox_state(issue), title: issue_inbox_state(issue).to_s.tr("_", " ").titleize) %>
+          <% if show_updated %>
+            <span><%= time_ago_in_words(issue.updated_at) %></span>
+          <% end %>
+        </span>
+      <% else %>
+        <%= status_icon_pill(issue.display_status, title: issue.display_status) %>
+        <span class="record-point-main">
+          <span class="inbox-row-title-line">
+            <span class="font-mono text-xs text-muted-foreground"><%= issue.identifier %></span>
+            <span class="record-point-title"><%= issue.title %></span>
+          </span>
+          <span class="record-point-meta">
+            <% if show_project %>
+              <span><%= issue.project&.title || "No project" %></span>
+            <% end %>
+            <% if show_cycle %>
+              <span><%= issue.cycle&.name || "No cycle" %></span>
+            <% end %>
+            <% if show_assignee %>
+              <span><%= issue.assignee&.display_name || "Unassigned" %></span>
+            <% end %>
+            <% if show_estimate %>
+              <span><%= issue.estimate ? "#{issue.estimate} pts" : "No estimate" %></span>
+            <% end %>
+            <% if show_due && issue.due_on.present? %>
+              <span>Due <%= issue.due_on.strftime("%b %-d") %></span>
+            <% end %>
+            <% if show_updated %>
+              <span><%= time_ago_in_words(issue.updated_at) %> ago</span>
+            <% end %>
+          </span>
+        </span>
+        <span class="flex shrink-0 items-center gap-1.5">
+          <% if show_counts && issue.pipeline_runs.any? %>
+            <span class="linear-count hidden md:inline-flex"><%= pluralize(issue.pipeline_runs.size, "run") %></span>
+          <% end %>
+          <% if show_counts && issue.change_requests.any? %>
+            <span class="linear-count hidden md:inline-flex"><%= pluralize(issue.change_requests.size, "CR") %></span>
+          <% end %>
+          <%= status_icon_pill(issue.priority, title: "#{issue.priority.titleize} priority") %>
+        </span>
+      <% end %>
+    <% end %>
+  <% end %>
+
+  <% if issues.empty? %>
+    <div class="linear-empty">
+      <% if variant == :inbox %>
+        <%= lucide_icon("check-circle", class_name: "mx-auto mb-3 h-5 w-5 text-muted-foreground") %>
+      <% end %>
+      <p><%= empty_message %></p>
+    </div>
+  <% end %>
+</div>
