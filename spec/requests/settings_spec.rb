@@ -15,7 +15,7 @@ RSpec.describe "Settings", type: :request do
     expect(response.body).to include("Single sign-on")
     expect(response.body).to include("Providers, repositories, and webhooks")
     expect(response.body).to include("Local model runtime")
-    expect(response.body).to include("qwen2.5:0.5b")
+    expect(response.body).to include("qwen3-coder:30b")
     expect(response.body).to include("Repository automation app")
     expect(response.body).to include("Create GitHub App")
     expect(response.body).to include("Runner minutes")

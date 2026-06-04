@@ -140,7 +140,7 @@ class SettingsController < AuthenticatedController
   end
 
   def local_model_detail
-    ENV.fetch("LOCAL_MODEL_NAME", "qwen2.5:0.5b")
+    ENV.fetch("LOCAL_MODEL_NAME", "qwen3-coder:30b")
   end
 
   def local_model_base_url
@@ -180,9 +180,9 @@ class SettingsController < AuthenticatedController
 
   def load_local_model_settings
     @local_model_base_url = local_model_base_url
-    @local_model_name = ENV.fetch("LOCAL_MODEL_NAME", "qwen2.5:0.5b")
+    @local_model_name = ENV.fetch("LOCAL_MODEL_NAME", "qwen3-coder:30b")
     @local_model_runtime = ENV.fetch("LOCAL_MODEL_RUNTIME", "ollama")
-    @local_model_timeout = ENV.fetch("LOCAL_MODEL_TIMEOUT_SECONDS", "120")
+    @local_model_timeout = ENV.fetch("LOCAL_MODEL_TIMEOUT_SECONDS", "300")
     @local_model_enabled = ActiveModel::Type::Boolean.new.cast(ENV["LOCAL_MODEL_ENABLED"])
     @local_model_rows = [
       [ "Runtime", @local_model_runtime ],

@@ -70,7 +70,8 @@ RSpec.describe "Workspace admin", type: :request do
     expect(response).to have_http_status(:ok)
     expect(response.body).to include("Model console")
     expect(response.body).to include("Ask a model")
-    expect(response.body).to include("qwen2.5:0.5b")
+    expect(response.body).to include("qwen3-coder:30b")
+    expect(response.body).to include("Qwen3 Coder 30B")
     expect(response.body).to include("Qwen3.6 35B latest")
     expect(response.body).to include("MiniMax M3 cloud")
   end
@@ -133,7 +134,7 @@ RSpec.describe "Workspace admin", type: :request do
     )
     expect(Providers::LocalModelClient).to have_received(:call).with(
       base_url: "http://xmode-ollama:11434",
-      timeout: 120,
+      timeout: 300,
       payload: hash_including(
         model: "qwen3.6:35b",
         messages: [
@@ -180,7 +181,7 @@ RSpec.describe "Workspace admin", type: :request do
     expect(model_request.answer).to include("MiniMax answered the admin prompt.")
     expect(Providers::LocalModelClient).to have_received(:call).with(
       base_url: "http://xmode-ollama:11434",
-      timeout: 120,
+      timeout: 300,
       payload: hash_including(model: "minimax-m3:cloud")
     )
   end

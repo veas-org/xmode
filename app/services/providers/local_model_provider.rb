@@ -36,7 +36,7 @@ module Providers
     end
 
     def model
-      @action.runtime_config["model"].presence || ENV.fetch("LOCAL_MODEL_NAME", "qwen2.5:0.5b")
+      @action.runtime_config["model"].presence || ENV.fetch("LOCAL_MODEL_NAME", "qwen3-coder:30b")
     end
 
     def base_url
@@ -47,7 +47,7 @@ module Providers
     end
 
     def timeout
-      (@action.runtime_config["timeout_seconds"].presence || ENV.fetch("LOCAL_MODEL_TIMEOUT_SECONDS", 120)).to_i
+      (@action.runtime_config["timeout_seconds"].presence || ENV.fetch("LOCAL_MODEL_TIMEOUT_SECONDS", 300)).to_i
     end
 
     def objective

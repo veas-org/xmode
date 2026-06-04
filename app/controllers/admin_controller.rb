@@ -54,11 +54,11 @@ class AdminController < AuthenticatedController
 
   def load_qwen_console
     @qwen_runtime = ENV.fetch("LOCAL_MODEL_RUNTIME", "ollama")
-    @qwen_model = ENV.fetch("LOCAL_MODEL_NAME", "qwen2.5:0.5b")
+    @qwen_model = ENV.fetch("LOCAL_MODEL_NAME", "qwen3-coder:30b")
     @qwen_model_options = qwen_model_options
     @qwen_custom_model = ""
     @qwen_base_url = ENV["LOCAL_MODEL_BASE_URL"].presence || ENV["OLLAMA_BASE_URL"].presence || "http://xmode-ollama:11434"
-    @qwen_timeout = ENV.fetch("LOCAL_MODEL_TIMEOUT_SECONDS", 120).to_i
+    @qwen_timeout = ENV.fetch("LOCAL_MODEL_TIMEOUT_SECONDS", 300).to_i
     @qwen_system_prompt = default_qwen_system_prompt
     @qwen_prompt = default_qwen_prompt
   end
@@ -80,9 +80,16 @@ class AdminController < AuthenticatedController
   end
 
   def qwen_model_options
-    default_model = ENV.fetch("LOCAL_MODEL_NAME", "qwen2.5:0.5b")
+    default_model = ENV.fetch("LOCAL_MODEL_NAME", "qwen3-coder:30b")
+    default_label = if default_model == "qwen3-coder:30b"
+      "Configured default: Qwen3 Coder 30B (qwen3-coder:30b)"
+    else
+      "Configured default (#{default_model})"
+    end
+
     [
-      [ "Configured default (#{default_model})", default_model ],
+      [ default_label, default_model ],
+      [ "Qwen3 Coder 30B (qwen3-coder:30b)", "qwen3-coder:30b" ],
       [ "Current tiny Qwen (qwen2.5:0.5b)", "qwen2.5:0.5b" ],
       [ "Qwen3 latest (qwen3:latest)", "qwen3:latest" ],
       [ "Qwen3 8B (qwen3:8b)", "qwen3:8b" ],

@@ -247,7 +247,7 @@ module Catalog
     def runtime_for(key)
       return { shell: true, real_sandbox_in_demo: true, fixture: "hello-world-typescript" } if key == "verify-typescript-sandbox"
       return { shell: true, real_sandbox_in_demo: true, fixture: "hello-world-rails", language: "ruby", framework: "rails" } if key == "verify-ruby-rails-sandbox"
-      return { "mode" => "live", "model" => ENV.fetch("LOCAL_MODEL_NAME", "qwen2.5:0.5b"), "temperature" => 0.2, "num_predict" => 512 } if key == "local-model-plan"
+      return { "mode" => "live", "model" => ENV.fetch("LOCAL_MODEL_NAME", "qwen3-coder:30b"), "temperature" => 0.2, "num_predict" => 512 } if key == "local-model-plan"
 
       key.in?(%w[run-tests security-scan update-dependencies open-change-request]) ? { shell: true } : {}
     end
