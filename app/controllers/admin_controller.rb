@@ -58,7 +58,7 @@ class AdminController < AuthenticatedController
     @qwen_model_options = qwen_model_options
     @qwen_custom_model = ""
     @qwen_base_url = ENV["LOCAL_MODEL_BASE_URL"].presence || ENV["OLLAMA_BASE_URL"].presence || "http://xmode-ollama:11434"
-    @qwen_timeout = ENV.fetch("LOCAL_MODEL_TIMEOUT_SECONDS", 1200).to_i
+    @qwen_timeout = ENV.fetch("LOCAL_MODEL_TIMEOUT_SECONDS", 3600).to_i
     @qwen_system_prompt = default_qwen_system_prompt
     @qwen_prompt = default_qwen_prompt
   end

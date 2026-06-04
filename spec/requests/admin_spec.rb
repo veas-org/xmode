@@ -134,7 +134,7 @@ RSpec.describe "Workspace admin", type: :request do
     )
     expect(Providers::LocalModelClient).to have_received(:call).with(
       base_url: "http://xmode-ollama:11434",
-      timeout: 1200,
+      timeout: 3600,
       payload: hash_including(
         model: "qwen3.6:35b",
         messages: [
@@ -181,7 +181,7 @@ RSpec.describe "Workspace admin", type: :request do
     expect(model_request.answer).to include("MiniMax answered the admin prompt.")
     expect(Providers::LocalModelClient).to have_received(:call).with(
       base_url: "http://xmode-ollama:11434",
-      timeout: 1200,
+      timeout: 3600,
       payload: hash_including(model: "minimax-m3:cloud")
     )
   end
