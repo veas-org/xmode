@@ -54,6 +54,75 @@ RSpec.describe "Pipeline run detail", type: :request do
     expect(response.body).not_to include(">Resume</span>")
   end
 
+  it "shows the generated model plan before revise or approve decisions" do
+    user = User.create!(name: "Owner", email: "owner-run-plan@example.com", password: "password123")
+    workspace = Workspace.create!(name: "Spec")
+    team = workspace.teams.create!(name: "Engineering", key: "eng")
+    workspace.memberships.create!(user: user, team: team, role: "owner")
+    action = workspace.action_definitions.create!(
+      key: "local-model-plan",
+      name: "Local Model Plan",
+      category: "planning",
+      provider: "local_model",
+      objective_template: "Plan the change.",
+      input_schema: { type: "object" },
+      output_schema: { type: "object" }
+    )
+    pipeline = workspace.pipeline_definitions.create!(
+      key: "cloud-rails-implement-issue",
+      name: "Cloud Rails Implement Issue",
+      graph: { nodes: [ { id: "draft-plan", action_key: action.key, action_id: action.id, label: action.name } ], edges: [] }
+    )
+    run = workspace.pipeline_runs.create!(
+      pipeline_definition: pipeline,
+      trigger: "manual",
+      status: "waiting_for_input",
+      input_context: { "objective" => "Implement Hello World from the cloud sandbox." }
+    )
+    step = run.action_run_steps.create!(
+      action_definition: action,
+      name: action.name,
+      position: 0,
+      status: "completed",
+      input_json: { "objective" => run.input_context.fetch("objective") },
+      output_json: {
+        "summary" => "Qwen prepared the cloud implementation plan.",
+        "status" => "planned",
+        "provider" => "ollama",
+        "provider_mode" => "live",
+        "model" => "qwen2.5-coder:1.5b",
+        "plan" => "# Cloud sandbox plan\n\n1. Clone `hello-world-rails` in Oracle.\n2. Change README and Rails service inside the sandbox.\n3. Capture diff, logs, tests, and Change Request evidence.",
+        "next_steps" => [ "Review the plan", "Revise or approve it" ],
+        "acceptance_checks" => [ "Sandbox diff is attached", "Change Request package is recorded" ],
+        "changed_files_count" => 0
+      }
+    )
+    run.run_messages.create!(
+      action_run_step: step,
+      role: "assistant",
+      kind: "choice_question",
+      status: "pending",
+      content: "Review Qwen's implementation plan.",
+      payload: {
+        "choices" => [
+          { "key" => "approve", "label" => "Approve plan" },
+          { "key" => "revise", "label" => "Revise plan" }
+        ]
+      }
+    )
+
+    post login_path, params: { email: user.email, password: "password123" }
+    get pipeline_run_path(run)
+
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include("Generated plan")
+    expect(response.body).to include("Plan under review")
+    expect(response.body).to include("Cloud sandbox plan")
+    expect(response.body).to include("Clone <code>hello-world-rails</code> in Oracle")
+    expect(response.body).to include("Sandbox diff is attached")
+    expect(response.body).not_to include("Plan will be captured before execution continues.")
+  end
+
   it "renders sandbox files for a local shell run" do
     user = User.create!(name: "Owner", email: "owner-sandbox-files@example.com", password: "password123")
     workspace = Workspace.create!(name: "Spec")

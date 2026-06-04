@@ -3,7 +3,15 @@
 <% target_label = @run.issue&.identifier || @run.project&.title || @run.event&.title || "workspace run" %>
 <% run_context = (@run.input_context || {}).to_h %>
 <% objective_text = run_context["objective"].presence || @steps.map { |step| (step.input_json || {}).to_h["objective"].presence }.compact.first || @run.issue&.title || "Objective not captured yet." %>
-<% plan_text = run_context["plan"].presence || @steps.map { |step| (step.input_json || {}).to_h["plan"].presence }.compact.first || "Plan will be captured before execution continues." %>
+<% generated_plan_step = @steps.find { |step| step.output_json.to_h["status"] == "planned" && step.output_json.to_h["plan"].present? } ||
+  @steps.find { |step| step.action_definition&.category == "planning" && step.output_json.to_h["plan"].present? } ||
+  @steps.find { |step| step.output_json.to_h["plan"].present? && step.name.to_s.match?(/plan/i) } %>
+<% generated_plan_output = generated_plan_step&.output_json.to_h %>
+<% generated_plan_text = generated_plan_output&.dig("plan").presence %>
+<% plan_text = run_context["plan"].presence || generated_plan_text || @steps.map { |step| (step.input_json || {}).to_h["plan"].presence }.compact.first || "Plan will be captured before execution continues." %>
+<% plan_source_label = generated_plan_step ? "#{generated_plan_step.name}#{generated_plan_output["model"].present? ? " · #{generated_plan_output["model"]}" : ""}" : "Run context" %>
+<% plan_acceptance_checks = Array(generated_plan_output&.dig("acceptance_checks")).select(&:present?) %>
+<% plan_next_steps = Array(generated_plan_output&.dig("next_steps")).select(&:present?) %>
 <% current_step = @steps.find { |step| step.status.in?(%w[running waiting_for_approval waiting_for_input]) } || @steps.last %>
 <% completed_steps = @steps.count { |step| step.status == "completed" } %>
 <% failed_steps = @steps.count { |step| step.status.in?(%w[failed canceled]) } %>
@@ -83,10 +91,49 @@ end %>
           <p><%= objective_text %></p>
         </article>
         <article>
-          <span>Plan</span>
-          <p><%= plan_text %></p>
+          <span>Plan source</span>
+          <p><%= plan_source_label %></p>
         </article>
       </div>
+
+      <article class="run-generated-plan">
+        <header>
+          <div>
+            <span>Generated plan</span>
+            <strong><%= generated_plan_step&.name || "Plan" %></strong>
+          </div>
+          <% if generated_plan_output&.dig("provider_mode").present? || generated_plan_output&.dig("provider").present? %>
+            <span class="linear-count"><%= [ generated_plan_output["provider"], generated_plan_output["provider_mode"] ].compact.join(" · ") %></span>
+          <% end %>
+        </header>
+        <div class="rich-markdown run-generated-plan-body">
+          <%= render_markdown(plan_text, empty: "Plan will be captured before execution continues.") %>
+        </div>
+        <% if plan_acceptance_checks.any? || plan_next_steps.any? %>
+          <div class="run-plan-support">
+            <% if plan_next_steps.any? %>
+              <section>
+                <span>Next</span>
+                <ul>
+                  <% plan_next_steps.each do |step| %>
+                    <li><%= step %></li>
+                  <% end %>
+                </ul>
+              </section>
+            <% end %>
+            <% if plan_acceptance_checks.any? %>
+              <section>
+                <span>Acceptance</span>
+                <ul>
+                  <% plan_acceptance_checks.each do |check| %>
+                    <li><%= check %></li>
+                  <% end %>
+                </ul>
+              </section>
+            <% end %>
+          </div>
+        <% end %>
+      </article>
     </section>
 
     <section class="record-detail-section run-review-timeline-section">
@@ -171,6 +218,18 @@ end %>
         <article class="run-interaction">
           <span><%= @pending_run_message.kind.to_s.tr("_", " ").titleize %></span>
           <p><%= @pending_run_message.content %></p>
+
+          <% if generated_plan_text.present? %>
+            <div class="run-decision-plan">
+              <header>
+                <span>Plan under review</span>
+                <small><%= plan_source_label %></small>
+              </header>
+              <div class="rich-markdown">
+                <%= render_markdown(generated_plan_text) %>
+              </div>
+            </div>
+          <% end %>
 
           <% if @pending_run_message.kind == "goal_check" && @pending_run_message.payload["checks"].present? %>
             <ul class="run-chat-checks">
