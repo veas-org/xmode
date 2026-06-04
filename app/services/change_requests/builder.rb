@@ -78,7 +78,7 @@ module ChangeRequests
     def package_branch(change_request, repository)
       return LocalBranchPackager.call(change_request, @step) if repository.provider == "local"
       return {} unless repository.provider.in?(%w[github gitlab])
-      return { "provider_status" => "missing_token" } if provider_token(repository).blank?
+      return sandbox_only_package(change_request).merge("provider_status" => "missing_token") if provider_token(repository).blank?
 
       RemoteBranchPackager.call(
         change_request,
@@ -98,6 +98,16 @@ module ChangeRequests
         metadata: change_request_metadata(change_request, repository).merge(error: e.message, stage: "branch_package")
       )
       {}
+    end
+
+    def sandbox_only_package(change_request)
+      package = LocalBranchPackager.call(change_request, @step)
+      return package unless package["branch_status"] == "created"
+
+      package.merge(
+        "provider_branch_pushed" => false,
+        "provider_branch_push_status" => "missing_token"
+      )
     end
 
     def create_provider_change_request(change_request, repository)

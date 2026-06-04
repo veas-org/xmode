@@ -101,6 +101,35 @@ RSpec.describe "Provider-backed Change Requests" do
     end
   end
 
+  it "keeps a sandbox review branch package when GitHub credentials are missing" do
+    with_source_repository do |repo_path|
+      run = run_code_changing_pipeline(
+        provider: "github",
+        token: nil,
+        repo_path: repo_path,
+        repository_name: "acme/fixture"
+      )
+
+      change_request = run.reload.change_request
+      expect(change_request).to have_attributes(
+        provider: "github",
+        external_id: nil,
+        status: "draft"
+      )
+      expect(change_request.url).to end_with("/pull/new/#{change_request.branch_name}")
+      expect(change_request.checks).to include(
+        "branch_status" => "created",
+        "branch_name" => change_request.branch_name,
+        "provider_branch_pushed" => false,
+        "provider_branch_push_status" => "missing_token",
+        "provider_status" => "missing_token"
+      )
+      expect(change_request.checks.fetch("commit_sha")).to match(/\A[0-9a-f]{40}\z/)
+      expect(change_request.checks.fetch("changed_files").map { |entry| entry.fetch("path") }).to contain_exactly("generated.txt")
+      expect(sandbox_branch_sha(change_request)).to eq(change_request.checks.fetch("commit_sha"))
+    end
+  end
+
   it "pushes a branch and creates a GitLab merge request when credentials exist" do
     with_source_repository do |repo_path|
       stub = stub_request(:post, "https://gitlab.com/api/v4/projects/acme%2Ffixture/merge_requests")
@@ -228,6 +257,16 @@ RSpec.describe "Provider-backed Change Requests" do
 
   def remote_branch_sha(repo_path, branch_name)
     output, = Open3.capture2("git", "rev-parse", branch_name, chdir: repo_path)
+    output.strip
+  end
+
+  def sandbox_branch_sha(change_request)
+    output, = Open3.capture2(
+      "git",
+      "rev-parse",
+      change_request.branch_name,
+      chdir: change_request.checks.fetch("sandbox_worktree_path")
+    )
     output.strip
   end
 
