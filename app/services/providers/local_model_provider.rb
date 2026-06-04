@@ -47,7 +47,7 @@ module Providers
     end
 
     def timeout
-      (@action.runtime_config["timeout_seconds"].presence || ENV.fetch("LOCAL_MODEL_TIMEOUT_SECONDS", 300)).to_i
+      (@action.runtime_config["timeout_seconds"].presence || ENV.fetch("LOCAL_MODEL_TIMEOUT_SECONDS", 1200)).to_i
     end
 
     def objective
