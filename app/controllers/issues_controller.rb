@@ -219,7 +219,7 @@ class IssuesController < AuthenticatedController
   end
 
   def prioritized_issue_pipelines(pipelines)
-    priority = %w[implement-issue fix-failing-build update-dependencies handle-production-event review-change-request release-project]
+    priority = %w[cloud-rails-implement-issue implement-issue guided-implement-issue fix-failing-build update-dependencies handle-production-event review-change-request release-project]
     pipelines.sort_by { |pipeline| [ priority.index(pipeline.key) || priority.size, pipeline.name ] }
   end
 

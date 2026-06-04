@@ -93,29 +93,29 @@ RSpec.describe "Project detail", type: :request do
     )
   end
 
-  it "uses the Rails sandbox pipeline for Ruby Rails projects" do
+  it "uses the cloud Rails implementation pipeline for Ruby Rails projects" do
     workspace = Workspace.create!(name: "Spec")
     team = workspace.teams.create!(name: "Engineering")
     user = User.create!(name: "Ada", email: "ada-rails@example.com", password: "password123")
     workspace.memberships.create!(user: user, role: "owner")
     project = workspace.projects.create!(team: team, title: "Rails Sandbox Verification", repository_url: "/tmp/hello-world-rails")
     action = workspace.action_definitions.create!(
-      key: "verify-ruby-rails-sandbox",
-      name: "Verify Ruby Rails Sandbox",
+      key: "local-model-plan",
+      name: "Local Model Plan",
       version: "1.0.0",
-      category: "verification",
-      provider: "local_shell",
-      defaults: { "command" => "printf ok" },
+      category: "planning",
+      provider: "local_model",
       input_schema: { "type" => "object" },
       output_schema: { "type" => "object" }
     )
     pipeline = workspace.pipeline_definitions.create!(
-      key: "verify-rails-sandbox-fixture",
-      name: "Verify Rails Sandbox Fixture",
+      key: "cloud-rails-implement-issue",
+      name: "Cloud Rails Implement Issue",
       version: "1.0.0",
+      required_context: { "cloud_sandbox" => true, "repository" => true, "issue" => true },
       graph: {
         "nodes" => [
-          { "id" => "verify", "type" => "action", "action_key" => action.key }
+          { "id" => "plan", "type" => "action", "action_key" => action.key }
         ],
         "edges" => []
       }
@@ -129,6 +129,8 @@ RSpec.describe "Project detail", type: :request do
     expect(run.pipeline_definition).to eq(pipeline)
     expect(run.input_context).to include(
       "objective" => "Verify the Rails sandbox fixture",
+      "plan" => "Use Qwen to draft and revise the plan, wait for approval, code only inside the cloud sandbox, then present the result and Change Request evidence.",
+      "runner_mode" => "cloud_worker",
       "docker_image" => ExecutionEnvironment::DEFAULT_RUBY_DOCKER_IMAGE
     )
   end

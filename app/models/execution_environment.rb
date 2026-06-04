@@ -2,7 +2,7 @@ class ExecutionEnvironment < ApplicationRecord
   DEFAULT_NODE_DOCKER_IMAGE = "node:20-bookworm".freeze
   DEFAULT_RUBY_DOCKER_IMAGE = "ruby:3.4-bookworm".freeze
   DEFAULT_DOCKER_IMAGE = DEFAULT_NODE_DOCKER_IMAGE
-  RUNNER_MODES = %w[local_worktree docker].freeze
+  RUNNER_MODES = %w[local_worktree cloud_worker docker].freeze
   KINDS = %w[ephemeral_sandbox persistent_project_machine cloud_browser local_connector].freeze
   STATUSES = %w[ready provisioning running sleeping failed disabled].freeze
 
@@ -19,7 +19,7 @@ class ExecutionEnvironment < ApplicationRecord
     {
       "runner" => "local_shell",
       "sandbox_kind" => "docker_worktree",
-      "runner_mode" => "local_worktree",
+      "runner_mode" => "cloud_worker",
       "docker_image" => default_docker_image_for(language),
       "language" => language,
       "framework" => framework_for(project)
@@ -46,11 +46,23 @@ class ExecutionEnvironment < ApplicationRecord
   end
 
   def runner_mode
-    metadata.to_h["runner_mode"].presence_in(RUNNER_MODES) || "local_worktree"
+    metadata.to_h["runner_mode"].presence_in(RUNNER_MODES) || "cloud_worker"
   end
 
   def docker?
     runner_mode == "docker"
+  end
+
+  def cloud_worker?
+    runner_mode == "cloud_worker"
+  end
+
+  def runner_label
+    case runner_mode
+    when "cloud_worker" then "Cloud worker"
+    when "docker" then "Docker image"
+    else "Local worktree"
+    end
   end
 
   def docker_image

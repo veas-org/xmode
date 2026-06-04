@@ -120,4 +120,96 @@ RSpec.describe "Ruby Rails sandbox fixture" do
     expect(status).to be_blank
     expect(run.run_logs.pluck(:message).join("\n")).to include("Repository cloned into sandbox", "Hello World from Rails sandbox")
   end
+
+  it "runs the Qwen-guided cloud Rails implementation loop through revise, approval, sandbox code, result, and Change Request" do
+    fixture_path = Rails.root.join("..", "hello-world-rails").expand_path
+    skip "hello-world-rails fixture repository is not available" unless fixture_path.join(".git").directory?
+
+    allow(Providers::LocalModelClient).to receive(:call).and_return(
+      {
+        "message" => {
+          "content" => JSON.generate(
+            "summary" => "Qwen prepared the cloud Rails plan.",
+            "status" => "planned",
+            "plan" => "Clone hello-world-rails in the cloud worker, run the fixture script, capture diff and tests, then present the result."
+          )
+        },
+        "model" => "qwen3-coder:30b"
+      }
+    )
+
+    seed = Demo::PlanetExpressSeeder.call
+    workspace = seed.workspace
+    project = workspace.projects.find_by!(key: "rails-sandbox-verification")
+    issue = workspace.issues.find_by!(identifier: "OPS-7")
+    pipeline = workspace.pipeline_definitions.find_by!(key: "cloud-rails-implement-issue")
+    run = workspace.pipeline_runs.create!(
+      pipeline_definition: pipeline,
+      project: project,
+      issue: issue,
+      trigger: "manual",
+      input_context: {
+        "objective" => "Use Qwen to plan, revise, code, and present the Rails Hello World change from a cloud sandbox."
+      }
+    )
+
+    Pipelines::Runner.call(run)
+
+    expect(run.reload.status).to eq("waiting_for_input")
+    expect(run.run_messages.pending.last).to have_attributes(kind: "choice_question")
+    expect(run.run_messages.pending.last.content).to include("Review Qwen's implementation plan")
+
+    answer_pending_message(run, { "kind" => "choice", "choice" => "revise", "label" => "Revise plan", "next" => "revise-plan", "action" => "follow_up" }, resume_node_id: "revise-plan")
+    Pipelines::Runner.call(run)
+
+    expect(run.reload.status).to eq("waiting_for_input")
+    expect(run.run_messages.pending.last).to have_attributes(kind: "open_question")
+    expect(run.run_messages.pending.last.content).to include("Tell Qwen what to change")
+
+    answer_pending_message(run, { "kind" => "text", "content" => "Make the plan explicit that all code changes happen in the cloud sandbox." }, resume_node_id: "draft-plan")
+    Pipelines::Runner.call(run)
+
+    expect(run.reload.status).to eq("waiting_for_input")
+    expect(run.run_messages.pending.last).to have_attributes(kind: "choice_question")
+    expect(run.action_run_steps.find_by(position: 0).output_json.fetch("summary")).to include("Qwen prepared")
+
+    answer_pending_message(run, { "kind" => "choice", "choice" => "approve", "label" => "Approve plan", "next" => "cloud-rails-code", "action" => "approve" }, resume_node_id: "cloud-rails-code")
+    Pipelines::Runner.call(run)
+
+    cloud_step = run.action_run_steps.find_by!(name: "Cloud Rails Code")
+    result_step = run.action_run_steps.find_by!(name: "Present Sandbox Result")
+    sandbox = run.sandbox_sessions.find_by!(action_run_step: cloud_step)
+    sandbox_path = Pathname.new(sandbox.worktree_path)
+
+    expect(run.reload.status).to eq("completed")
+    expect(Providers::LocalModelClient).to have_received(:call).at_least(3).times
+    expect(cloud_step.output_json).to include("status" => "completed", "changed_files_count" => 3)
+    expect(result_step.output_json.fetch("summary")).to include("Qwen prepared")
+    expect(sandbox).to have_attributes(kind: "cloud_vm", status: "ready")
+    expect(sandbox.execution_environment).to have_attributes(runner_mode: "cloud_worker", language: "ruby", framework: "rails")
+    expect(sandbox.metadata).to include("cloud_worker" => true, "runner_mode" => "cloud_worker", "sandbox_kind" => "cloud_vm")
+    expect(sandbox_path.join("README.md").read).to include("Hello World Feature Flow")
+    expect(run.change_request).to have_attributes(issue: issue, provider: "local", branch_name: "xmode/ops-7-#{run.id}", status: "draft")
+    expect(run.change_request.checks).to include("branch_status" => "created", "sandbox_session_id" => sandbox.id)
+    expect(run.run_logs.pluck(:message).join("\n")).to include("Cloud sandbox prepared", "Cloud worker executing inside the hosted xmode worker container")
+  end
+
+  def answer_pending_message(run, response, resume_node_id:)
+    message = run.run_messages.pending.order(:created_at).last
+    message.update!(
+      status: "answered",
+      payload: message.payload.merge("response" => response),
+      answered_at: Time.current
+    )
+    message.action_run_step.update!(
+      status: "completed",
+      output_json: response.merge("summary" => response["label"].presence || response["content"].presence || "Answered."),
+      finished_at: Time.current
+    )
+    context = run.input_context.deep_dup
+    context["interaction"] = response
+    context["run_notes"] = Array(context["run_notes"]) + [ { "content" => response["content"], "created_at" => Time.current.iso8601 } ] if response["content"].present?
+    context["_runner"] = { "resume_node_id" => resume_node_id }
+    run.update!(status: "queued", input_context: context)
+  end
 end

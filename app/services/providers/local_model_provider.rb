@@ -195,8 +195,13 @@ module Providers
           id: @run.id,
           trigger: @run.trigger,
           issue: @run.issue&.identifier,
-          project: @run.project&.title
+          project: @run.project&.title,
+          notes: @run.input_context["run_notes"],
+          latest_interaction: @run.input_context["interaction"],
+          provider_follow_up: @run.input_context["provider_follow_up"]
         },
+        previous_steps: previous_step_context,
+        sandbox_evidence: sandbox_evidence_context,
         objective: objective,
         plan: plan,
         expected_output_schema: response_schema
@@ -226,6 +231,36 @@ module Providers
       return schema if schema["type"].present? || schema[:type].present?
 
       { type: "object", additionalProperties: true }
+    end
+
+    def previous_step_context
+      @run.action_run_steps
+        .where("position < ?", @step.position || 0)
+        .order(:position)
+        .map do |step|
+          {
+            name: step.name,
+            status: step.status,
+            provider: step.action_definition&.provider,
+            summary: step.output_json.to_h["summary"],
+            changed_files_count: step.output_json.to_h["changed_files_count"],
+            diff_artifact: step.output_json.to_h["diff_artifact"]
+          }.compact
+        end
+    end
+
+    def sandbox_evidence_context
+      @run.sandbox_sessions.includes(:action_run_step, :execution_environment).order(:created_at).map do |sandbox|
+        {
+          kind: sandbox.kind,
+          status: sandbox.status,
+          action: sandbox.action_run_step&.name,
+          runner_mode: sandbox.execution_environment&.runner_mode,
+          docker_image: sandbox.execution_environment&.docker_image,
+          worktree_path: sandbox.worktree_path,
+          metadata: sandbox.metadata
+        }.compact
+      end
     end
 
     def extract_structured_output(response)

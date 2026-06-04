@@ -20,8 +20,10 @@ module Runners
         worktree_path: sandbox_dir.to_s,
         metadata: session.metadata.merge(
           "action_key" => @action.key,
+          "sandbox_kind" => sandbox_kind,
           "runner_mode" => execution_environment.runner_mode,
-          "docker_image" => execution_environment.docker_image
+          "docker_image" => execution_environment.docker_image,
+          "cloud_worker" => execution_environment.cloud_worker?
         )
       )
 
@@ -44,7 +46,7 @@ module Runners
       session.update!(metadata: session.metadata.merge("command" => command))
       artifact_dir.mkpath
       sandbox_dir.mkpath
-      @run.append_log("Local shell sandbox prepared at #{sandbox_dir}", step: @step)
+      @run.append_log("#{sandbox_label} prepared at #{sandbox_dir}", step: @step)
       @run.append_log("Command: #{command}", step: @step)
 
       prepare_repository
@@ -63,7 +65,7 @@ module Runners
     private
 
     def sandbox_session
-      @sandbox_session ||= @run.sandbox_sessions.find_or_create_by!(action_run_step: @step, kind: "docker_worktree") do |session|
+      @sandbox_session ||= @run.sandbox_sessions.find_or_create_by!(action_run_step: @step, kind: sandbox_kind) do |session|
         session.workspace = @run.workspace
         session.project = @run.project
         session.execution_environment = execution_environment
@@ -83,13 +85,21 @@ module Runners
       end.tap do |environment|
         environment.update!(
           last_used_at: Time.current,
-          metadata: default_environment_metadata.merge(environment.metadata.to_h)
+          metadata: default_environment_metadata.merge(environment.metadata.to_h).merge(action_environment_metadata)
         )
       end
     end
 
     def default_environment_metadata
       ExecutionEnvironment.default_metadata_for(@run.project)
+    end
+
+    def action_environment_metadata
+      @action.runtime_config.slice("runner_mode", "docker_image", "language", "framework", "sandbox_kind").compact_blank
+    end
+
+    def sandbox_kind
+      @action.runtime_config["sandbox_kind"].presence_in(SandboxSession::KINDS) || "docker_worktree"
     end
 
     def artifact_dir
@@ -159,6 +169,7 @@ module Runners
     def execute_command(command)
       return execute_in_docker(command) if execution_environment.docker?
 
+      @run.append_log("Cloud worker executing inside the hosted xmode worker container", step: @step) if execution_environment.cloud_worker?
       Open3.capture3(command, chdir: sandbox_dir.to_s)
     end
 
@@ -179,6 +190,10 @@ module Runners
       )
     rescue Errno::ENOENT
       raise "Docker runner selected but docker is not available on this host"
+    end
+
+    def sandbox_label
+      execution_environment.cloud_worker? ? "Cloud sandbox" : "Local shell sandbox"
     end
 
     def record_command_artifacts

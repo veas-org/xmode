@@ -86,7 +86,7 @@ class ProjectsController < AuthenticatedController
       input_context: sandbox_input_context(environment)
     )
 
-    if current_workspace.demo?
+    if current_workspace.demo? && !cloud_sandbox_pipeline?(pipeline)
       Pipelines::Runner.call(run)
     else
       PipelineRunnerJob.perform_later(run.id)
@@ -155,18 +155,23 @@ class ProjectsController < AuthenticatedController
   end
 
   def sandbox_pipeline_key(project)
-    ExecutionEnvironment.language_for(project) == "ruby" ? "verify-rails-sandbox-fixture" : "verify-sandbox-fixture"
+    ExecutionEnvironment.language_for(project) == "ruby" ? "cloud-rails-implement-issue" : "verify-sandbox-fixture"
   end
 
   def sandbox_input_context(environment)
     objective = params[:objective].to_s.strip.presence || "Run the #{@project.title} sandbox and present generated work."
     {
       "objective" => objective,
+      "plan" => "Use Qwen to draft and revise the plan, wait for approval, code only inside the cloud sandbox, then present the result and Change Request evidence.",
       "project" => @project.title,
       "repository" => @project.repository_url,
       "runner_mode" => environment.runner_mode,
       "docker_image" => environment.docker_image
     }.compact
+  end
+
+  def cloud_sandbox_pipeline?(pipeline)
+    pipeline&.required_context.to_h["cloud_sandbox"].present?
   end
 
   def project_params

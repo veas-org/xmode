@@ -150,7 +150,7 @@ class PipelineDefinitionsController < AuthenticatedController
       trigger: current_workspace.demo? ? "demo_agent" : "manual",
       input_context: input_context_params
     )
-    if current_workspace.demo?
+    if current_workspace.demo? && !cloud_sandbox_pipeline?(@pipeline)
       Pipelines::Runner.call(run)
     else
       PipelineRunnerJob.perform_later(run.id)
@@ -161,7 +161,7 @@ class PipelineDefinitionsController < AuthenticatedController
   private
 
   def preferred_pipeline_home_records(pipelines)
-    preferred_keys = %w[implement-issue guided-implement-issue update-dependencies handle-production-event]
+    preferred_keys = %w[cloud-rails-implement-issue implement-issue guided-implement-issue update-dependencies handle-production-event]
     preferred = preferred_keys.filter_map { |key| pipelines.find { |pipeline| pipeline.key == key } }
     (preferred + pipelines).uniq.first(4)
   end
@@ -215,6 +215,10 @@ class PipelineDefinitionsController < AuthenticatedController
 
   def input_context_params
     params.fetch(:input_context, {}).permit(:objective, :plan, :command, :issue_id, :project_id, :event_id).to_h
+  end
+
+  def cloud_sandbox_pipeline?(pipeline)
+    pipeline&.required_context.to_h["cloud_sandbox"].present?
   end
 
   def issue_for_run(project)

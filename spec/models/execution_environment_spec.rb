@@ -1,7 +1,7 @@
 require "rails_helper"
 
 RSpec.describe ExecutionEnvironment, type: :model do
-  it "defaults to a local worktree runner with the standard Docker image available" do
+  it "defaults to a cloud worker runner with the standard Docker image available" do
     workspace = Workspace.create!(name: "Spec")
     environment = workspace.execution_environments.build(
       name: "Spec sandbox",
@@ -9,8 +9,10 @@ RSpec.describe ExecutionEnvironment, type: :model do
       status: "ready"
     )
 
-    expect(environment.runner_mode).to eq("local_worktree")
+    expect(environment.runner_mode).to eq("cloud_worker")
+    expect(environment).to be_cloud_worker
     expect(environment).not_to be_docker
+    expect(environment.runner_label).to eq("Cloud worker")
     expect(environment.docker_image).to eq(ExecutionEnvironment::DEFAULT_NODE_DOCKER_IMAGE)
   end
 

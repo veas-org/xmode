@@ -81,11 +81,11 @@
           <p class="app-eyebrow">Sandbox</p>
           <h3>Project workbench</h3>
         </div>
-        <span class="linear-count"><%= @execution_environment.runner_mode.to_s.tr("_", " ").titleize %></span>
+        <span class="linear-count"><%= runner_mode_label(@execution_environment) %></span>
       </div>
 
       <p class="project-workbench-copy">
-        xmode clones this project into an isolated worktree, runs the agent command there, captures files, logs, command output, and opens a Change Request when code changes are detected.
+        xmode queues this project onto a hosted cloud worker, clones the repository into an isolated sandbox worktree, runs the agent command there, captures files, logs, command output, and opens a Change Request when code changes are detected.
       </p>
 
       <div class="project-contract-strip">
@@ -99,7 +99,7 @@
         </div>
         <div>
           <span>Image</span>
-          <strong><%= @execution_environment.docker? ? @execution_environment.docker_image : "Host runtime" %></strong>
+          <strong><%= sandbox_runtime_label(@execution_environment) %></strong>
         </div>
       </div>
     </section>
@@ -122,7 +122,7 @@
       <div class="record-detail-side-title">
         <h3>Start sandbox</h3>
       </div>
-      <p class="project-side-copy">Run the configured fixture pipeline and inspect the resulting terminal, files, artifacts, and Change Request package.</p>
+      <p class="project-side-copy">Queue the configured cloud sandbox pipeline and inspect the resulting plan, terminal, files, artifacts, and Change Request package.</p>
       <% if @sandbox_pipeline && permitted?("run_code_actions") %>
         <%= button_to "Run sandbox",
               run_sandbox_project_path(@project),
@@ -146,8 +146,8 @@
             <span class="record-point-main">
               <span class="record-point-title"><%= run.pipeline_definition&.name || "Sandbox run" %></span>
               <span class="record-point-meta">
-                <span><%= sandbox&.execution_environment&.runner_mode.to_s.tr("_", " ").titleize.presence || "Sandboxed agent" %></span>
-                <span><%= sandbox&.execution_environment&.docker? ? sandbox.execution_environment.docker_image : "host runtime" %></span>
+                <span><%= sandbox&.execution_environment ? runner_mode_label(sandbox.execution_environment) : "Sandboxed agent" %></span>
+                <span><%= sandbox_runtime_label(sandbox&.execution_environment) %></span>
               </span>
             </span>
             <%= status_icon_pill(run.status, title: run.display_status) %>

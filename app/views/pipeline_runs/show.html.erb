@@ -370,7 +370,7 @@ end %>
                   <p class="mt-2 text-xs leading-5 text-muted-foreground">
                     <%= environment&.name || "Workspace sandbox" %>
                     · <%= sandbox.action_run_step&.name || "Run sandbox" %>
-                    · <%= environment&.docker? ? environment.docker_image : "host runtime" %>
+                    · <%= sandbox_runtime_label(environment) %>
                   </p>
                   <% if sandbox.worktree_path.present? %>
                     <p class="mt-2 break-all text-xs leading-5 text-muted-foreground">Worktree: <%= sandbox.worktree_path %></p>

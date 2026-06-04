@@ -21,11 +21,17 @@ RSpec.describe Demo::PlanetExpressSeeder do
     expect(workspace.issues.pluck(:identifier)).to include("OPS-1", "OPS-4", "OPS-6", "OPS-7")
     expect(workspace.action_definitions.find_by!(key: "verify-typescript-sandbox").runtime_config).to include("real_sandbox_in_demo" => true)
     expect(workspace.action_definitions.find_by!(key: "verify-ruby-rails-sandbox").runtime_config).to include("real_sandbox_in_demo" => true, "language" => "ruby", "framework" => "rails")
+    expect(workspace.action_definitions.find_by!(key: "cloud-rails-code").runtime_config).to include("runner_mode" => "cloud_worker", "sandbox_kind" => "cloud_vm", "language" => "ruby", "framework" => "rails")
     sandbox_pipeline = workspace.pipeline_definitions.find_by!(key: "verify-sandbox-fixture")
     expect(sandbox_pipeline.graph.fetch("nodes").map { |node| node.fetch("action_key") }).to eq(%w[verify-typescript-sandbox open-change-request])
     rails_pipeline = workspace.pipeline_definitions.find_by!(key: "verify-rails-sandbox-fixture")
     expect(rails_pipeline.graph.fetch("nodes").map { |node| node.fetch("action_key") }).to eq(%w[verify-ruby-rails-sandbox open-change-request])
-    expect(workspace.execution_environments.find_by!(project: workspace.projects.find_by!(key: "rails-sandbox-verification")).docker_image).to eq(ExecutionEnvironment::DEFAULT_RUBY_DOCKER_IMAGE)
+    cloud_pipeline = workspace.pipeline_definitions.find_by!(key: "cloud-rails-implement-issue")
+    expect(cloud_pipeline.required_context).to include("cloud_sandbox" => true)
+    expect(cloud_pipeline.graph.fetch("nodes").map { |node| node.fetch("id") }).to include("draft-plan", "review-plan", "revise-plan", "cloud-rails-code", "present-result", "open-change-request")
+    rails_environment = workspace.execution_environments.find_by!(project: workspace.projects.find_by!(key: "rails-sandbox-verification"))
+    expect(rails_environment.runner_mode).to eq("cloud_worker")
+    expect(rails_environment.docker_image).to eq(ExecutionEnvironment::DEFAULT_RUBY_DOCKER_IMAGE)
     expect(workspace.events.find_by(title: "Critical moon delivery failed")).to be_present
     expect(workspace.schedules.where(kind: "recurring").count).to eq(1)
     expect(workspace.pipeline_runs.where(trigger: "demo").count).to eq(1)
@@ -51,5 +57,6 @@ RSpec.describe Demo::PlanetExpressSeeder do
 
     expect(pipeline.reload.graph.fetch("nodes").map { |node| node.fetch("action_key") }).to eq(%w[verify-typescript-sandbox open-change-request])
     expect(workspace.pipeline_definitions.find_by!(key: "verify-rails-sandbox-fixture").graph.fetch("nodes").map { |node| node.fetch("action_key") }).to eq(%w[verify-ruby-rails-sandbox open-change-request])
+    expect(workspace.pipeline_definitions.find_by!(key: "cloud-rails-implement-issue").graph.fetch("nodes").map { |node| node.fetch("id") }).to include("draft-plan", "review-plan", "cloud-rails-code")
   end
 end

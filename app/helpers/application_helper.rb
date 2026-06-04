@@ -110,6 +110,23 @@ module ApplicationHelper
     end
   end
 
+  def runner_mode_label(environment)
+    mode = environment.respond_to?(:runner_mode) ? environment.runner_mode : environment.to_s
+    case mode
+    when "cloud_worker" then "Cloud worker"
+    when "docker" then "Docker image"
+    when "local_worktree" then "Local worktree"
+    else mode.to_s.tr("_", " ").titleize.presence || "Sandbox"
+    end
+  end
+
+  def sandbox_runtime_label(environment)
+    return "Cloud worker" if environment&.cloud_worker?
+    return environment.docker_image if environment&.docker?
+
+    "Local worktree"
+  end
+
   def app_topbar_breadcrumbs(page_title)
     title = page_title.to_s.presence || "xmode"
     section = app_topbar_section

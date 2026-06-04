@@ -16,7 +16,8 @@ module Pipelines
       @pipeline_run.append_log("Pipeline started")
       audit!("pipeline_run.started", metadata: run_metadata)
       @resume_node_id = @pipeline_run.input_context.dig("_runner", "resume_node_id")
-      index = resume_index || 0
+      @resume_index = resume_index
+      index = @resume_index || 0
       clear_resume_pointer
       visited_indexes = Set.new
       while index < nodes.size
@@ -47,9 +48,18 @@ module Pipelines
       return run_interaction_node(node, index) if interaction_node?(node)
 
       existing = @pipeline_run.action_run_steps.find_by(position: index)
+      action = action_for(node)
+      if existing&.status == "completed" && rerun_completed_from_resume?(index)
+        existing.update!(
+          status: "queued",
+          input_json: action&.input_context_for(@pipeline_run) || @pipeline_run.input_context,
+          output_json: {},
+          error_message: nil,
+          finished_at: nil
+        )
+      end
       return if existing&.status == "completed"
 
-      action = action_for(node)
       step = existing || @pipeline_run.action_run_steps.create!(
         action_definition: action,
         name: node["label"].presence || action&.name || "Action",
@@ -156,7 +166,7 @@ module Pipelines
 
     def run_interaction_node(node, index)
       existing = @pipeline_run.action_run_steps.find_by(position: index)
-      if read(node, "id").to_s == @resume_node_id.to_s && existing&.status == "completed"
+      if existing&.status == "completed" && rerun_completed_from_resume?(index)
         existing.update!(status: "queued", output_json: {}, finished_at: nil)
       end
       return if existing&.status == "completed"
@@ -210,6 +220,10 @@ module Pipelines
 
     def resume_index
       @navigator.node_index(@resume_node_id) if @resume_node_id.present?
+    end
+
+    def rerun_completed_from_resume?(index)
+      @resume_index.present? && index >= @resume_index
     end
 
     def clear_resume_pointer

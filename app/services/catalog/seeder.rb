@@ -8,7 +8,8 @@ module Catalog
       [ "incident-response", "Incident Response", "incident", "Convert operational events into prioritized issues and automation runs." ],
       [ "release-operations", "Release Operations", "release", "Prepare releases with approvals, rollback thinking, and validation evidence." ],
       [ "maintenance", "Maintenance", "maintenance", "Keep projects healthy through recurring dependency and hygiene workflows." ],
-      [ "manual-decision", "Manual Decision", "manual", "Pause automation for a clear human decision with enough context to approve, revise, or reject." ]
+      [ "manual-decision", "Manual Decision", "manual", "Pause automation for a clear human decision with enough context to approve, revise, or reject." ],
+      [ "cloud-sandbox-implementation", "Cloud Sandbox Implementation", "coding", "Run agent coding work inside hosted sandbox workers with logs, diffs, artifacts, and Change Requests." ]
     ].freeze
 
     ACTIONS = [
@@ -22,6 +23,8 @@ module Catalog
       [ "security-scan", "Run Security Scan", "verification", "local_shell", [ "run_code_actions" ], "verification" ],
       [ "verify-typescript-sandbox", "Verify TypeScript Sandbox", "verification", "local_shell", [ "run_code_actions" ], "verification" ],
       [ "verify-ruby-rails-sandbox", "Verify Ruby Rails Sandbox", "verification", "local_shell", [ "run_code_actions" ], "verification" ],
+      [ "cloud-rails-code", "Cloud Rails Code", "coding", "local_shell", [ "run_code_actions" ], "cloud-sandbox-implementation" ],
+      [ "present-sandbox-result", "Present Sandbox Result", "review", "local_model", [ "view_project" ], "change-review" ],
       [ "open-change-request", "Open Change Request", "review", "local_shell", [ "approve_change_requests" ], "change-review" ],
       [ "manual-approval", "Manual Approval", "manual", "manual", [ "approve_change_requests" ], "manual-decision" ],
       [ "update-dependencies", "Update Dependencies", "maintenance", "local_shell", [ "run_code_actions" ], "maintenance" ],
@@ -75,6 +78,7 @@ module Catalog
       action_index = seed_actions(skill_index)
       seed_pipelines(action_index)
       seed_interactive_pipelines(action_index)
+      seed_cloud_sandbox_pipelines(action_index)
     end
 
     private
@@ -162,6 +166,19 @@ module Catalog
       pipeline.save!
     end
 
+    def seed_cloud_sandbox_pipelines(action_index)
+      pipeline = @workspace.pipeline_definitions.find_or_initialize_by(key: "cloud-rails-implement-issue", version: "1.0.0")
+      pipeline.assign_attributes(
+        name: "Cloud Rails Implement Issue",
+        required_context: { "repository" => true, "issue" => true, "cloud_sandbox" => true },
+        graph: cloud_rails_implementation_graph(action_index),
+        triggers: [ "manual" ],
+        permissions: %w[view_project edit_issues run_code_actions approve_change_requests],
+        builtin: true
+      )
+      pipeline.save!
+    end
+
     def guided_implementation_graph(action_index)
       action_node = ->(id, action_key, x) do
         action = action_index.fetch(action_key)
@@ -227,6 +244,52 @@ module Catalog
       { nodes: nodes, edges: edges }
     end
 
+    def cloud_rails_implementation_graph(action_index)
+      action_node = ->(id, action_key, x) do
+        action = action_index.fetch(action_key)
+        { id: id, type: "action", action_key: action.key, action_version: action.version, action_id: action.id, label: action.name, x: x, y: 160 }
+      end
+
+      nodes = [
+        action_node.call("draft-plan", "local-model-plan", 120),
+        {
+          id: "review-plan",
+          type: "decision",
+          label: "Review Plan",
+          question: "Review Qwen's implementation plan before cloud sandbox coding starts.",
+          choices: [
+            { key: "approve", label: "Approve plan", next: "cloud-rails-code", action: "approve" },
+            { key: "revise", label: "Revise plan", next: "revise-plan", action: "follow_up" },
+            { key: "reject", label: "Stop run", action: "reject" }
+          ],
+          x: 340,
+          y: 160
+        },
+        {
+          id: "revise-plan",
+          type: "follow_up",
+          label: "Revise Plan",
+          prompt: "Tell Qwen what to change in the plan. The next step will regenerate the plan before coding.",
+          x: 560,
+          y: 260
+        },
+        action_node.call("cloud-rails-code", "cloud-rails-code", 780),
+        action_node.call("present-result", "present-sandbox-result", 1_000),
+        action_node.call("open-change-request", "open-change-request", 1_220)
+      ]
+
+      edges = [
+        { id: "draft-plan-review-plan", from: "draft-plan", to: "review-plan", condition: "success" },
+        { id: "review-plan-cloud-rails-code", from: "review-plan", to: "cloud-rails-code", condition: "choice:approve" },
+        { id: "review-plan-revise-plan", from: "review-plan", to: "revise-plan", condition: "choice:revise" },
+        { id: "revise-plan-draft-plan", from: "revise-plan", to: "draft-plan", condition: "answered" },
+        { id: "cloud-rails-code-present-result", from: "cloud-rails-code", to: "present-result", condition: "success" },
+        { id: "present-result-open-change-request", from: "present-result", to: "open-change-request", condition: "success" }
+      ]
+
+      { nodes: nodes, edges: edges }
+    end
+
     def default_for(key)
       case key
       when "run-tests"
@@ -239,6 +302,8 @@ module Catalog
         { command: "npm install --no-audit --no-fund && npm run verify && npm run xmode:agent-change -- Bender" }
       when "verify-ruby-rails-sandbox"
         { command: "ruby scripts/xmode_hello_world.rb \"Print Hello World in README\"" }
+      when "cloud-rails-code"
+        { command: "ruby scripts/xmode_hello_world.rb \"Print Hello World in README\"" }
       else
         {}
       end
@@ -247,9 +312,26 @@ module Catalog
     def runtime_for(key)
       return { shell: true, real_sandbox_in_demo: true, fixture: "hello-world-typescript" } if key == "verify-typescript-sandbox"
       return { shell: true, real_sandbox_in_demo: true, fixture: "hello-world-rails", language: "ruby", framework: "rails" } if key == "verify-ruby-rails-sandbox"
+      return cloud_rails_runtime if key == "cloud-rails-code"
+      return { "mode" => "live", "model" => ENV.fetch("LOCAL_MODEL_NAME", "qwen3-coder:30b"), "temperature" => 0.2, "num_predict" => 700 } if key == "present-sandbox-result"
       return { "mode" => "live", "model" => ENV.fetch("LOCAL_MODEL_NAME", "qwen3-coder:30b"), "temperature" => 0.2, "num_predict" => 512 } if key == "local-model-plan"
 
       key.in?(%w[run-tests security-scan update-dependencies open-change-request]) ? { shell: true } : {}
+    end
+
+    def cloud_rails_runtime
+      {
+        shell: true,
+        real_sandbox_in_demo: true,
+        fixture: "hello-world-rails",
+        language: "ruby",
+        framework: "rails",
+        sandbox_kind: "cloud_vm",
+        runner_mode: "cloud_worker",
+        docker_image: ExecutionEnvironment::DEFAULT_RUBY_DOCKER_IMAGE,
+        agent_command_template: "codex exec --model ${MODEL:-gemini-3-flash-preview} --sandbox workspace --instruction-file .xmode/plan.md",
+        agent_model: ENV.fetch("CLOUD_SANDBOX_AGENT_MODEL", "qwen3-coder:30b")
+      }
     end
 
     def instructions_for(key)
@@ -268,6 +350,8 @@ module Catalog
         "Keep changes small, reversible, and backed by tests, especially for dependencies and scheduled hygiene."
       when "manual-decision"
         "Ask for a concrete approve, revise, trigger, or reject decision with the plan and evidence visible."
+      when "cloud-sandbox-implementation"
+        "Run coding in the hosted sandbox worker. Keep the user's browser local to approvals and review while all repository mutation happens in the cloud sandbox worktree."
       else
         "Follow the action objective, preserve context, validate the result, and record output."
       end
@@ -277,6 +361,8 @@ module Catalog
       case key
       when "software-implementation"
         [ "Start from an explicit objective.", "Prefer the repository's existing patterns.", "Every code-changing run must produce a Change Request." ]
+      when "cloud-sandbox-implementation"
+        [ "Never edit the user's local checkout.", "Run code-changing commands in a hosted sandbox worktree.", "Expose logs, changed files, diff, and Change Request evidence before merging." ]
       when "manual-decision"
         [ "State what is being decided.", "Show the current plan and evidence.", "Offer approve, revise, trigger, or reject outcomes." ]
       else
@@ -298,6 +384,10 @@ module Catalog
         "Verify that xmode can clone, inspect, and modify the {{project}} TypeScript sandbox fixture."
       when "verify-ruby-rails-sandbox"
         "Verify that xmode can clone, inspect, and modify the {{project}} Ruby on Rails sandbox fixture."
+      when "cloud-rails-code"
+        "Implement the approved plan for {{issue}} {{issue_title}} inside a hosted Rails cloud sandbox for {{project}}."
+      when "present-sandbox-result"
+        "Explain the cloud sandbox output, changed files, tests, and review package for {{issue}} {{issue_title}}."
       when "open-change-request"
         "Package the completed work for {{issue}} {{issue_title}} into a new Change Request."
       when "update-dependencies"
@@ -321,6 +411,10 @@ module Catalog
         "Clone the fixture repository, install dependencies, run the verification script, generate a predictable fixture diff, and record sandbox evidence."
       when "verify-ruby-rails-sandbox"
         "Clone the Rails fixture repository, run the Ruby sandbox script, generate a predictable README/service/test diff, and record sandbox evidence."
+      when "cloud-rails-code"
+        "Clone the Rails repository in the cloud worker, apply the approved agent change, capture stdout/stderr, changed files, and a sandbox diff, and leave the local checkout untouched."
+      when "present-sandbox-result"
+        "Read the previous planning and cloud sandbox evidence, then produce a concise reviewer-facing result summary with changed files, tests, and next review action."
       when "open-change-request"
         "Confirm branch naming, summarize objective and tests, create or record the Change Request, and link it to the run."
       else
@@ -334,6 +428,10 @@ module Catalog
         "Pause until a human confirms whether the objective and plan are clear enough to continue."
       when "revise-plan"
         "Update the plan while preserving the original objective and unresolved constraints."
+      when "cloud-rails-code"
+        "Run only inside the hosted sandbox worktree. Use the approved plan as the contract, capture evidence, and never mutate the user's local checkout."
+      when "present-sandbox-result"
+        "Present the result as a review brief. Do not claim additional code changes; summarize only evidence produced by earlier sandbox steps."
       else
         "Use the objective and plan fields as the action contract. If objective is unclear, produce or request a better plan before doing irreversible work."
       end
@@ -341,8 +439,9 @@ module Catalog
 
     def action_best_practices_for(key)
       base = [ "Use structured input and output.", "Keep the action scoped to its objective.", "Record evidence for the next pipeline step." ]
-      return base + [ "Do not change the main checkout directly.", "Every code change should end in a new Change Request." ] if key.in?(%w[code update-dependencies open-change-request])
+      return base + [ "Do not change the main checkout directly.", "Every code change should end in a new Change Request." ] if key.in?(%w[code cloud-rails-code update-dependencies open-change-request])
       return base + [ "Make approval choices explicit: approve, revise, trigger, or reject." ] if key.in?(%w[verify-plan manual-approval review-diff])
+      return base + [ "Reference only actual sandbox evidence.", "Keep the summary concise enough for review." ] if key == "present-sandbox-result"
 
       base
     end
