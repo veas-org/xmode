@@ -202,6 +202,7 @@ module Providers
 
     def system_prompt
       return planning_system_prompt if planning_action?
+      return result_system_prompt if result_presentation_action?
 
       "You are xmode's local open-source model adapter. Return only JSON that fits the expected schema. " \
         "Never claim to have changed code unless a sandbox action actually produced files."
@@ -209,6 +210,7 @@ module Providers
 
     def user_prompt
       return planning_user_prompt if planning_action?
+      return result_user_prompt if result_presentation_action?
 
       JSON.pretty_generate(
         action: {
@@ -256,6 +258,27 @@ module Providers
           "Do not mutate the user's local checkout.",
           "After approval, capture changed files, tests, logs, diff, and Change Request evidence."
         ],
+        expected_output_schema: response_schema
+      )
+    end
+
+    def result_system_prompt
+      <<~PROMPT.squish
+        You are xmode's run result presenter. Return exactly one JSON object with
+        string summary, string status, array changed_files, array tests, array artifacts,
+        string review_action, and integer changed_files_count. Use only supplied sandbox evidence.
+        Do not include Markdown fences. Do not invent files or test results.
+      PROMPT
+    end
+
+    def result_user_prompt
+      JSON.pretty_generate(
+        objective: objective,
+        issue: issue_label,
+        project: @run.project&.title,
+        previous_steps: previous_step_context,
+        sandbox_evidence: sandbox_evidence_context,
+        artifacts: @run.run_artifacts.order(:created_at).pluck(:name),
         expected_output_schema: response_schema
       )
     end
@@ -336,7 +359,8 @@ module Providers
       sanitized["next_steps"] = Array(sanitized["next_steps"]).presence || structured_output_defaults.fetch("next_steps")
       sanitized["acceptance_checks"] = Array(sanitized["acceptance_checks"]).presence || default_acceptance_checks if planning_action?
       sanitized["risks"] = Array(sanitized["risks"]).presence || default_risks if planning_action?
-      sanitized["changed_files_count"] = 0
+      apply_result_defaults!(sanitized) if result_presentation_action?
+      sanitized["changed_files_count"] = result_presentation_action? ? sanitized["changed_files_count"].to_i : 0
       sanitized
     end
 
@@ -346,6 +370,44 @@ module Providers
 
     def planning_action?
       @action.key == "local-model-plan"
+    end
+
+    def result_presentation_action?
+      @action.key == "present-sandbox-result"
+    end
+
+    def apply_result_defaults!(sanitized)
+      sandbox_output = last_changed_files_output
+      changed_files = Array(sanitized["changed_files"]).presence || Array(sandbox_output["changed_files"]).filter_map { |entry| entry["path"] || entry[:path] }
+      artifacts = Array(sanitized["artifacts"]).presence || @run.run_artifacts.order(:created_at).pluck(:name)
+      sanitized["summary"] = fallback_result_summary if sanitized["summary"].blank?
+      sanitized["status"] = sanitized["status"].to_s.in?(%w[completed needs_input failed]) ? sanitized["status"].to_s : "completed"
+      sanitized["changed_files"] = changed_files
+      sanitized["tests"] = Array(sanitized["tests"]).presence || default_result_tests
+      sanitized["artifacts"] = artifacts
+      sanitized["review_action"] = sanitized["review_action"].presence || "Review the sandbox diff and draft Change Request."
+      sanitized["changed_files_count"] = changed_files.count
+    end
+
+    def last_changed_files_output
+      @run.action_run_steps
+        .where("position < ?", @step.position || 0)
+        .order(:position)
+        .reverse_each
+        .find { |step| step.output_json.to_h["changed_files_count"].to_i.positive? }
+        &.output_json
+        .to_h
+    end
+
+    def fallback_result_summary
+      "Cloud sandbox completed #{@run.issue&.identifier || "the run"} with #{last_changed_files_output["changed_files_count"].to_i} changed files."
+    end
+
+    def default_result_tests
+      [
+        "Review stdout.log and stderr.log artifacts.",
+        "Review sandbox-diff.patch and changed-files.json artifacts."
+      ]
     end
 
     def default_acceptance_checks

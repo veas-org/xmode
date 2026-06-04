@@ -170,6 +170,115 @@ RSpec.describe "Local model provider adapter" do
     expect(output.fetch("acceptance_checks")).to include("A branch-backed Change Request package is created.")
   end
 
+  it "presents sandbox results with changed files and artifacts" do
+    ENV["LOCAL_MODEL_ENABLED"] = "1"
+    ENV["LOCAL_MODEL_BASE_URL"] = "http://xmode-ollama:11434"
+    ENV["LOCAL_MODEL_NAME"] = "qwen2.5-coder:1.5b"
+    captured_payload = nil
+
+    stub_request(:post, "http://xmode-ollama:11434/api/chat")
+      .with do |request|
+        captured_payload = JSON.parse(request.body)
+        true
+      end
+      .to_return(
+        status: 200,
+        headers: { "Content-Type" => "application/json" },
+        body: {
+          model: "qwen2.5-coder:1.5b",
+          created_at: "2026-06-03T10:00:00Z",
+          message: {
+            role: "assistant",
+            content: {
+              summary: "Cloud sandbox changed README and service files.",
+              status: "completed",
+              changed_files: [ "README.md", "app/services/hello_world_printer.rb" ],
+              tests: [ "ruby scripts/xmode_hello_world.rb" ],
+              artifacts: [ "sandbox-diff.patch", "changed-files.json" ],
+              review_action: "Review the draft Change Request.",
+              changed_files_count: 2
+            }.to_json
+          },
+          done: true
+        }.to_json
+      )
+
+    workspace = Workspace.create!(name: "Spec")
+    previous_action = workspace.action_definitions.create!(
+      key: "cloud-rails-code",
+      name: "Cloud Rails Code",
+      category: "coding",
+      provider: "local_shell",
+      objective_template: "Run cloud code.",
+      plan_template: "Use previous sandbox output.",
+      input_schema: { type: "object" },
+      output_schema: { type: "object", additionalProperties: true }
+    )
+    action = workspace.action_definitions.create!(
+      key: "present-sandbox-result",
+      name: "Present Sandbox Result",
+      category: "review",
+      provider: "ollama",
+      runtime_config: { "mode" => "live" },
+      objective_template: "Present sandbox evidence.",
+      plan_template: "Summarize previous sandbox evidence.",
+      input_schema: { type: "object" },
+      output_schema: {
+        type: "object",
+        required: %w[summary status changed_files tests artifacts review_action changed_files_count],
+        additionalProperties: true
+      }
+    )
+    pipeline = workspace.pipeline_definitions.create!(
+      key: "present-result-pipeline",
+      name: "Present Result Pipeline",
+      graph: {
+        nodes: [
+          { id: "cloud-rails-code", action_key: previous_action.key, action_id: previous_action.id, label: previous_action.name },
+          { id: "present", action_key: action.key, action_id: action.id, label: action.name }
+        ],
+        edges: [ { id: "cloud-present", from: "cloud-rails-code", to: "present", condition: "success" } ]
+      }
+    )
+    run = workspace.pipeline_runs.create!(
+      pipeline_definition: pipeline,
+      trigger: "manual",
+      input_context: { "objective" => "Present the sandbox result." }
+    )
+    previous = run.action_run_steps.create!(
+      action_definition: previous_action,
+      name: "Cloud Rails Code",
+      position: 0,
+      status: "completed",
+      output_json: {
+        "summary" => "Command completed",
+        "changed_files_count" => 2,
+        "changed_files" => [
+          { "path" => "README.md" },
+          { "path" => "app/services/hello_world_printer.rb" }
+        ]
+      }
+    )
+    artifact_path = Rails.root.join("tmp", "spec-sandbox-diff.patch")
+    artifact_path.write("diff --git a/README.md b/README.md\n")
+    run.run_artifacts.create!(action_run_step: previous, name: "sandbox-diff.patch", path: artifact_path.to_s, content_type: "text/plain")
+
+    Pipelines::Runner.call(run)
+
+    output = run.action_run_steps.order(:position).last.reload.output_json
+    expect(output).to include(
+      "summary" => "Cloud sandbox changed README and service files.",
+      "status" => "completed",
+      "changed_files_count" => 2,
+      "review_action" => "Review the draft Change Request."
+    )
+    expect(output.fetch("changed_files")).to include("README.md", "app/services/hello_world_printer.rb")
+    expect(captured_payload.dig("messages", 0, "content")).to include("run result presenter")
+    expect(captured_payload.dig("messages", 1, "content")).to include("sandbox-diff.patch")
+  ensure
+    artifact_path&.delete if artifact_path&.exist?
+  end
+
   private
 
   def local_model_action(workspace, provider: "local_model", runtime_config: {})

@@ -91,6 +91,33 @@ module Catalog
       additionalProperties: true
     }.freeze
 
+    PRESENT_RESULT_OUTPUT_SCHEMA = {
+      type: "object",
+      required: %w[summary status changed_files tests artifacts review_action changed_files_count],
+      properties: {
+        summary: { type: "string", description: "Concise reviewer-facing result summary." },
+        status: { type: "string", enum: %w[completed needs_input failed] },
+        changed_files: {
+          type: "array",
+          items: { type: "string" },
+          description: "Repository paths changed by the sandbox run."
+        },
+        tests: {
+          type: "array",
+          items: { type: "string" },
+          description: "Commands or evidence proving validation."
+        },
+        artifacts: {
+          type: "array",
+          items: { type: "string" },
+          description: "Artifacts a reviewer should inspect."
+        },
+        review_action: { type: "string", description: "Recommended next review action." },
+        changed_files_count: { type: "integer" }
+      },
+      additionalProperties: true
+    }.freeze
+
     def self.seed!(workspace)
       new(workspace).seed!
     end
@@ -339,7 +366,7 @@ module Catalog
       return { shell: true, real_sandbox_in_demo: true, fixture: "hello-world-typescript" } if key == "verify-typescript-sandbox"
       return { shell: true, real_sandbox_in_demo: true, fixture: "hello-world-rails", language: "ruby", framework: "rails" } if key == "verify-ruby-rails-sandbox"
       return cloud_rails_runtime if key == "cloud-rails-code"
-      return { "mode" => "live", "temperature" => 0.2, "max_tokens" => 700, "num_predict" => 700 } if key == "present-sandbox-result"
+      return { "mode" => "live", "temperature" => 0.1, "max_tokens" => 360, "num_predict" => 360 } if key == "present-sandbox-result"
       return { "mode" => "live", "temperature" => 0.1, "max_tokens" => 420, "num_predict" => 420 } if key == "local-model-plan"
 
       key.in?(%w[run-tests security-scan update-dependencies open-change-request]) ? { shell: true } : {}
@@ -347,6 +374,7 @@ module Catalog
 
     def output_schema_for(key)
       return PLAN_OUTPUT_SCHEMA if key == "local-model-plan"
+      return PRESENT_RESULT_OUTPUT_SCHEMA if key == "present-sandbox-result"
 
       DEFAULT_OUTPUT_SCHEMA
     end
