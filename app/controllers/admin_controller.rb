@@ -38,11 +38,13 @@ class AdminController < AuthenticatedController
 
     @qwen_request = current_workspace.admin_model_requests.create!(
       user: current_user,
+      code_model_profile: @qwen_profile,
       status: "queued",
       runtime: @qwen_runtime,
       model: @qwen_model,
       base_url: @qwen_base_url,
       timeout_seconds: @qwen_timeout,
+      request_options: @qwen_profile.client_options,
       system_prompt: @qwen_system_prompt,
       prompt: @qwen_prompt
     )
@@ -53,12 +55,14 @@ class AdminController < AuthenticatedController
   private
 
   def load_qwen_console
-    @qwen_runtime = ENV.fetch("LOCAL_MODEL_RUNTIME", "ollama")
-    @qwen_model = ENV.fetch("LOCAL_MODEL_NAME", "qwen3-coder:30b")
-    @qwen_model_options = qwen_model_options
+    @code_model_profiles = current_workspace.code_model_profiles.order(default_profile: :desc, provider: :asc, name: :asc)
+    @qwen_profile = selected_qwen_profile
+    @qwen_profile_options = @code_model_profiles.map { |profile| [ "#{profile.name} - #{profile.display_provider} - #{profile.model}", profile.id ] }
+    @qwen_runtime = @qwen_profile.provider
+    @qwen_model = @qwen_profile.model
     @qwen_custom_model = ""
-    @qwen_base_url = ENV["LOCAL_MODEL_BASE_URL"].presence || ENV["OLLAMA_BASE_URL"].presence || "http://xmode-ollama:11434"
-    @qwen_timeout = ENV.fetch("LOCAL_MODEL_TIMEOUT_SECONDS", 3600).to_i
+    @qwen_base_url = @qwen_profile.base_url
+    @qwen_timeout = @qwen_profile.timeout_seconds
     @qwen_system_prompt = default_qwen_system_prompt
     @qwen_prompt = default_qwen_prompt
   end
@@ -73,32 +77,17 @@ class AdminController < AuthenticatedController
 
   def selected_qwen_model
     @qwen_custom_model = params[:custom_model].to_s.strip
-    model = @qwen_custom_model.presence || params[:model].to_s.strip.presence || @qwen_model
+    model = @qwen_custom_model.presence || params[:model].to_s.strip.presence || @qwen_profile.model
     return model if model.length <= MODEL_NAME_LIMIT && model.match?(MODEL_NAME_PATTERN)
 
     nil
   end
 
-  def qwen_model_options
-    default_model = ENV.fetch("LOCAL_MODEL_NAME", "qwen3-coder:30b")
-    default_label = if default_model == "qwen3-coder:30b"
-      "Configured default: Qwen3 Coder 30B (qwen3-coder:30b)"
-    else
-      "Configured default (#{default_model})"
-    end
+  def selected_qwen_profile
+    id = params[:code_model_profile_id].presence || params[:profile_id].presence
+    return current_workspace.code_model_profiles.find_by(id: id) || CodeModelProfile.ensure_default_for(current_workspace) if id.present?
 
-    [
-      [ default_label, default_model ],
-      [ "Qwen3 Coder 30B (qwen3-coder:30b)", "qwen3-coder:30b" ],
-      [ "Current tiny Qwen (qwen2.5:0.5b)", "qwen2.5:0.5b" ],
-      [ "Qwen3 latest (qwen3:latest)", "qwen3:latest" ],
-      [ "Qwen3 8B (qwen3:8b)", "qwen3:8b" ],
-      [ "Qwen3.6 latest (qwen3.6:latest)", "qwen3.6:latest" ],
-      [ "Qwen3.6 27B (qwen3.6:27b)", "qwen3.6:27b" ],
-      [ "Qwen3.6 35B latest (qwen3.6:35b)", "qwen3.6:35b" ],
-      [ "MiniMax M3 cloud (minimax-m3:cloud)", "minimax-m3:cloud" ],
-      [ "MiniMax M2.7 cloud (minimax-m2.7:cloud)", "minimax-m2.7:cloud" ]
-    ].uniq { |_label, value| value }
+    CodeModelProfile.ensure_default_for(current_workspace)
   end
 
   def selected_qwen_request
@@ -109,8 +98,12 @@ class AdminController < AuthenticatedController
   end
 
   def hydrate_qwen_form_from_request
+    @qwen_profile = @qwen_request.code_model_profile || @qwen_profile
+    @qwen_runtime = @qwen_request.runtime
+    @qwen_base_url = @qwen_request.base_url
+    @qwen_timeout = @qwen_request.timeout_seconds
     @qwen_model = @qwen_request.model
-    @qwen_custom_model = @qwen_model unless @qwen_model_options.any? { |_label, value| value == @qwen_model }
+    @qwen_custom_model = @qwen_model unless @qwen_profile&.model == @qwen_model
     @qwen_prompt = @qwen_request.prompt
     @qwen_system_prompt = @qwen_request.system_prompt
   end

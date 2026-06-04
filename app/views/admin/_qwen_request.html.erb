@@ -5,6 +5,7 @@
       <span class="record-point-main">
         <span class="record-point-title"><%= model_request.running? ? "Model is thinking" : "Model request queued" %></span>
         <span class="record-point-meta">
+          <span><%= model_request.runtime.titleize %></span>
           <span><%= model_request.model %></span>
           <span><%= model_request.display_status %></span>
           <span>Submitted <%= time_ago_in_words(model_request.created_at) %> ago</span>
@@ -34,6 +35,7 @@
               <span class="record-point-title">Summary</span>
               <span class="record-point-meta">
                 <span><%= model_request.answer_json["summary"] %></span>
+                <span><%= model_request.runtime.titleize %></span>
                 <span><%= model_request.model %></span>
                 <% if model_request.duration_ms.present? %>
                   <span><%= model_request.duration_ms %> ms</span>

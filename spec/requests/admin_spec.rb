@@ -70,10 +70,10 @@ RSpec.describe "Workspace admin", type: :request do
     expect(response).to have_http_status(:ok)
     expect(response.body).to include("Model console")
     expect(response.body).to include("Ask a model")
+    expect(response.body).to include("Code model profile")
+    expect(response.body).to include("Oracle Qwen")
     expect(response.body).to include("qwen3-coder:30b")
-    expect(response.body).to include("Qwen3 Coder 30B")
-    expect(response.body).to include("Qwen3.6 35B latest")
-    expect(response.body).to include("MiniMax M3 cloud")
+    expect(response.body).to include("Model override")
   end
 
   it "blocks regular members from the model console" do
@@ -94,19 +94,17 @@ RSpec.describe "Workspace admin", type: :request do
     team = workspace.teams.create!(name: "Engineering", key: "eng")
     workspace.memberships.create!(user: user, team: team, role: "owner")
 
-    allow(Providers::LocalModelClient).to receive(:call).and_return(
-      {
-        "model" => "qwen3.6:35b",
-        "message" => {
-          "content" => {
-            summary: "Ready",
-            answer: "Qwen answered the admin prompt.",
-            recommended_next_steps: [ "Review the output." ],
-            risk_notes: []
-          }.to_json
-        },
-        "done" => true
-      }
+    allow(Providers::CodeModelClient).to receive(:call).and_return(
+      code_model_response(
+        provider: "ollama",
+        model: "qwen3.6:35b",
+        content: {
+          summary: "Ready",
+          answer: "Qwen answered the admin prompt.",
+          recommended_next_steps: [ "Review the output." ],
+          risk_notes: []
+        }.to_json
+      )
     )
 
     post login_path, params: { email: user.email, password: "password123" }
@@ -125,6 +123,8 @@ RSpec.describe "Workspace admin", type: :request do
       prompt: "What is ready?",
       system_prompt: "Return JSON."
     )
+    expect(model_request.code_model_profile).to be_present
+    expect(model_request.request_options).to include("temperature" => 0.2, "max_tokens" => 1024, "context_window" => 4096)
     expect(model_request.answer).to include("Qwen answered the admin prompt.")
     expect(model_request.answer_json).to include(
       "summary" => "Ready",
@@ -132,16 +132,18 @@ RSpec.describe "Workspace admin", type: :request do
       "recommended_next_steps" => [ "Review the output." ],
       "risk_notes" => []
     )
-    expect(Providers::LocalModelClient).to have_received(:call).with(
+    expect(Providers::CodeModelClient).to have_received(:call).with(
+      provider: "ollama",
+      model: "qwen3.6:35b",
       base_url: "http://xmode-ollama:11434",
+      api_key: nil,
       timeout: 3600,
-      payload: hash_including(
-        model: "qwen3.6:35b",
-        messages: [
-          { role: "system", content: "Return JSON." },
-          { role: "user", content: "What is ready?" }
-        ]
-      )
+      messages: [
+        { role: "system", content: "Return JSON." },
+        { role: "user", content: "What is ready?" }
+      ],
+      options: hash_including(:temperature, :max_tokens, :context_window, :schema),
+      response_format: :json
     )
   end
 
@@ -151,19 +153,17 @@ RSpec.describe "Workspace admin", type: :request do
     team = workspace.teams.create!(name: "Engineering", key: "eng")
     workspace.memberships.create!(user: user, team: team, role: "owner")
 
-    allow(Providers::LocalModelClient).to receive(:call).and_return(
-      {
-        "model" => "minimax-m3:cloud",
-        "message" => {
-          "content" => {
-            summary: "Ready",
-            answer: "MiniMax answered the admin prompt.",
-            recommended_next_steps: [ "Review the output." ],
-            risk_notes: []
-          }.to_json
-        },
-        "done" => true
-      }
+    allow(Providers::CodeModelClient).to receive(:call).and_return(
+      code_model_response(
+        provider: "ollama",
+        model: "minimax-m3:cloud",
+        content: {
+          summary: "Ready",
+          answer: "MiniMax answered the admin prompt.",
+          recommended_next_steps: [ "Review the output." ],
+          risk_notes: []
+        }.to_json
+      )
     )
 
     post login_path, params: { email: user.email, password: "password123" }
@@ -179,10 +179,15 @@ RSpec.describe "Workspace admin", type: :request do
     model_request = workspace.admin_model_requests.last
     expect(model_request.model).to eq("minimax-m3:cloud")
     expect(model_request.answer).to include("MiniMax answered the admin prompt.")
-    expect(Providers::LocalModelClient).to have_received(:call).with(
+    expect(Providers::CodeModelClient).to have_received(:call).with(
+      provider: "ollama",
+      model: "minimax-m3:cloud",
       base_url: "http://xmode-ollama:11434",
+      api_key: nil,
       timeout: 3600,
-      payload: hash_including(model: "minimax-m3:cloud")
+      messages: anything,
+      options: hash_including(:schema),
+      response_format: :json
     )
   end
 
@@ -212,5 +217,16 @@ RSpec.describe "Workspace admin", type: :request do
     expect(response).to have_http_status(:unprocessable_content)
     expect(response.body).to include("Prompt cannot be blank.")
     expect(AdminModelRequestJob).not_to have_been_enqueued
+  end
+
+  def code_model_response(provider:, model:, content:)
+    Providers::CodeModelClient::Response.new(
+      provider: provider,
+      model: model,
+      content: content,
+      raw_response: { "model" => model, "message" => { "content" => content } },
+      response_id: "spec-response",
+      usage: {}
+    )
   end
 end

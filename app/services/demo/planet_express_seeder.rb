@@ -188,6 +188,7 @@ module Demo
         seed_user!
         seed_workspace!
         seed_default_members!
+        seed_code_model_profiles!
         WorkspaceDefaults.seed!(workspace)
         cleanup_demo_interactions!
         seed_projects!
@@ -243,6 +244,39 @@ module Demo
         member.password_confirmation = PASSWORD if member.password_digest_changed?
         member.save!
         workspace.memberships.find_or_create_by!(user: member, team: ops_team) { |membership| membership.role = role }
+      end
+    end
+
+    def seed_code_model_profiles!
+      qwen3 = seed_ollama_profile!(
+        name: "Oracle Qwen",
+        model: ENV.fetch("LOCAL_MODEL_NAME", CodeModelProfile::DEFAULT_MODELS.fetch("ollama")),
+        role: "deep_planning",
+        default_profile: false
+      )
+      qwen2 = seed_ollama_profile!(
+        name: "Oracle Qwen2 Fast",
+        model: ENV.fetch("LOCAL_MODEL_FAST_NAME", "qwen2.5:0.5b"),
+        role: "fast_planning",
+        default_profile: false
+      )
+
+      current_default = workspace.code_model_profiles.find_by(default_profile: true)
+      qwen2.update!(default_profile: true) if current_default.blank? || current_default == qwen3
+    end
+
+    def seed_ollama_profile!(name:, model:, role:, default_profile:)
+      workspace.code_model_profiles.find_or_initialize_by(provider: "ollama", name: name).tap do |profile|
+        profile.model = model
+        profile.base_url = ENV["LOCAL_MODEL_BASE_URL"].presence || ENV["OLLAMA_BASE_URL"].presence || CodeModelProfile::DEFAULT_BASE_URLS.fetch("ollama")
+        profile.timeout_seconds = ENV.fetch("LOCAL_MODEL_TIMEOUT_SECONDS", 3600).to_i
+        profile.temperature = 0.2
+        profile.max_tokens = 1024
+        profile.context_window = 4096
+        profile.status = "active"
+        profile.default_profile = default_profile
+        profile.metadata = profile.metadata.to_h.merge("credential_mode" => "private_runtime", "demo" => true, "role" => role)
+        profile.save!
       end
     end
 

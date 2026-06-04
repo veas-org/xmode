@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_06_04_010000) do
+ActiveRecord::Schema[8.0].define(version: 2026_06_04_020000) do
   create_table "action_definitions", force: :cascade do |t|
     t.integer "workspace_id"
     t.string "key", null: false
@@ -78,6 +78,9 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_04_010000) do
     t.datetime "finished_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "code_model_profile_id"
+    t.json "request_options", default: {}, null: false
+    t.index ["code_model_profile_id"], name: "index_admin_model_requests_on_code_model_profile_id"
     t.index ["status"], name: "index_admin_model_requests_on_status"
     t.index ["user_id"], name: "index_admin_model_requests_on_user_id"
     t.index ["workspace_id", "user_id", "created_at"], name: "idx_on_workspace_id_user_id_created_at_6d04e7b74a"
@@ -167,6 +170,29 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_04_010000) do
     t.index ["pipeline_run_id"], name: "index_change_requests_on_pipeline_run_id"
     t.index ["repository_connection_id"], name: "index_change_requests_on_repository_connection_id"
     t.index ["workspace_id"], name: "index_change_requests_on_workspace_id"
+  end
+
+  create_table "code_model_profiles", force: :cascade do |t|
+    t.integer "workspace_id", null: false
+    t.string "name", null: false
+    t.string "provider", null: false
+    t.string "model", null: false
+    t.string "base_url", null: false
+    t.text "api_key_ciphertext"
+    t.integer "timeout_seconds", default: 3600, null: false
+    t.float "temperature", default: 0.2, null: false
+    t.integer "max_tokens", default: 1024, null: false
+    t.integer "context_window", default: 4096, null: false
+    t.string "status", default: "active", null: false
+    t.boolean "default_profile", default: false, null: false
+    t.json "metadata", default: {}, null: false
+    t.datetime "last_used_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["workspace_id", "default_profile"], name: "index_code_model_profiles_on_workspace_id_and_default_profile"
+    t.index ["workspace_id", "provider", "name"], name: "idx_on_workspace_id_provider_name_1b3eec67d8", unique: true
+    t.index ["workspace_id", "status"], name: "index_code_model_profiles_on_workspace_id_and_status"
+    t.index ["workspace_id"], name: "index_code_model_profiles_on_workspace_id"
   end
 
   create_table "cycles", force: :cascade do |t|
@@ -670,6 +696,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_04_010000) do
   add_foreign_key "action_definitions", "workspaces"
   add_foreign_key "action_run_steps", "action_definitions"
   add_foreign_key "action_run_steps", "pipeline_runs"
+  add_foreign_key "admin_model_requests", "code_model_profiles"
   add_foreign_key "approvals", "action_run_steps"
   add_foreign_key "approvals", "pipeline_runs"
   add_foreign_key "approvals", "users"
@@ -680,6 +707,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_04_010000) do
   add_foreign_key "change_requests", "pipeline_runs"
   add_foreign_key "change_requests", "repository_connections"
   add_foreign_key "change_requests", "workspaces"
+  add_foreign_key "code_model_profiles", "workspaces"
   add_foreign_key "cycles", "teams"
   add_foreign_key "cycles", "workspaces"
   add_foreign_key "event_rules", "workspaces"

@@ -3,6 +3,7 @@ class AdminModelRequest < ApplicationRecord
 
   belongs_to :workspace
   belongs_to :user
+  belongs_to :code_model_profile, optional: true
 
   validates :status, inclusion: { in: STATUSES }
   validates :runtime, :model, :base_url, :system_prompt, :prompt, presence: true
@@ -34,6 +35,17 @@ class AdminModelRequest < ApplicationRecord
 
   def stream_key
     [ workspace, user, :admin_qwen ]
+  end
+
+  def request_messages
+    [
+      { role: "system", content: system_prompt },
+      { role: "user", content: prompt }
+    ]
+  end
+
+  def model_options
+    request_options.to_h.deep_symbolize_keys
   end
 
   def request_payload

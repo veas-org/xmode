@@ -60,12 +60,12 @@ class SettingsController < AuthenticatedController
       {
         id: "models",
         label: "Models",
-        description: "Configure local open-source model routing for planning, follow-ups, and sandbox-adjacent provider work.",
+        description: "Configure code-model routing, BYOK provider keys, and the default model used by planning and sandbox-adjacent work.",
         icon: "cpu",
         href: "#models",
-        action_label: "Local runtime",
+        action_label: "Model routing",
         accessible: permitted?("manage_integrations"),
-        detail: local_model_detail
+        detail: code_model_detail
       },
       settings_section(
         id: "billing",
@@ -139,8 +139,8 @@ class SettingsController < AuthenticatedController
     "#{current_workspace.billing_plan.titleize} plan"
   end
 
-  def local_model_detail
-    ENV.fetch("LOCAL_MODEL_NAME", "qwen3-coder:30b")
+  def code_model_detail
+    default_code_model_profile.model
   end
 
   def local_model_base_url
@@ -179,18 +179,39 @@ class SettingsController < AuthenticatedController
   end
 
   def load_local_model_settings
-    @local_model_base_url = local_model_base_url
-    @local_model_name = ENV.fetch("LOCAL_MODEL_NAME", "qwen3-coder:30b")
-    @local_model_runtime = ENV.fetch("LOCAL_MODEL_RUNTIME", "ollama")
-    @local_model_timeout = ENV.fetch("LOCAL_MODEL_TIMEOUT_SECONDS", "3600")
+    @default_code_model_profile = default_code_model_profile
+    @code_model_profiles = current_workspace.code_model_profiles.order(default_profile: :desc, provider: :asc, name: :asc)
+    @new_code_model_profile = current_workspace.code_model_profiles.new(
+      provider: "openai",
+      name: "OpenAI BYOK",
+      model: CodeModelProfile::DEFAULT_MODELS.fetch("openai"),
+      base_url: CodeModelProfile::DEFAULT_BASE_URLS.fetch("openai"),
+      timeout_seconds: 3600,
+      temperature: 0.2,
+      max_tokens: 1024,
+      context_window: 8192,
+      status: "active"
+    )
+    @code_model_provider_options = CodeModelProfile.provider_options
+    @code_model_status_options = CodeModelProfile::STATUSES.map { |status| [ status.titleize, status ] }
+    @local_model_base_url = @default_code_model_profile.base_url
+    @local_model_name = @default_code_model_profile.model
+    @local_model_runtime = @default_code_model_profile.provider
+    @local_model_timeout = @default_code_model_profile.timeout_seconds
     @local_model_enabled = ActiveModel::Type::Boolean.new.cast(ENV["LOCAL_MODEL_ENABLED"])
     @local_model_rows = [
-      [ "Runtime", @local_model_runtime ],
-      [ "Default model", @local_model_name ],
+      [ "Default profile", @default_code_model_profile.name ],
+      [ "Provider", @default_code_model_profile.display_provider ],
+      [ "Model", @local_model_name ],
       [ "Endpoint", @local_model_base_url ],
-      [ "Default mode", @local_model_enabled ? "Live for local-model actions" : "Action opt-in" ],
+      [ "Credential mode", @default_code_model_profile.credential_label ],
+      [ "Default mode", @local_model_enabled ? "Live for code-model actions" : "Action opt-in" ],
       [ "Timeout", "#{@local_model_timeout} seconds" ]
     ]
+  end
+
+  def default_code_model_profile
+    @default_code_model_profile ||= CodeModelProfile.ensure_default_for(current_workspace)
   end
 
   def load_integration_settings

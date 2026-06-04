@@ -21,6 +21,7 @@ class Workspace < ApplicationRecord
   has_many :schedules, dependent: :destroy
   has_many :integration_accounts, dependent: :destroy
   has_many :repository_connections, dependent: :destroy
+  has_many :code_model_profiles, dependent: :destroy
   has_many :sso_providers, dependent: :destroy
   has_many :execution_environments, dependent: :destroy
   has_many :change_requests, dependent: :destroy

@@ -14,8 +14,11 @@ RSpec.describe "Settings", type: :request do
     expect(response.body).to include("Access control")
     expect(response.body).to include("Single sign-on")
     expect(response.body).to include("Providers, repositories, and webhooks")
-    expect(response.body).to include("Local model runtime")
+    expect(response.body).to include("Code model routing")
     expect(response.body).to include("qwen3-coder:30b")
+    expect(response.body).to include("OpenAI BYOK")
+    expect(response.body).to include("Workspace code models")
+    expect(response.body).to include("Add provider profile")
     expect(response.body).to include("Repository automation app")
     expect(response.body).to include("Create GitHub App")
     expect(response.body).to include("Runner minutes")
@@ -34,6 +37,7 @@ RSpec.describe "Settings", type: :request do
     expect(doc.at_css(%(section#security.settings-panel))).to be_present
     expect(doc.at_css(%(section#integrations.settings-panel))).to be_present
     expect(doc.at_css(%(section#models.settings-panel))).to be_present
+    expect(doc.at_css(%(form[action="#{code_model_profiles_path}"]))).to be_present
     expect(doc.at_css(%(form[action="#{github_app_manifest_integrations_path}"]))).to be_present
     expect(doc.css(".settings-list-row").size).to be >= 6
     expect(doc.at_css(%(a.settings-nav-link[href="#overview"]))).to be_present
@@ -44,5 +48,40 @@ RSpec.describe "Settings", type: :request do
     expect(doc.css(".ops-side")).to be_empty
     expect(doc.at_css(%(a[href="#{settings_path}"][aria-label="Settings"]))).to be_present
     expect(doc.css(".app-sidebar-section").map(&:text)).not_to include("Settings")
+  end
+
+  it "lets workspace admins add an OpenAI BYOK code model profile" do
+    user = User.create!(name: "Owner", email: "owner-code-model@example.com", password: "password123")
+    workspace = Workspace.create!(name: "Spec")
+    team = workspace.teams.create!(name: "Engineering", key: "eng")
+    workspace.memberships.create!(user: user, team: team, role: "owner")
+
+    post login_path, params: { email: user.email, password: "password123" }
+    post code_model_profiles_path,
+      params: {
+        code_model_profile: {
+          name: "OpenAI Production",
+          provider: "openai",
+          model: "gpt-4.1",
+          base_url: "https://api.openai.com/v1",
+          api_key: "sk-spec",
+          timeout_seconds: 240,
+          temperature: 0.1,
+          max_tokens: 2048,
+          context_window: 16_384,
+          default_profile: "1"
+        }
+      }
+
+    profile = workspace.code_model_profiles.find_by!(name: "OpenAI Production")
+    expect(response).to redirect_to(settings_path(anchor: "models"))
+    expect(profile).to have_attributes(
+      provider: "openai",
+      model: "gpt-4.1",
+      base_url: "https://api.openai.com/v1",
+      timeout_seconds: 240,
+      default_profile: true
+    )
+    expect(profile.api_key).to eq("sk-spec")
   end
 end

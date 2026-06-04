@@ -17,7 +17,7 @@ module Providers
       write_artifacts(output)
       record_result_message(output)
       output
-    rescue LocalModelClient::Error => e
+    rescue CodeModelClient::Error => e
       @provider_error = e.message
       output = unavailable_output
       write_artifacts(output)
@@ -28,26 +28,43 @@ module Providers
     private
 
     def provider_name
+      return code_model_profile.provider if live_provider? && code_model_profile.present?
+      return requested_code_provider if live_provider? && requested_code_provider.present?
+
       @action.provider == "ollama" ? "ollama" : "local_model"
     end
 
     def provider_label
-      provider_name == "ollama" ? "Ollama" : "Local model"
+      case provider_name
+      when "ollama" then "Ollama"
+      when "openai" then "OpenAI"
+      when "anthropic" then "Anthropic"
+      else "Local model"
+      end
     end
 
     def model
-      @action.runtime_config["model"].presence || ENV.fetch("LOCAL_MODEL_NAME", "qwen3-coder:30b")
+      @action.runtime_config["model"].presence ||
+        code_model_profile&.model ||
+        default_model_for_requested_provider ||
+        ENV.fetch("LOCAL_MODEL_NAME", "qwen3-coder:30b")
     end
 
     def base_url
       @action.runtime_config["base_url"].presence ||
+        code_model_profile&.base_url ||
+        default_base_url_for_requested_provider ||
         ENV["LOCAL_MODEL_BASE_URL"].presence ||
         ENV["OLLAMA_BASE_URL"].presence ||
         "http://xmode-ollama:11434"
     end
 
     def timeout
-      (@action.runtime_config["timeout_seconds"].presence || ENV.fetch("LOCAL_MODEL_TIMEOUT_SECONDS", 3600)).to_i
+      (
+        @action.runtime_config["timeout_seconds"].presence ||
+        code_model_profile&.timeout_seconds ||
+        ENV.fetch("LOCAL_MODEL_TIMEOUT_SECONDS", 3600)
+      ).to_i
     end
 
     def objective
@@ -71,22 +88,27 @@ module Providers
     end
 
     def live_structured_output
-      @provider_response = LocalModelClient.call(
+      @provider_response = CodeModelClient.call(
+        provider: code_model_profile&.provider || requested_code_provider || @action.provider,
+        model: model,
         base_url: base_url,
-        payload: local_model_payload,
-        timeout: timeout
+        api_key: code_model_profile&.resolved_api_key,
+        messages: local_model_messages,
+        timeout: timeout,
+        options: code_model_options,
+        response_format: :json
       )
 
-      parsed_output = sanitize_structured_output(extract_structured_output(@provider_response))
+      parsed_output = sanitize_structured_output(extract_structured_output(@provider_response.content))
       structured_output_defaults.merge(parsed_output).merge(
-        "provider" => provider_name,
+        "provider" => @provider_response.provider,
         "provider_mode" => "live",
-        "model" => model,
+        "model" => @provider_response.model,
         "local_model_base_url" => safe_base_url,
         "provider_response_id" => provider_response_id
       ).compact
     rescue JSON::ParserError => e
-      raise LocalModelClient::Error, "Local model response did not contain valid structured JSON: #{e.message}"
+      raise CodeModelClient::Error, "Code model response did not contain valid structured JSON: #{e.message}"
     end
 
     def structured_output_defaults
@@ -131,6 +153,7 @@ module Providers
           "provider_mode" => live_provider? ? "live" : "deterministic",
           "model" => model,
           "base_url" => safe_base_url,
+          "code_model_profile_id" => code_model_profile&.id,
           "action_key" => @action.key,
           "objective" => objective,
           "plan" => plan
@@ -161,21 +184,15 @@ module Providers
       return if @provider_response.blank?
 
       response_path = artifact_dir.join("local-model-response.json")
-      response_path.write(JSON.pretty_generate(@provider_response))
+      response_path.write(JSON.pretty_generate(@provider_response.raw_response))
       record_artifact("local-model-response.json", response_path, "application/json")
     end
 
-    def local_model_payload
-      {
-        model: model,
-        stream: false,
-        format: "json",
-        messages: [
-          { role: "system", content: system_prompt },
-          { role: "user", content: user_prompt }
-        ],
-        options: model_options
-      }.compact
+    def local_model_messages
+      [
+        { role: "system", content: system_prompt },
+        { role: "user", content: user_prompt }
+      ]
     end
 
     def system_prompt
@@ -208,9 +225,15 @@ module Providers
       )
     end
 
+    def code_model_options
+      (code_model_profile&.client_options || {}).merge(model_options).merge(schema: response_schema).compact
+    end
+
     def model_options
       {
         temperature: numeric_runtime("temperature", 0.2),
+        max_tokens: integer_runtime("max_tokens", nil),
+        context_window: integer_runtime("context_window", nil),
         num_predict: integer_runtime("num_predict", 512),
         num_ctx: integer_runtime("num_ctx", 4096)
       }.compact
@@ -263,9 +286,8 @@ module Providers
       end
     end
 
-    def extract_structured_output(response)
-      content = response.dig("message", "content").presence || response["response"].presence
-      raise LocalModelClient::Error, "Local model response did not include message content" if content.blank?
+    def extract_structured_output(content)
+      raise CodeModelClient::Error, "Code model response did not include message content" if content.blank?
 
       JSON.parse(json_text(content))
     end
@@ -291,7 +313,45 @@ module Providers
     end
 
     def provider_response_id
-      @provider_response["created_at"].presence || @provider_response["model"].presence
+      @provider_response.response_id.presence || @provider_response.model.presence
+    end
+
+    def code_model_profile
+      @code_model_profile ||= begin
+        profile_id = @action.runtime_config["code_model_profile_id"].presence
+        profile_name = @action.runtime_config["code_model_profile"].presence
+        if profile_id.present?
+          @run.workspace.code_model_profiles.active.find_by(id: profile_id)
+        elsif profile_name.present?
+          @run.workspace.code_model_profiles.active.find_by(name: profile_name)
+        elsif live_provider? && requested_code_provider.present? && requested_code_provider != "ollama"
+          @run.workspace.code_model_profiles.active.find_by(provider: requested_code_provider, default_profile: true) ||
+            @run.workspace.code_model_profiles.active.find_by(provider: requested_code_provider)
+        elsif live_provider?
+          CodeModelProfile.ensure_default_for(@run.workspace)
+        end
+      end
+    end
+
+    def requested_code_provider
+      case @action.provider
+      when "anthropic", "claude" then "anthropic"
+      when "ollama" then "ollama"
+      when "code_model", "local_model" then nil
+      else @action.runtime_config["provider"].presence
+      end
+    end
+
+    def default_model_for_requested_provider
+      return if requested_code_provider.blank?
+
+      CodeModelProfile::DEFAULT_MODELS[requested_code_provider]
+    end
+
+    def default_base_url_for_requested_provider
+      return if requested_code_provider.blank?
+
+      CodeModelProfile::DEFAULT_BASE_URLS[requested_code_provider]
     end
 
     def safe_base_url

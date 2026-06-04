@@ -96,6 +96,9 @@ Rails.application.routes.draw do
     end
     member { post :sync_repositories }
   end
+  resources :code_model_profiles, only: %i[create update destroy] do
+    member { patch :make_default }
+  end
   resources :repository_connections, path: "repositories", only: %i[new create edit update]
   resources :sso_providers, only: %i[new create edit update]
   resources :audit_events, path: "audit", only: :index

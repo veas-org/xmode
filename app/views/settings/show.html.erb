@@ -411,24 +411,24 @@
       <div class="settings-panel-head">
         <div>
           <p class="app-eyebrow">Models</p>
-          <h2>Local model runtime</h2>
+          <h2>Code model routing</h2>
         </div>
         <div class="flex flex-wrap items-center gap-2">
-          <span class="linear-count"><%= @local_model_runtime %></span>
+          <span class="linear-count"><%= @default_code_model_profile.display_provider %></span>
           <% if permitted?(:manage_workspace) %>
             <%= link_to "Model console", qwen_admin_path, class: "app-btn app-btn-muted" %>
           <% end %>
         </div>
       </div>
       <div class="settings-mini-stats">
-        <span><strong><%= @local_model_name %></strong> default</span>
-        <span><strong><%= @local_model_runtime.titleize %></strong> backend</span>
-        <span><strong><%= @local_model_enabled ? "Live" : "Opt-in" %></strong> mode</span>
+        <span><strong><%= @default_code_model_profile.name %></strong> default</span>
+        <span><strong><%= @local_model_name %></strong> model</span>
+        <span><strong><%= @default_code_model_profile.credential_label %></strong> credentials</span>
         <span><strong><%= @local_model_timeout %>s</strong> timeout</span>
       </div>
       <div class="settings-overview-grid">
         <section>
-          <h3>Runtime config</h3>
+          <h3>Default profile</h3>
           <dl class="settings-key-values">
             <% @local_model_rows.each do |label, value| %>
               <div><dt><%= label %></dt><dd title="<%= value %>"><%= value %></dd></div>
@@ -436,29 +436,118 @@
           </dl>
         </section>
         <section>
-          <h3>Action contract</h3>
+          <h3>Wrapper contract</h3>
           <div class="settings-list">
             <article class="settings-list-row">
               <span class="record-point-main">
-                <span class="record-point-title">Provider</span>
-                <span class="record-point-meta"><span>Use <code>local_model</code> for portable actions or <code>ollama</code> when the backend should be explicit.</span></span>
+                <span class="record-point-title">Provider-neutral actions</span>
+                <span class="record-point-meta"><span>Use <code>code_model</code> or <code>local_model</code> actions, then select a workspace profile through runtime config.</span></span>
               </span>
             </article>
             <article class="settings-list-row">
               <span class="record-point-main">
-                <span class="record-point-title">Live mode</span>
-                <span class="record-point-meta"><span>Set action runtime <code>mode: live</code> to call the private model service; otherwise xmode records deterministic fallback output.</span></span>
+                <span class="record-point-title">BYOK boundary</span>
+                <span class="record-point-meta"><span>OpenAI and Anthropic profiles use encrypted workspace keys or server-side env fallback. Keys are never copied into run snapshots.</span></span>
               </span>
             </article>
             <article class="settings-list-row">
               <span class="record-point-main">
-                <span class="record-point-title">Boundary</span>
-                <span class="record-point-meta"><span>Local model output can plan and ask follow-ups, but code-changing work still needs sandbox evidence and a Change Request.</span></span>
+                <span class="record-point-title">Execution boundary</span>
+                <span class="record-point-meta"><span>Model output can plan and ask follow-ups, but code-changing work still needs sandbox evidence and a Change Request.</span></span>
               </span>
             </article>
           </div>
         </section>
       </div>
+      <div class="settings-subsection">
+        <div class="settings-panel-head">
+          <div>
+            <p class="app-eyebrow">Profiles</p>
+            <h3>Workspace code models</h3>
+          </div>
+          <span class="linear-count"><%= pluralize(@code_model_profiles.size, "profile") %></span>
+        </div>
+        <div class="settings-list">
+          <% @code_model_profiles.each do |profile| %>
+            <article class="settings-list-row items-start">
+              <span class="record-point-main">
+                <span class="record-point-title">
+                  <%= profile.name %>
+                  <% if profile.default_profile? %>
+                    <span class="linear-count ml-2">latest default</span>
+                  <% end %>
+                </span>
+                <span class="record-point-meta">
+                  <span><%= profile.display_provider %></span>
+                  <span><%= profile.model %></span>
+                  <span><%= profile.credential_label %></span>
+                  <span><%= profile.timeout_seconds %>s</span>
+                </span>
+              </span>
+              <% if permitted?(:manage_integrations) %>
+                <span class="flex shrink-0 flex-wrap justify-end gap-2">
+                  <% unless profile.default_profile? %>
+                    <%= button_to "Make default", make_default_code_model_profile_path(profile), method: :patch, class: "app-btn app-btn-muted" %>
+                  <% end %>
+                  <%= button_to "Delete", code_model_profile_path(profile), method: :delete, class: "app-btn app-btn-muted", form: { data: { turbo_confirm: "Delete #{profile.name}?" } } %>
+                </span>
+              <% end %>
+            </article>
+            <% if permitted?(:manage_integrations) %>
+              <details class="settings-list-row block">
+                <summary class="app-link cursor-pointer text-sm">Edit <%= profile.name %></summary>
+                <%= form_with model: profile, url: code_model_profile_path(profile), method: :patch, class: "mt-4 grid gap-4 md:grid-cols-2" do |form| %>
+                  <div><%= form.label :name, class: "app-label" %><%= form.text_field :name, class: "app-input", required: true %></div>
+                  <div><%= form.label :provider, class: "app-label" %><%= form.select :provider, @code_model_provider_options, {}, class: "app-input" %></div>
+                  <div><%= form.label :model, class: "app-label" %><%= form.text_field :model, class: "app-input", required: true %></div>
+                  <div><%= form.label :base_url, "Base URL", class: "app-label" %><%= form.url_field :base_url, class: "app-input", required: true %></div>
+                  <div><%= form.label :api_key, "BYOK API key", class: "app-label" %><%= form.password_field :api_key, class: "app-input", placeholder: profile.api_key_ciphertext.present? ? "Stored key unchanged" : "Optional for Ollama" %></div>
+                  <div><%= form.label :timeout_seconds, class: "app-label" %><%= form.number_field :timeout_seconds, class: "app-input", min: 1 %></div>
+                  <div><%= form.label :temperature, class: "app-label" %><%= form.number_field :temperature, class: "app-input", step: 0.1, min: 0 %></div>
+                  <div><%= form.label :max_tokens, class: "app-label" %><%= form.number_field :max_tokens, class: "app-input", min: 1 %></div>
+                  <div><%= form.label :context_window, class: "app-label" %><%= form.number_field :context_window, class: "app-input", min: 1 %></div>
+                  <div><%= form.label :status, class: "app-label" %><%= form.select :status, @code_model_status_options, {}, class: "app-input" %></div>
+                  <label class="flex items-center gap-2 text-sm text-muted-foreground">
+                    <%= form.check_box :default_profile %>
+                    <span>Use as default profile</span>
+                  </label>
+                  <label class="flex items-center gap-2 text-sm text-muted-foreground">
+                    <%= form.check_box :clear_api_key %>
+                    <span>Clear stored BYOK key</span>
+                  </label>
+                  <div class="md:col-span-2 flex justify-end"><%= form.submit "Update profile", class: "app-btn app-btn-primary" %></div>
+                <% end %>
+              </details>
+            <% end %>
+          <% end %>
+        </div>
+      </div>
+      <% if permitted?(:manage_integrations) %>
+        <div class="settings-subsection">
+          <div class="settings-panel-head">
+            <div>
+              <p class="app-eyebrow">BYOK</p>
+              <h3>Add provider profile</h3>
+            </div>
+          </div>
+          <%= form_with model: @new_code_model_profile, url: code_model_profiles_path, class: "grid gap-4 md:grid-cols-2" do |form| %>
+            <div><%= form.label :name, class: "app-label" %><%= form.text_field :name, class: "app-input", required: true %></div>
+            <div><%= form.label :provider, class: "app-label" %><%= form.select :provider, @code_model_provider_options, {}, class: "app-input" %></div>
+            <div><%= form.label :model, class: "app-label" %><%= form.text_field :model, class: "app-input", required: true %></div>
+            <div><%= form.label :base_url, "Base URL", class: "app-label" %><%= form.url_field :base_url, class: "app-input", required: true %></div>
+            <div><%= form.label :api_key, "BYOK API key", class: "app-label" %><%= form.password_field :api_key, class: "app-input", placeholder: "sk-... or Anthropic key" %></div>
+            <div><%= form.label :timeout_seconds, class: "app-label" %><%= form.number_field :timeout_seconds, class: "app-input", min: 1 %></div>
+            <div><%= form.label :temperature, class: "app-label" %><%= form.number_field :temperature, class: "app-input", step: 0.1, min: 0 %></div>
+            <div><%= form.label :max_tokens, class: "app-label" %><%= form.number_field :max_tokens, class: "app-input", min: 1 %></div>
+            <div><%= form.label :context_window, class: "app-label" %><%= form.number_field :context_window, class: "app-input", min: 1 %></div>
+            <label class="flex items-center gap-2 text-sm text-muted-foreground">
+              <%= form.check_box :default_profile %>
+              <span>Use as default profile</span>
+            </label>
+            <div class="md:col-span-2 flex justify-end"><%= form.submit "Add profile", class: "app-btn app-btn-primary" %></div>
+          <% end %>
+        </div>
+      <% end %>
     </section>
 
     <section id="billing" class="settings-panel">

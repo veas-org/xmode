@@ -125,17 +125,19 @@ RSpec.describe "Ruby Rails sandbox fixture" do
     fixture_path = Rails.root.join("..", "hello-world-rails").expand_path
     skip "hello-world-rails fixture repository is not available" unless fixture_path.join(".git").directory?
 
-    allow(Providers::LocalModelClient).to receive(:call).and_return(
-      {
-        "message" => {
-          "content" => JSON.generate(
-            "summary" => "Qwen prepared the cloud Rails plan.",
-            "status" => "planned",
-            "plan" => "Clone hello-world-rails in the cloud worker, run the fixture script, capture diff and tests, then present the result."
-          )
-        },
-        "model" => "qwen3-coder:30b"
-      }
+    allow(Providers::CodeModelClient).to receive(:call).and_return(
+      Providers::CodeModelClient::Response.new(
+        provider: "ollama",
+        model: "qwen3-coder:30b",
+        content: JSON.generate(
+          "summary" => "Qwen prepared the cloud Rails plan.",
+          "status" => "planned",
+          "plan" => "Clone hello-world-rails in the cloud worker, run the fixture script, capture diff and tests, then present the result."
+        ),
+        raw_response: { "model" => "qwen3-coder:30b" },
+        response_id: "spec-qwen",
+        usage: {}
+      )
     )
 
     seed = Demo::PlanetExpressSeeder.call
@@ -180,15 +182,27 @@ RSpec.describe "Ruby Rails sandbox fixture" do
     result_step = run.action_run_steps.find_by!(name: "Present Sandbox Result")
     sandbox = run.sandbox_sessions.find_by!(action_run_step: cloud_step)
     sandbox_path = Pathname.new(sandbox.worktree_path)
+    instruction = sandbox_path.join(".xmode", "plan.md").read
+    changed_paths = cloud_step.output_json.fetch("changed_files").map { |entry| entry.fetch("path") }
 
     expect(run.reload.status).to eq("completed")
-    expect(Providers::LocalModelClient).to have_received(:call).at_least(3).times
+    expect(Providers::CodeModelClient).to have_received(:call).at_least(3).times
+    expect(Providers::CodeModelClient).to have_received(:call).with(hash_including(provider: "ollama", model: "qwen2.5:0.5b")).at_least(3).times
     expect(cloud_step.output_json).to include("status" => "completed", "changed_files_count" => 3)
+    expect(changed_paths).to contain_exactly("README.md", "app/services/hello_world_printer.rb", "test/services/hello_world_printer_test.rb")
     expect(result_step.output_json.fetch("summary")).to include("Qwen prepared")
     expect(sandbox).to have_attributes(kind: "cloud_vm", status: "ready")
     expect(sandbox.execution_environment).to have_attributes(runner_mode: "cloud_worker", language: "ruby", framework: "rails")
-    expect(sandbox.metadata).to include("cloud_worker" => true, "runner_mode" => "cloud_worker", "sandbox_kind" => "cloud_vm")
+    expect(sandbox.metadata).to include(
+      "cloud_worker" => true,
+      "runner_mode" => "cloud_worker",
+      "sandbox_kind" => "cloud_vm",
+      "agent_model" => "qwen2.5:0.5b",
+      "agent_instruction_artifact" => "agent-instruction.md"
+    )
+    expect(instruction).to include("Qwen prepared the cloud Rails plan.", "Make the plan explicit that all code changes happen in the cloud sandbox.")
     expect(sandbox_path.join("README.md").read).to include("Hello World Feature Flow")
+    expect(run.run_artifacts.where(action_run_step: cloud_step).pluck(:name)).to include("agent-instruction.md")
     expect(run.change_request).to have_attributes(issue: issue, provider: "local", branch_name: "xmode/ops-7-#{run.id}", status: "draft")
     expect(run.change_request.checks).to include("branch_status" => "created", "sandbox_session_id" => sandbox.id)
     expect(run.run_logs.pluck(:message).join("\n")).to include("Cloud sandbox prepared", "Cloud worker executing inside the hosted xmode worker container")

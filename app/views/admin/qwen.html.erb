@@ -8,6 +8,7 @@
       <h1>Model console</h1>
       <p>Choose a local or cloud model for a queued operator check. Each request keeps its own model snapshot for review.</p>
       <div class="ops-summary" aria-label="Model runtime">
+        <span><strong><%= @qwen_profile.name %></strong> profile</span>
         <span><strong><%= @qwen_model %></strong> model</span>
         <span><strong><%= @qwen_runtime %></strong> runtime</span>
         <span><strong><%= @qwen_timeout %>s</strong> timeout</span>
@@ -36,14 +37,14 @@
         <%= form_with url: qwen_admin_path, method: :post, class: "space-y-4" do %>
           <div class="grid gap-4 md:grid-cols-2">
             <div class="space-y-2">
-              <%= label_tag :model, "Preset model", class: "app-label" %>
-              <%= select_tag :model, options_for_select(@qwen_model_options, @qwen_model), class: "app-input" %>
-              <p class="record-point-meta">Pick a known Ollama tag, including Qwen and MiniMax options.</p>
+              <%= label_tag :code_model_profile_id, "Code model profile", class: "app-label" %>
+              <%= select_tag :code_model_profile_id, options_for_select(@qwen_profile_options, @qwen_profile.id), class: "app-input" %>
+              <p class="record-point-meta">Profiles are workspace-scoped and can use Ollama, OpenAI, or Anthropic BYOK credentials.</p>
             </div>
             <div class="space-y-2">
-              <%= label_tag :custom_model, "Custom model tag", class: "app-label" %>
-              <%= text_field_tag :custom_model, @qwen_custom_model, class: "app-input", placeholder: "qwen3.6:35b or minimax-m3:cloud", autocomplete: "off" %>
-              <p class="record-point-meta">Overrides the preset when your runtime exposes another compatible tag.</p>
+              <%= label_tag :custom_model, "Model override", class: "app-label" %>
+              <%= text_field_tag :custom_model, @qwen_custom_model, class: "app-input", placeholder: @qwen_profile.model, autocomplete: "off" %>
+              <p class="record-point-meta">Optional per-request override. Leave blank to use the profile default.</p>
             </div>
           </div>
 
@@ -100,8 +101,10 @@
           </div>
         </div>
         <dl class="ops-kv-list">
+          <div><dt>Profile</dt><dd><%= @qwen_profile.name %></dd></div>
           <div><dt>Model</dt><dd><%= @qwen_model %></dd></div>
-          <div><dt>Runtime</dt><dd><%= @qwen_runtime %></dd></div>
+          <div><dt>Provider</dt><dd><%= @qwen_profile.display_provider %></dd></div>
+          <div><dt>Credentials</dt><dd><%= @qwen_profile.credential_label %></dd></div>
           <div><dt>Endpoint</dt><dd class="break-all"><%= @qwen_base_url %></dd></div>
           <div><dt>Timeout</dt><dd><%= @qwen_timeout %> seconds</dd></div>
         </dl>

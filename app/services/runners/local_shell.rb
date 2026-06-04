@@ -50,6 +50,7 @@ module Runners
       @run.append_log("Command: #{command}", step: @step)
 
       prepare_repository
+      prepare_agent_instruction!(command)
       output = execute(command)
       artifact_path = artifact_dir.join("output.json")
       artifact_path.write(JSON.pretty_generate(output))
@@ -122,6 +123,114 @@ module Runners
         sandbox_dir.join("README.md").write("xmode run #{@run.id} sandbox\n")
         @run.append_log("No repository URL configured; using empty sandbox", step: @step)
       end
+    end
+
+    def prepare_agent_instruction!(command)
+      return unless agent_instruction_enabled?
+
+      instruction_path = sandbox_dir.join(".xmode", "plan.md")
+      FileUtils.mkdir_p(instruction_path.dirname)
+      instruction = agent_instruction_markdown(command)
+      instruction_path.write(instruction)
+      exclude_agent_instruction_from_diff
+
+      artifact_path = artifact_dir.join("agent-instruction.md")
+      artifact_path.write(instruction)
+      record_artifact("agent-instruction.md", artifact_path, "text/markdown")
+
+      sandbox_session.update!(
+        metadata: sandbox_session.metadata.merge(
+          {
+            "agent_model" => configured_agent_model,
+            "agent_instruction_path" => ".xmode/plan.md",
+            "agent_instruction_artifact" => "agent-instruction.md",
+            "agent_command_template" => @action.runtime_config["agent_command_template"].presence
+          }.compact
+        )
+      )
+      @run.append_log("Agent instruction prepared from the approved model plan", step: @step)
+    end
+
+    def agent_instruction_enabled?
+      execution_environment.cloud_worker? || @action.runtime_config["agent_command_template"].present?
+    end
+
+    def agent_instruction_markdown(command)
+      <<~MARKDOWN
+        # xmode Cloud Sandbox Instruction
+
+        ## Objective
+
+        #{agent_objective}
+
+        ## Approved Plan Context
+
+        #{agent_plan_context}
+
+        ## Sandbox Command
+
+        ```sh
+        #{command}
+        ```
+
+        ## Execution Boundary
+
+        - Run inside this cloud sandbox worktree only.
+        - Do not mutate the user's local checkout.
+        - Capture stdout, stderr, changed files, and diff evidence.
+        - Package code-changing output into a new Change Request.
+
+        ## Model
+
+        - Model: #{configured_agent_model}
+        - Template: #{@action.runtime_config["agent_command_template"].presence || "direct command execution"}
+      MARKDOWN
+    end
+
+    def agent_objective
+      @step.input_json["objective"].presence ||
+        @run.input_context["objective"].presence ||
+        "Complete #{@step.name}."
+    end
+
+    def agent_plan_context
+      sections = previous_step_plan_context
+      notes = Array(@run.input_context["run_notes"]).filter_map { |note| note["content"].presence || note[:content].presence }
+      sections << "Operator revision notes:\n\n#{notes.map { |note| "- #{note}" }.join("\n")}" if notes.any?
+      sections.presence&.join("\n\n") || "No prior model plan was recorded. Use the objective and command boundary."
+    end
+
+    def previous_step_plan_context
+      @run.action_run_steps.where("position < ?", @step.position || 0).order(:position).filter_map do |step|
+        output = step.output_json.to_h
+        summary = output["summary"].presence
+        plan = output["plan"].presence
+        next if summary.blank? && plan.blank?
+
+        <<~MARKDOWN.strip
+          ### #{step.name}
+
+          #{summary}
+
+          #{plan}
+        MARKDOWN
+      end
+    end
+
+    def configured_agent_model
+      @action.runtime_config["agent_model"].presence ||
+        @run.workspace.code_model_profiles.active.find_by(default_profile: true)&.model ||
+        ENV.fetch("LOCAL_MODEL_NAME", "qwen3-coder:30b")
+    end
+
+    def exclude_agent_instruction_from_diff
+      exclude_path = sandbox_dir.join(".git", "info", "exclude")
+      return unless exclude_path.file?
+
+      existing = exclude_path.read
+      return if existing.lines.map(&:strip).include?(".xmode/")
+
+      File.open(exclude_path, "a") { |file| file.write("\n.xmode/\n") }
     end
 
     def reset_sandbox_dir!

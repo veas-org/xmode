@@ -1,7 +1,7 @@
 require "rails_helper"
 
 RSpec.describe AdminModelRequestJob, type: :job do
-  it "marks the request failed when the local model provider is unavailable" do
+  it "marks the request failed when the code model provider is unavailable" do
     user = User.create!(name: "Owner", email: "owner-qwen-job@example.com", password: "password123")
     workspace = Workspace.create!(name: "Spec")
     team = workspace.teams.create!(name: "Engineering", key: "eng")
@@ -15,15 +15,15 @@ RSpec.describe AdminModelRequestJob, type: :job do
       system_prompt: "Return JSON.",
       prompt: "What is ready?"
     )
-    allow(Providers::LocalModelClient).to receive(:call).and_raise(
-      Providers::LocalModelClient::Error, "Local model request failed"
+    allow(Providers::CodeModelClient).to receive(:call).and_raise(
+      Providers::CodeModelClient::Error, "Code model request failed"
     )
 
     described_class.perform_now(request.id)
 
     expect(request.reload).to have_attributes(
       status: "failed",
-      error_message: "Local model request failed"
+      error_message: "Code model request failed"
     )
     expect(request.finished_at).to be_present
   end

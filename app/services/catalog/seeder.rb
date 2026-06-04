@@ -313,8 +313,8 @@ module Catalog
       return { shell: true, real_sandbox_in_demo: true, fixture: "hello-world-typescript" } if key == "verify-typescript-sandbox"
       return { shell: true, real_sandbox_in_demo: true, fixture: "hello-world-rails", language: "ruby", framework: "rails" } if key == "verify-ruby-rails-sandbox"
       return cloud_rails_runtime if key == "cloud-rails-code"
-      return { "mode" => "live", "model" => ENV.fetch("LOCAL_MODEL_NAME", "qwen3-coder:30b"), "temperature" => 0.2, "num_predict" => 700 } if key == "present-sandbox-result"
-      return { "mode" => "live", "model" => ENV.fetch("LOCAL_MODEL_NAME", "qwen3-coder:30b"), "temperature" => 0.2, "num_predict" => 512 } if key == "local-model-plan"
+      return { "mode" => "live", "temperature" => 0.2, "max_tokens" => 700, "num_predict" => 700 } if key == "present-sandbox-result"
+      return { "mode" => "live", "temperature" => 0.2, "max_tokens" => 512, "num_predict" => 512 } if key == "local-model-plan"
 
       key.in?(%w[run-tests security-scan update-dependencies open-change-request]) ? { shell: true } : {}
     end
@@ -329,8 +329,7 @@ module Catalog
         sandbox_kind: "cloud_vm",
         runner_mode: "cloud_worker",
         docker_image: ExecutionEnvironment::DEFAULT_RUBY_DOCKER_IMAGE,
-        agent_command_template: "codex exec --model ${MODEL:-gemini-3-flash-preview} --sandbox workspace --instruction-file .xmode/plan.md",
-        agent_model: ENV.fetch("CLOUD_SANDBOX_AGENT_MODEL", "qwen3-coder:30b")
+        agent_command_template: "codex exec --model ${XMODE_CODE_MODEL:-configured-profile} --sandbox workspace --instruction-file .xmode/plan.md"
       }
     end
 
