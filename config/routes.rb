@@ -21,7 +21,10 @@ Rails.application.routes.draw do
 
   resource :app, only: :show, controller: :app
   resource :settings, only: :show, controller: :settings
-  resource :admin, only: :show, controller: :admin
+  resource :admin, only: :show, controller: :admin do
+    get :qwen
+    post :qwen, action: :ask_qwen
+  end
   resources :workspaces, only: %i[new create] do
     member { post :switch }
   end
