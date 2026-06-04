@@ -27,6 +27,7 @@ class Workspace < ApplicationRecord
   has_many :billing_subscriptions, dependent: :destroy
   has_many :saved_views, dependent: :destroy
   has_many :audit_events, dependent: :destroy
+  has_many :admin_model_requests, dependent: :destroy
 
   before_validation :derive_slug
   before_validation :ensure_webhook_secret, on: :create

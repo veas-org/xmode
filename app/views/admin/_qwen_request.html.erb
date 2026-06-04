@@ -1,0 +1,93 @@
+<%= turbo_frame_tag dom_id(model_request, :response) do %>
+  <% if model_request.pending? %>
+    <div class="ops-row">
+      <%= status_icon_pill(model_request.status, title: model_request.display_status) %>
+      <span class="record-point-main">
+        <span class="record-point-title"><%= model_request.running? ? "Qwen is thinking" : "Qwen request queued" %></span>
+        <span class="record-point-meta">
+          <span><%= model_request.model %></span>
+          <span><%= model_request.display_status %></span>
+          <span>Submitted <%= time_ago_in_words(model_request.created_at) %> ago</span>
+        </span>
+      </span>
+    </div>
+  <% elsif model_request.failed? %>
+    <div class="ops-row">
+      <%= status_icon_pill("failed", title: "Failed") %>
+      <span class="record-point-main">
+        <span class="record-point-title">Qwen request failed</span>
+        <span class="record-point-meta">
+          <span><%= model_request.error_message %></span>
+          <% if model_request.finished_at.present? %>
+            <span><%= time_ago_in_words(model_request.finished_at) %> ago</span>
+          <% end %>
+        </span>
+      </span>
+    </div>
+  <% elsif model_request.completed? %>
+    <% recognized_answer = model_request.answer_json.present? && %w[summary answer recommended_next_steps risk_notes].any? { |key| model_request.answer_json[key].present? } %>
+    <% if model_request.answer_json.present? %>
+      <div class="space-y-4">
+        <% if recognized_answer && model_request.answer_json["summary"].present? %>
+          <article class="ops-row items-start">
+            <span class="record-point-main">
+              <span class="record-point-title">Summary</span>
+              <span class="record-point-meta">
+                <span><%= model_request.answer_json["summary"] %></span>
+                <% if model_request.duration_ms.present? %>
+                  <span><%= model_request.duration_ms %> ms</span>
+                <% end %>
+              </span>
+            </span>
+          </article>
+        <% end %>
+
+        <% if recognized_answer && model_request.answer_json["answer"].present? %>
+          <article class="ops-row items-start">
+            <span class="record-point-main">
+              <span class="record-point-title">Answer</span>
+              <span class="record-point-meta"><span><%= model_request.answer_json["answer"] %></span></span>
+            </span>
+          </article>
+        <% end %>
+
+        <% if recognized_answer && model_request.answer_json["recommended_next_steps"].present? %>
+          <article class="ops-row items-start">
+            <span class="record-point-main">
+              <span class="record-point-title">Recommended next steps</span>
+              <span class="record-point-meta">
+                <% Array(model_request.answer_json["recommended_next_steps"]).each do |step| %>
+                  <span><%= step %></span>
+                <% end %>
+              </span>
+            </span>
+          </article>
+        <% end %>
+
+        <% if recognized_answer && model_request.answer_json["risk_notes"].present? %>
+          <article class="ops-row items-start">
+            <span class="record-point-main">
+              <span class="record-point-title">Risk notes</span>
+              <span class="record-point-meta">
+                <% Array(model_request.answer_json["risk_notes"]).each do |note| %>
+                  <span><%= note %></span>
+                <% end %>
+              </span>
+            </span>
+          </article>
+        <% end %>
+
+        <% if recognized_answer %>
+          <details class="space-y-2">
+            <summary class="app-link cursor-pointer text-xs">Raw JSON</summary>
+            <pre class="app-code-block"><%= JSON.pretty_generate(model_request.answer_json) %></pre>
+          </details>
+        <% else %>
+          <pre class="app-code-block"><%= JSON.pretty_generate(model_request.answer_json) %></pre>
+        <% end %>
+      </div>
+    <% else %>
+      <pre class="app-code-block whitespace-pre-wrap"><%= model_request.answer %></pre>
+    <% end %>
+  <% end %>
+<% end %>

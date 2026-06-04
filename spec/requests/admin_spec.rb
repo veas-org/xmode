@@ -1,6 +1,20 @@
 require "rails_helper"
 
 RSpec.describe "Workspace admin", type: :request do
+  include ActiveJob::TestHelper
+
+  around do |example|
+    original_adapter = ActiveJob::Base.queue_adapter
+    ActiveJob::Base.queue_adapter = :test
+    clear_enqueued_jobs
+    clear_performed_jobs
+    example.run
+  ensure
+    clear_enqueued_jobs
+    clear_performed_jobs
+    ActiveJob::Base.queue_adapter = original_adapter
+  end
+
   it "shows operational readiness, audit, approvals, and failed runs to workspace admins" do
     user = User.create!(name: "Owner", email: "owner-admin@example.com", password: "password123")
     workspace = Workspace.create!(name: "Spec", billing_plan: "team")
@@ -71,7 +85,7 @@ RSpec.describe "Workspace admin", type: :request do
     expect(response).to redirect_to(app_path)
   end
 
-  it "sends admin prompts to the configured local model" do
+  it "queues admin prompts for the configured local model" do
     user = User.create!(name: "Owner", email: "owner-qwen-post@example.com", password: "password123")
     workspace = Workspace.create!(name: "Spec")
     team = workspace.teams.create!(name: "Engineering", key: "eng")
@@ -93,11 +107,28 @@ RSpec.describe "Workspace admin", type: :request do
     )
 
     post login_path, params: { email: user.email, password: "password123" }
-    post qwen_admin_path, params: { prompt: "What is ready?", system_prompt: "Return JSON." }
+    perform_enqueued_jobs do
+      post qwen_admin_path, params: { prompt: "What is ready?", system_prompt: "Return JSON." }
+    end
 
-    expect(response).to have_http_status(:ok)
-    expect(response.body).to include("Qwen answered the admin prompt.")
-    expect(response.body).to include("Review the output.")
+    model_request = workspace.admin_model_requests.last
+    expect(response).to redirect_to(qwen_admin_path(model_request_id: model_request.id))
+    expect(model_request).to have_attributes(
+      user: user,
+      status: "completed",
+      model: "qwen2.5:0.5b",
+      runtime: "ollama",
+      base_url: "http://xmode-ollama:11434",
+      prompt: "What is ready?",
+      system_prompt: "Return JSON."
+    )
+    expect(model_request.answer).to include("Qwen answered the admin prompt.")
+    expect(model_request.answer_json).to include(
+      "summary" => "Ready",
+      "answer" => "Qwen answered the admin prompt.",
+      "recommended_next_steps" => [ "Review the output." ],
+      "risk_notes" => []
+    )
     expect(Providers::LocalModelClient).to have_received(:call).with(
       base_url: "http://xmode-ollama:11434",
       timeout: 120,
@@ -122,5 +153,6 @@ RSpec.describe "Workspace admin", type: :request do
 
     expect(response).to have_http_status(:unprocessable_content)
     expect(response.body).to include("Prompt cannot be blank.")
+    expect(AdminModelRequestJob).not_to have_been_enqueued
   end
 end

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_06_02_021000) do
+ActiveRecord::Schema[8.0].define(version: 2026_06_04_010000) do
   create_table "action_definitions", force: :cascade do |t|
     t.integer "workspace_id"
     t.string "key", null: false
@@ -57,6 +57,31 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_02_021000) do
     t.datetime "updated_at", null: false
     t.index ["action_definition_id"], name: "index_action_run_steps_on_action_definition_id"
     t.index ["pipeline_run_id"], name: "index_action_run_steps_on_pipeline_run_id"
+  end
+
+  create_table "admin_model_requests", force: :cascade do |t|
+    t.integer "workspace_id", null: false
+    t.integer "user_id", null: false
+    t.string "status", default: "queued", null: false
+    t.string "runtime", null: false
+    t.string "model", null: false
+    t.string "base_url", null: false
+    t.integer "timeout_seconds", default: 120, null: false
+    t.text "system_prompt", null: false
+    t.text "prompt", null: false
+    t.text "answer"
+    t.json "answer_json"
+    t.json "response_json"
+    t.text "error_message"
+    t.integer "duration_ms"
+    t.datetime "started_at"
+    t.datetime "finished_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["status"], name: "index_admin_model_requests_on_status"
+    t.index ["user_id"], name: "index_admin_model_requests_on_user_id"
+    t.index ["workspace_id", "user_id", "created_at"], name: "idx_on_workspace_id_user_id_created_at_6d04e7b74a"
+    t.index ["workspace_id"], name: "index_admin_model_requests_on_workspace_id"
   end
 
   create_table "approvals", force: :cascade do |t|

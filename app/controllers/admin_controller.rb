@@ -13,6 +13,7 @@ class AdminController < AuthenticatedController
 
   def qwen
     load_qwen_console
+    @qwen_request = selected_qwen_request
   end
 
   def ask_qwen
@@ -25,20 +26,18 @@ class AdminController < AuthenticatedController
       return render :qwen, status: :unprocessable_content
     end
 
-    started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-    response = Providers::LocalModelClient.call(
+    @qwen_request = current_workspace.admin_model_requests.create!(
+      user: current_user,
+      status: "queued",
+      runtime: @qwen_runtime,
+      model: @qwen_model,
       base_url: @qwen_base_url,
-      payload: qwen_payload,
-      timeout: @qwen_timeout
+      timeout_seconds: @qwen_timeout,
+      system_prompt: @qwen_system_prompt,
+      prompt: @qwen_prompt
     )
-    @qwen_duration_ms = ((Process.clock_gettime(Process::CLOCK_MONOTONIC) - started_at) * 1_000).round
-    @qwen_raw_response = response
-    @qwen_answer = response.dig("message", "content").presence || response["response"].to_s
-    @qwen_answer_json = parse_answer_json(@qwen_answer)
-    render :qwen
-  rescue Providers::LocalModelClient::Error => e
-    @qwen_error = e.message
-    render :qwen, status: :bad_gateway
+    AdminModelRequestJob.perform_later(@qwen_request.id)
+    redirect_to qwen_admin_path(model_request_id: @qwen_request.id), status: :see_other
   end
 
   private
@@ -52,23 +51,6 @@ class AdminController < AuthenticatedController
     @qwen_prompt = default_qwen_prompt
   end
 
-  def qwen_payload
-    {
-      model: @qwen_model,
-      stream: false,
-      format: "json",
-      messages: [
-        { role: "system", content: @qwen_system_prompt },
-        { role: "user", content: @qwen_prompt }
-      ],
-      options: {
-        temperature: 0.2,
-        num_predict: 700,
-        num_ctx: 4096
-      }
-    }
-  end
-
   def default_qwen_system_prompt
     "You are xmode's private admin model console. Return one JSON object with keys summary, answer, recommended_next_steps, risk_notes. Keep answers concise and do not claim to run code."
   end
@@ -77,10 +59,11 @@ class AdminController < AuthenticatedController
     "Summarize the current xmode local-model setup and suggest the next safe operator check."
   end
 
-  def parse_answer_json(answer)
-    JSON.parse(answer.to_s)
-  rescue JSON::ParserError
-    nil
+  def selected_qwen_request
+    scope = current_workspace.admin_model_requests.where(user: current_user).order(created_at: :desc)
+    return scope.find_by(id: params[:model_request_id]) if params[:model_request_id].present?
+
+    scope.first
   end
 
   def admin_counts
