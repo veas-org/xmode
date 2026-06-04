@@ -112,7 +112,7 @@ module Providers
     end
 
     def structured_output_defaults
-      {
+      output = {
         "summary" => "#{provider_label} prepared #{@step.name} for #{issue_label}.",
         "status" => status_for_action,
         "provider" => provider_name,
@@ -127,6 +127,11 @@ module Providers
         ],
         "changed_files_count" => 0
       }
+      if planning_action?
+        output["acceptance_checks"] = default_acceptance_checks
+        output["risks"] = default_risks
+      end
+      output
     end
 
     def unavailable_output
