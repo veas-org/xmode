@@ -23,6 +23,7 @@ module Providers
       call(
         provider: profile.provider,
         model: profile.model,
+        messages: messages,
         base_url: profile.base_url,
         api_key: profile.resolved_api_key,
         timeout: profile.timeout_seconds,

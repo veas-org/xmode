@@ -38,6 +38,51 @@ RSpec.describe Providers::CodeModelClient do
     )
   end
 
+  it "calls a configured profile with the provided messages" do
+    workspace = Workspace.create!(name: "Spec")
+    profile = workspace.code_model_profiles.create!(
+      name: "Oracle Qwen2 Fast",
+      provider: "ollama",
+      model: "qwen2.5:0.5b",
+      base_url: "http://xmode-ollama:11434",
+      timeout_seconds: 3600,
+      temperature: 0.2,
+      max_tokens: 1024,
+      context_window: 4096
+    )
+
+    stub_request(:post, "http://xmode-ollama:11434/api/chat")
+      .with do |request|
+        payload = JSON.parse(request.body)
+        expect(payload["model"]).to eq("qwen2.5:0.5b")
+        expect(payload["messages"]).to include(
+          { "role" => "system", "content" => "Return JSON." },
+          { "role" => "user", "content" => "Plan." }
+        )
+      end
+      .to_return(
+        status: 200,
+        headers: { "Content-Type" => "application/json" },
+        body: {
+          model: "qwen2.5:0.5b",
+          created_at: "2026-06-04T10:00:00Z",
+          message: { content: { summary: "Qwen2 ready" }.to_json }
+        }.to_json
+      )
+
+    response = described_class.call_profile(
+      profile,
+      messages: [ { role: "system", content: "Return JSON." }, { role: "user", content: "Plan." } ],
+      response_format: :json
+    )
+
+    expect(response).to have_attributes(
+      provider: "ollama",
+      model: "qwen2.5:0.5b",
+      content: { summary: "Qwen2 ready" }.to_json
+    )
+  end
+
   it "calls OpenAI Responses with a BYOK key" do
     stub_request(:post, "https://api.openai.com/v1/responses")
       .with(headers: { "Authorization" => "Bearer sk-openai" }) do |request|
