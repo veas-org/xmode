@@ -50,7 +50,7 @@ env:
     LOCAL_MODEL_RUNTIME: "ollama"
     LOCAL_MODEL_BASE_URL: "http://xmode-ollama:11434"
     LOCAL_MODEL_NAME: "qwen3-coder:30b"
-    LOCAL_MODEL_FAST_NAME: "qwen2.5:0.5b"
+    LOCAL_MODEL_FAST_NAME: "qwen2.5-coder:1.5b"
     LOCAL_MODEL_TIMEOUT_SECONDS: "3600"
   secret:
     - RAILS_MASTER_KEY

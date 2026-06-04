@@ -94,7 +94,47 @@ RSpec.describe "Local model provider adapter" do
     )
     expect(captured_payload).to include("model" => "qwen2.5:0.5b", "stream" => false, "format" => "json")
     expect(captured_payload.dig("options", "num_ctx")).to eq(4096)
+    expect(captured_payload.dig("messages", 0, "content")).to include("all repository mutations happen inside the cloud sandbox")
     expect(run.run_artifacts.pluck(:name)).to include("agent-output.json", "agent-transcript.md", "local-model-response.json")
+  end
+
+  it "uses readable fallback text when a small local model returns malformed planning fields" do
+    ENV["LOCAL_MODEL_ENABLED"] = "1"
+    ENV["LOCAL_MODEL_BASE_URL"] = "http://xmode-ollama:11434"
+    ENV["LOCAL_MODEL_NAME"] = "qwen2.5-coder:1.5b"
+
+    stub_request(:post, "http://xmode-ollama:11434/api/chat")
+      .to_return(
+        status: 200,
+        headers: { "Content-Type" => "application/json" },
+        body: {
+          model: "qwen2.5-coder:1.5b",
+          created_at: "2026-06-03T10:00:00Z",
+          message: {
+            role: "assistant",
+            content: {
+              summary: {},
+              status: "planned",
+              next_steps: [],
+              changed_files_count: 4
+            }.to_json
+          },
+          done: true
+        }.to_json
+      )
+
+    workspace = Workspace.create!(name: "Spec")
+    action = local_model_action(workspace, provider: "ollama", runtime_config: { "mode" => "live" })
+    run = local_model_run(workspace, action)
+
+    Pipelines::Runner.call(run)
+
+    expect(run.action_run_steps.first.reload.output_json).to include(
+      "summary" => "Ollama prepared Local Model Plan for run #{run.id}.",
+      "plan" => "Inspect context, produce structured JSON, and keep code behind sandbox review.",
+      "changed_files_count" => 0
+    )
+    expect(run.action_run_steps.first.output_json.fetch("acceptance_checks")).to include("Cloud sandbox produces changed files and a diff artifact.")
   end
 
   private

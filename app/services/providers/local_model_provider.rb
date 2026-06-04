@@ -196,11 +196,15 @@ module Providers
     end
 
     def system_prompt
+      return planning_system_prompt if planning_action?
+
       "You are xmode's local open-source model adapter. Return only JSON that fits the expected schema. " \
         "Never claim to have changed code unless a sandbox action actually produced files."
     end
 
     def user_prompt
+      return planning_user_prompt if planning_action?
+
       JSON.pretty_generate(
         action: {
           key: @action.key,
@@ -221,6 +225,32 @@ module Providers
         sandbox_evidence: sandbox_evidence_context,
         objective: objective,
         plan: plan,
+        expected_output_schema: response_schema
+      )
+    end
+
+    def planning_system_prompt
+      <<~PROMPT.squish
+        You are xmode's planning adapter for a software automation pipeline.
+        Return exactly one JSON object with string summary, string status, string plan,
+        array next_steps, array acceptance_checks, array risks, and integer changed_files_count.
+        The plan must be concise, numbered, and must explicitly say that all repository mutations happen inside the cloud sandbox.
+        Do not echo the input object. Do not include Markdown fences. Do not claim code was changed.
+      PROMPT
+    end
+
+    def planning_user_prompt
+      JSON.pretty_generate(
+        objective: objective,
+        issue: issue_label,
+        project: @run.project&.title,
+        revision_notes: @run.input_context["run_notes"],
+        latest_interaction: @run.input_context["interaction"],
+        required_boundaries: [
+          "Use the Oracle cloud sandbox for every code-changing command.",
+          "Do not mutate the user's local checkout.",
+          "After approval, capture changed files, tests, logs, diff, and Change Request evidence."
+        ],
         expected_output_schema: response_schema
       )
     end
@@ -295,10 +325,37 @@ module Providers
     def sanitize_structured_output(output)
       sanitized = output.is_a?(Hash) ? output.deep_stringify_keys : { "summary" => output.to_s }
       summary = sanitized["summary"]
-      sanitized["summary"] = summary.is_a?(String) ? summary : JSON.generate(summary.presence || {})
+      sanitized["summary"] = summary.is_a?(String) && summary.present? && summary != "{}" ? summary : fallback_summary
       sanitized["status"] = sanitized["status"].to_s.in?(%w[planned completed needs_input failed]) ? sanitized["status"].to_s : status_for_action
+      sanitized["plan"] = plan if sanitized["plan"].blank? || !sanitized["plan"].is_a?(String)
+      sanitized["next_steps"] = Array(sanitized["next_steps"]).presence || structured_output_defaults.fetch("next_steps")
+      sanitized["acceptance_checks"] = Array(sanitized["acceptance_checks"]).presence || default_acceptance_checks if planning_action?
+      sanitized["risks"] = Array(sanitized["risks"]).presence || default_risks if planning_action?
       sanitized["changed_files_count"] = 0
       sanitized
+    end
+
+    def fallback_summary
+      "#{provider_label} prepared #{@step.name} for #{issue_label}."
+    end
+
+    def planning_action?
+      @action.key == "local-model-plan"
+    end
+
+    def default_acceptance_checks
+      [
+        "Cloud sandbox produces changed files and a diff artifact.",
+        "Test or verification evidence is attached to the run.",
+        "A branch-backed Change Request package is created."
+      ]
+    end
+
+    def default_risks
+      [
+        "Local model output must be reviewed before code execution.",
+        "Sandbox execution can fail if the repository setup script is incomplete."
+      ]
     end
 
     def json_text(content)

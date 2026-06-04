@@ -256,7 +256,7 @@ module Demo
       )
       qwen2 = seed_ollama_profile!(
         name: "Oracle Qwen2 Fast",
-        model: ENV.fetch("LOCAL_MODEL_FAST_NAME", "qwen2.5:0.5b"),
+        model: ENV.fetch("LOCAL_MODEL_FAST_NAME", "qwen2.5-coder:1.5b"),
         role: "fast_planning",
         default_profile: false
       )

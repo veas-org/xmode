@@ -65,6 +65,32 @@ module Catalog
       additionalProperties: true
     }.freeze
 
+    PLAN_OUTPUT_SCHEMA = {
+      type: "object",
+      required: %w[summary status plan next_steps acceptance_checks],
+      properties: {
+        summary: { type: "string", description: "One sentence describing the proposed implementation plan." },
+        status: { type: "string", enum: %w[planned needs_input failed] },
+        plan: { type: "string", description: "Concise numbered Markdown plan. It must include the sandbox boundary." },
+        next_steps: {
+          type: "array",
+          items: { type: "string" },
+          description: "Concrete next actions after plan approval."
+        },
+        acceptance_checks: {
+          type: "array",
+          items: { type: "string" },
+          description: "Evidence needed to accept the run."
+        },
+        risks: {
+          type: "array",
+          items: { type: "string" }
+        },
+        changed_files_count: { type: "integer" }
+      },
+      additionalProperties: true
+    }.freeze
+
     def self.seed!(workspace)
       new(workspace).seed!
     end
@@ -114,7 +140,7 @@ module Catalog
           permissions: permissions,
           skill_definition: skill_index[skill_key],
           input_schema: DEFAULT_INPUT_SCHEMA,
-          output_schema: DEFAULT_OUTPUT_SCHEMA,
+          output_schema: output_schema_for(key),
           defaults: default_for(key),
           runtime_config: runtime_for(key),
           objective_template: objective_for(key),
@@ -314,9 +340,15 @@ module Catalog
       return { shell: true, real_sandbox_in_demo: true, fixture: "hello-world-rails", language: "ruby", framework: "rails" } if key == "verify-ruby-rails-sandbox"
       return cloud_rails_runtime if key == "cloud-rails-code"
       return { "mode" => "live", "temperature" => 0.2, "max_tokens" => 700, "num_predict" => 700 } if key == "present-sandbox-result"
-      return { "mode" => "live", "temperature" => 0.2, "max_tokens" => 512, "num_predict" => 512 } if key == "local-model-plan"
+      return { "mode" => "live", "temperature" => 0.1, "max_tokens" => 420, "num_predict" => 420 } if key == "local-model-plan"
 
       key.in?(%w[run-tests security-scan update-dependencies open-change-request]) ? { shell: true } : {}
+    end
+
+    def output_schema_for(key)
+      return PLAN_OUTPUT_SCHEMA if key == "local-model-plan"
+
+      DEFAULT_OUTPUT_SCHEMA
     end
 
     def cloud_rails_runtime

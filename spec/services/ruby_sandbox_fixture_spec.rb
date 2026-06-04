@@ -187,7 +187,7 @@ RSpec.describe "Ruby Rails sandbox fixture" do
 
     expect(run.reload.status).to eq("completed")
     expect(Providers::CodeModelClient).to have_received(:call).at_least(3).times
-    expect(Providers::CodeModelClient).to have_received(:call).with(hash_including(provider: "ollama", model: "qwen2.5:0.5b")).at_least(3).times
+    expect(Providers::CodeModelClient).to have_received(:call).with(hash_including(provider: "ollama", model: "qwen2.5-coder:1.5b")).at_least(3).times
     expect(cloud_step.output_json).to include("status" => "completed", "changed_files_count" => 3)
     expect(changed_paths).to contain_exactly("README.md", "app/services/hello_world_printer.rb", "test/services/hello_world_printer_test.rb")
     expect(result_step.output_json.fetch("summary")).to include("Qwen prepared")
@@ -197,7 +197,7 @@ RSpec.describe "Ruby Rails sandbox fixture" do
       "cloud_worker" => true,
       "runner_mode" => "cloud_worker",
       "sandbox_kind" => "cloud_vm",
-      "agent_model" => "qwen2.5:0.5b",
+      "agent_model" => "qwen2.5-coder:1.5b",
       "agent_instruction_artifact" => "agent-instruction.md"
     )
     expect(instruction).to include("Qwen prepared the cloud Rails plan.", "Make the plan explicit that all code changes happen in the cloud sandbox.")
