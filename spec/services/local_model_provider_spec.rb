@@ -192,11 +192,11 @@ RSpec.describe "Local model provider adapter" do
             content: {
               summary: "Cloud sandbox changed README and service files.",
               status: "completed",
-              changed_files: [ "README.md", "app/services/hello_world_printer.rb" ],
-              tests: [ "ruby scripts/xmode_hello_world.rb" ],
-              artifacts: [ "sandbox-diff.patch", "changed-files.json" ],
+              changed_files: [ "/tmp/invented.rb" ],
+              tests: [ "Rails server started successfully." ],
+              artifacts: [ "invented-report.md" ],
               review_action: "Review the draft Change Request.",
-              changed_files_count: 2
+              changed_files_count: 99
             }.to_json
           },
           done: true
@@ -273,6 +273,10 @@ RSpec.describe "Local model provider adapter" do
       "review_action" => "Review the draft Change Request."
     )
     expect(output.fetch("changed_files")).to include("README.md", "app/services/hello_world_printer.rb")
+    expect(output.fetch("changed_files")).not_to include("/tmp/invented.rb")
+    expect(output.fetch("tests")).to include("Review stdout.log and stderr.log artifacts.")
+    expect(output.fetch("artifacts")).to include("sandbox-diff.patch")
+    expect(output.fetch("artifacts")).not_to include("invented-report.md")
     expect(captured_payload.dig("messages", 0, "content")).to include("run result presenter")
     expect(captured_payload.dig("messages", 1, "content")).to include("sandbox-diff.patch")
   ensure

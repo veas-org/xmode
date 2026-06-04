@@ -378,15 +378,23 @@ module Providers
 
     def apply_result_defaults!(sanitized)
       sandbox_output = last_changed_files_output
-      changed_files = Array(sanitized["changed_files"]).presence || Array(sandbox_output["changed_files"]).filter_map { |entry| entry["path"] || entry[:path] }
-      artifacts = Array(sanitized["artifacts"]).presence || @run.run_artifacts.order(:created_at).pluck(:name)
+      changed_files = authoritative_changed_files(sandbox_output)
+      artifacts = @run.run_artifacts.order(:created_at).pluck(:name)
       sanitized["summary"] = fallback_result_summary if sanitized["summary"].blank?
       sanitized["status"] = sanitized["status"].to_s.in?(%w[completed needs_input failed]) ? sanitized["status"].to_s : "completed"
       sanitized["changed_files"] = changed_files
-      sanitized["tests"] = Array(sanitized["tests"]).presence || default_result_tests
+      sanitized["tests"] = default_result_tests
       sanitized["artifacts"] = artifacts
       sanitized["review_action"] = sanitized["review_action"].presence || "Review the sandbox diff and draft Change Request."
       sanitized["changed_files_count"] = changed_files.count
+    end
+
+    def authoritative_changed_files(sandbox_output)
+      Array(sandbox_output["changed_files"]).filter_map do |entry|
+        next entry if entry.is_a?(String)
+
+        entry["path"] || entry[:path] if entry.respond_to?(:[])
+      end
     end
 
     def last_changed_files_output
