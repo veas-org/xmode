@@ -1,4 +1,7 @@
 class AdminController < AuthenticatedController
+  MODEL_NAME_PATTERN = /\A[\w.\/:-]+\z/
+  MODEL_NAME_LIMIT = 120
+
   before_action -> { require_permission!("manage_workspace") }
 
   def show
@@ -14,15 +17,22 @@ class AdminController < AuthenticatedController
   def qwen
     load_qwen_console
     @qwen_request = selected_qwen_request
+    hydrate_qwen_form_from_request if @qwen_request
   end
 
   def ask_qwen
     load_qwen_console
     @qwen_prompt = params[:prompt].to_s.strip
     @qwen_system_prompt = params[:system_prompt].to_s.strip.presence || default_qwen_system_prompt
+    @qwen_model = selected_qwen_model
 
     if @qwen_prompt.blank?
       @qwen_error = "Prompt cannot be blank."
+      return render :qwen, status: :unprocessable_content
+    end
+
+    if @qwen_model.blank?
+      @qwen_error = "Model name can only include letters, numbers, slash, dot, colon, underscore, and dash."
       return render :qwen, status: :unprocessable_content
     end
 
@@ -45,6 +55,8 @@ class AdminController < AuthenticatedController
   def load_qwen_console
     @qwen_runtime = ENV.fetch("LOCAL_MODEL_RUNTIME", "ollama")
     @qwen_model = ENV.fetch("LOCAL_MODEL_NAME", "qwen2.5:0.5b")
+    @qwen_model_options = qwen_model_options
+    @qwen_custom_model = ""
     @qwen_base_url = ENV["LOCAL_MODEL_BASE_URL"].presence || ENV["OLLAMA_BASE_URL"].presence || "http://xmode-ollama:11434"
     @qwen_timeout = ENV.fetch("LOCAL_MODEL_TIMEOUT_SECONDS", 120).to_i
     @qwen_system_prompt = default_qwen_system_prompt
@@ -59,11 +71,41 @@ class AdminController < AuthenticatedController
     "Summarize the current xmode local-model setup and suggest the next safe operator check."
   end
 
+  def selected_qwen_model
+    @qwen_custom_model = params[:custom_model].to_s.strip
+    model = @qwen_custom_model.presence || params[:model].to_s.strip.presence || @qwen_model
+    return model if model.length <= MODEL_NAME_LIMIT && model.match?(MODEL_NAME_PATTERN)
+
+    nil
+  end
+
+  def qwen_model_options
+    default_model = ENV.fetch("LOCAL_MODEL_NAME", "qwen2.5:0.5b")
+    [
+      [ "Configured default (#{default_model})", default_model ],
+      [ "Current tiny Qwen (qwen2.5:0.5b)", "qwen2.5:0.5b" ],
+      [ "Qwen3 latest (qwen3:latest)", "qwen3:latest" ],
+      [ "Qwen3 8B (qwen3:8b)", "qwen3:8b" ],
+      [ "Qwen3.6 latest (qwen3.6:latest)", "qwen3.6:latest" ],
+      [ "Qwen3.6 27B (qwen3.6:27b)", "qwen3.6:27b" ],
+      [ "Qwen3.6 35B latest (qwen3.6:35b)", "qwen3.6:35b" ],
+      [ "MiniMax M3 cloud (minimax-m3:cloud)", "minimax-m3:cloud" ],
+      [ "MiniMax M2.7 cloud (minimax-m2.7:cloud)", "minimax-m2.7:cloud" ]
+    ].uniq { |_label, value| value }
+  end
+
   def selected_qwen_request
     scope = current_workspace.admin_model_requests.where(user: current_user).order(created_at: :desc)
     return scope.find_by(id: params[:model_request_id]) if params[:model_request_id].present?
 
     scope.first
+  end
+
+  def hydrate_qwen_form_from_request
+    @qwen_model = @qwen_request.model
+    @qwen_custom_model = @qwen_model unless @qwen_model_options.any? { |_label, value| value == @qwen_model }
+    @qwen_prompt = @qwen_request.prompt
+    @qwen_system_prompt = @qwen_request.system_prompt
   end
 
   def admin_counts

@@ -1,13 +1,13 @@
-<% content_for :page_title, "Qwen Console" %>
+<% content_for :page_title, "Model Console" %>
 <%= turbo_stream_from [ current_workspace, current_user, :admin_qwen ] %>
 
 <div class="ops-page">
   <header class="ops-hero">
     <div class="min-w-0">
       <p class="app-eyebrow">Workspace administration</p>
-      <h1>Qwen console</h1>
-      <p>Interact with the private local model runtime used by xmode for sandboxed operator checks and future agent workflows.</p>
-      <div class="ops-summary" aria-label="Qwen runtime">
+      <h1>Model console</h1>
+      <p>Choose a local or cloud model for a queued operator check. Each request keeps its own model snapshot for review.</p>
+      <div class="ops-summary" aria-label="Model runtime">
         <span><strong><%= @qwen_model %></strong> model</span>
         <span><strong><%= @qwen_runtime %></strong> runtime</span>
         <span><strong><%= @qwen_timeout %>s</strong> timeout</span>
@@ -29,24 +29,37 @@
         <div class="ops-section-head">
           <div>
             <p class="app-eyebrow">Prompt</p>
-            <h2>Ask Qwen</h2>
+            <h2>Ask a model</h2>
           </div>
         </div>
 
         <%= form_with url: qwen_admin_path, method: :post, class: "space-y-4" do %>
+          <div class="grid gap-4 md:grid-cols-2">
+            <div class="space-y-2">
+              <%= label_tag :model, "Preset model", class: "app-label" %>
+              <%= select_tag :model, options_for_select(@qwen_model_options, @qwen_model), class: "app-input" %>
+              <p class="record-point-meta">Pick a known Ollama tag, including Qwen and MiniMax options.</p>
+            </div>
+            <div class="space-y-2">
+              <%= label_tag :custom_model, "Custom model tag", class: "app-label" %>
+              <%= text_field_tag :custom_model, @qwen_custom_model, class: "app-input", placeholder: "qwen3.6:35b or minimax-m3:cloud", autocomplete: "off" %>
+              <p class="record-point-meta">Overrides the preset when your runtime exposes another compatible tag.</p>
+            </div>
+          </div>
+
           <div class="space-y-2">
             <%= label_tag :prompt, "Question", class: "app-label" %>
-            <%= text_area_tag :prompt, @qwen_prompt, rows: 7, class: "app-textarea", placeholder: "Ask Qwen to summarize a run, review an operator note, or draft a safe next check..." %>
+            <%= text_area_tag :prompt, @qwen_prompt, rows: 7, class: "app-textarea", placeholder: "Ask the selected model to summarize a run, review an operator note, or draft a safe next check..." %>
           </div>
 
           <div class="space-y-2">
             <%= label_tag :system_prompt, "System instruction", class: "app-label" %>
-            <%= text_area_tag :system_prompt, @qwen_system_prompt, rows: 4, class: "app-textarea", placeholder: "Tell Qwen how to respond." %>
+            <%= text_area_tag :system_prompt, @qwen_system_prompt, rows: 4, class: "app-textarea", placeholder: "Tell the selected model how to respond." %>
           </div>
 
           <div class="flex flex-wrap items-center justify-between gap-3">
-            <p class="record-point-meta">The request is queued in the background, then this panel updates live when Qwen finishes.</p>
-            <%= submit_tag "Ask Qwen", class: "app-btn app-btn-primary" %>
+            <p class="record-point-meta">The request is queued in the background, then this panel updates live when the model finishes.</p>
+            <%= submit_tag "Ask model", class: "app-btn app-btn-primary" %>
           </div>
         <% end %>
       </section>
@@ -66,14 +79,14 @@
           <div class="ops-row">
             <%= status_icon_pill("failed", title: "Error") %>
             <span class="record-point-main">
-              <span class="record-point-title">Qwen request failed</span>
+              <span class="record-point-title">Model request failed</span>
               <span class="record-point-meta"><span><%= @qwen_error %></span></span>
             </span>
           </div>
         <% elsif @qwen_request.present? %>
           <%= render "qwen_request", model_request: @qwen_request %>
         <% else %>
-          <p class="linear-empty px-0 py-5 text-left">Send a prompt to see Qwen output here.</p>
+          <p class="linear-empty px-0 py-5 text-left">Send a prompt to see model output here.</p>
         <% end %>
       </section>
     </main>
@@ -105,7 +118,7 @@
           <article class="ops-row">
             <span class="record-point-main">
               <span class="record-point-title">Read-only console</span>
-              <span class="record-point-meta"><span>Qwen can draft analysis, but this page does not run shell commands or mutate records.</span></span>
+              <span class="record-point-meta"><span>The selected model can draft analysis, but this page does not run shell commands or mutate records.</span></span>
             </span>
           </article>
           <article class="ops-row">
@@ -117,7 +130,7 @@
           <article class="ops-row">
             <span class="record-point-main">
               <span class="record-point-title">Structured answers</span>
-              <span class="record-point-meta"><span>The default prompt asks Qwen for concise JSON so the response can become reviewable evidence later.</span></span>
+              <span class="record-point-meta"><span>The default prompt asks for concise JSON so the response can become reviewable evidence later.</span></span>
             </span>
           </article>
         </div>

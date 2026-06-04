@@ -3,7 +3,7 @@
     <div class="ops-row">
       <%= status_icon_pill(model_request.status, title: model_request.display_status) %>
       <span class="record-point-main">
-        <span class="record-point-title"><%= model_request.running? ? "Qwen is thinking" : "Qwen request queued" %></span>
+        <span class="record-point-title"><%= model_request.running? ? "Model is thinking" : "Model request queued" %></span>
         <span class="record-point-meta">
           <span><%= model_request.model %></span>
           <span><%= model_request.display_status %></span>
@@ -15,7 +15,7 @@
     <div class="ops-row">
       <%= status_icon_pill("failed", title: "Failed") %>
       <span class="record-point-main">
-        <span class="record-point-title">Qwen request failed</span>
+        <span class="record-point-title">Model request failed</span>
         <span class="record-point-meta">
           <span><%= model_request.error_message %></span>
           <% if model_request.finished_at.present? %>
@@ -34,6 +34,7 @@
               <span class="record-point-title">Summary</span>
               <span class="record-point-meta">
                 <span><%= model_request.answer_json["summary"] %></span>
+                <span><%= model_request.model %></span>
                 <% if model_request.duration_ms.present? %>
                   <span><%= model_request.duration_ms %> ms</span>
                 <% end %>

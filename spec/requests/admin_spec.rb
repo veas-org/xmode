@@ -43,7 +43,7 @@ RSpec.describe "Workspace admin", type: :request do
     expect(response.body).to include("Failed runs")
     expect(response.body).to include("Admin Check")
     expect(response.body).to include("Webhook intake")
-    expect(response.body).to include("Qwen console")
+    expect(response.body).to include("Model console")
   end
 
   it "blocks regular members" do
@@ -58,7 +58,7 @@ RSpec.describe "Workspace admin", type: :request do
     expect(response).to redirect_to(app_path)
   end
 
-  it "shows the Qwen console to workspace admins" do
+  it "shows the model console to workspace admins" do
     user = User.create!(name: "Owner", email: "owner-qwen@example.com", password: "password123")
     workspace = Workspace.create!(name: "Spec")
     team = workspace.teams.create!(name: "Engineering", key: "eng")
@@ -68,12 +68,14 @@ RSpec.describe "Workspace admin", type: :request do
     get qwen_admin_path
 
     expect(response).to have_http_status(:ok)
-    expect(response.body).to include("Qwen console")
-    expect(response.body).to include("Ask Qwen")
+    expect(response.body).to include("Model console")
+    expect(response.body).to include("Ask a model")
     expect(response.body).to include("qwen2.5:0.5b")
+    expect(response.body).to include("Qwen3.6 35B latest")
+    expect(response.body).to include("MiniMax M3 cloud")
   end
 
-  it "blocks regular members from the Qwen console" do
+  it "blocks regular members from the model console" do
     user = User.create!(name: "Member", email: "member-qwen@example.com", password: "password123")
     workspace = Workspace.create!(name: "Spec")
     team = workspace.teams.create!(name: "Engineering", key: "eng")
@@ -85,7 +87,7 @@ RSpec.describe "Workspace admin", type: :request do
     expect(response).to redirect_to(app_path)
   end
 
-  it "queues admin prompts for the configured local model" do
+  it "queues admin prompts for the selected local model" do
     user = User.create!(name: "Owner", email: "owner-qwen-post@example.com", password: "password123")
     workspace = Workspace.create!(name: "Spec")
     team = workspace.teams.create!(name: "Engineering", key: "eng")
@@ -93,7 +95,7 @@ RSpec.describe "Workspace admin", type: :request do
 
     allow(Providers::LocalModelClient).to receive(:call).and_return(
       {
-        "model" => "qwen2.5:0.5b",
+        "model" => "qwen3.6:35b",
         "message" => {
           "content" => {
             summary: "Ready",
@@ -108,7 +110,7 @@ RSpec.describe "Workspace admin", type: :request do
 
     post login_path, params: { email: user.email, password: "password123" }
     perform_enqueued_jobs do
-      post qwen_admin_path, params: { prompt: "What is ready?", system_prompt: "Return JSON." }
+      post qwen_admin_path, params: { model: "qwen3.6:35b", prompt: "What is ready?", system_prompt: "Return JSON." }
     end
 
     model_request = workspace.admin_model_requests.last
@@ -116,7 +118,7 @@ RSpec.describe "Workspace admin", type: :request do
     expect(model_request).to have_attributes(
       user: user,
       status: "completed",
-      model: "qwen2.5:0.5b",
+      model: "qwen3.6:35b",
       runtime: "ollama",
       base_url: "http://xmode-ollama:11434",
       prompt: "What is ready?",
@@ -133,7 +135,7 @@ RSpec.describe "Workspace admin", type: :request do
       base_url: "http://xmode-ollama:11434",
       timeout: 120,
       payload: hash_including(
-        model: "qwen2.5:0.5b",
+        model: "qwen3.6:35b",
         messages: [
           { role: "system", content: "Return JSON." },
           { role: "user", content: "What is ready?" }
@@ -142,7 +144,62 @@ RSpec.describe "Workspace admin", type: :request do
     )
   end
 
-  it "requires a prompt for Qwen requests" do
+  it "lets a custom model override the selected preset" do
+    user = User.create!(name: "Owner", email: "owner-model-custom@example.com", password: "password123")
+    workspace = Workspace.create!(name: "Spec")
+    team = workspace.teams.create!(name: "Engineering", key: "eng")
+    workspace.memberships.create!(user: user, team: team, role: "owner")
+
+    allow(Providers::LocalModelClient).to receive(:call).and_return(
+      {
+        "model" => "minimax-m3:cloud",
+        "message" => {
+          "content" => {
+            summary: "Ready",
+            answer: "MiniMax answered the admin prompt.",
+            recommended_next_steps: [ "Review the output." ],
+            risk_notes: []
+          }.to_json
+        },
+        "done" => true
+      }
+    )
+
+    post login_path, params: { email: user.email, password: "password123" }
+    perform_enqueued_jobs do
+      post qwen_admin_path,
+        params: {
+          model: "qwen2.5:0.5b",
+          custom_model: "minimax-m3:cloud",
+          prompt: "What is ready?"
+        }
+    end
+
+    model_request = workspace.admin_model_requests.last
+    expect(model_request.model).to eq("minimax-m3:cloud")
+    expect(model_request.answer).to include("MiniMax answered the admin prompt.")
+    expect(Providers::LocalModelClient).to have_received(:call).with(
+      base_url: "http://xmode-ollama:11434",
+      timeout: 120,
+      payload: hash_including(model: "minimax-m3:cloud")
+    )
+  end
+
+  it "rejects invalid model tags" do
+    user = User.create!(name: "Owner", email: "owner-model-invalid@example.com", password: "password123")
+    workspace = Workspace.create!(name: "Spec")
+    team = workspace.teams.create!(name: "Engineering", key: "eng")
+    workspace.memberships.create!(user: user, team: team, role: "owner")
+
+    post login_path, params: { email: user.email, password: "password123" }
+    post qwen_admin_path, params: { model: "qwen 3.6", prompt: "What is ready?" }
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include("Model name can only include")
+    expect(AdminModelRequestJob).not_to have_been_enqueued
+  end
+
+  it "requires a prompt for model requests" do
     user = User.create!(name: "Owner", email: "owner-qwen-blank@example.com", password: "password123")
     workspace = Workspace.create!(name: "Spec")
     team = workspace.teams.create!(name: "Engineering", key: "eng")

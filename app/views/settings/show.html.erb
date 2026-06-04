@@ -416,7 +416,7 @@
         <div class="flex flex-wrap items-center gap-2">
           <span class="linear-count"><%= @local_model_runtime %></span>
           <% if permitted?(:manage_workspace) %>
-            <%= link_to "Qwen console", qwen_admin_path, class: "app-btn app-btn-muted" %>
+            <%= link_to "Model console", qwen_admin_path, class: "app-btn app-btn-muted" %>
           <% end %>
         </div>
       </div>
