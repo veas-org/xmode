@@ -4649,15 +4649,14 @@
   }
 
   .codex-chat-bubble {
-    @apply max-w-3xl rounded-md px-4 py-3 text-sm leading-6;
-    background: rgba(255, 255, 255, 0.045);
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.052);
+    @apply max-w-3xl rounded-md px-1 py-2 text-sm leading-6;
   }
 
   .codex-chat-bubble.is-user {
-    @apply ml-auto;
+    @apply ml-auto px-4 py-3;
     max-width: min(42rem, 82%);
-    background: rgba(255, 255, 255, 0.085);
+    background: rgba(255, 255, 255, 0.075);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
   }
 
   .codex-chat-bubble.is-assistant,
@@ -4666,16 +4665,21 @@
   }
 
   .codex-chat-bubble.is-plan {
-    background: rgba(125, 211, 252, 0.085);
-    box-shadow: inset 0 0 0 1px rgba(125, 211, 252, 0.15);
+    @apply pl-4;
+    background: linear-gradient(90deg, rgba(125, 211, 252, 0.12), transparent 0.2rem);
+    box-shadow: none;
   }
 
   .codex-chat-bubble.is-pending {
-    box-shadow: inset 0 0 0 1px rgba(125, 211, 252, 0.28);
+    @apply px-4 py-3;
+    background: rgba(125, 211, 252, 0.07);
+    box-shadow: inset 0 0 0 1px rgba(125, 211, 252, 0.18);
   }
 
   .codex-chat-bubble.is-danger {
-    box-shadow: inset 0 0 0 1px rgba(248, 113, 113, 0.2);
+    @apply pl-4;
+    background: linear-gradient(90deg, rgba(248, 113, 113, 0.18), transparent 0.2rem);
+    box-shadow: none;
   }
 
   .codex-chat-bubble-head {
@@ -4723,12 +4727,11 @@
   }
 
   .codex-chat-support {
-    @apply mt-4 grid gap-3 sm:grid-cols-2;
+    @apply mt-4 grid gap-4 sm:grid-cols-2;
   }
 
   .codex-chat-support section {
-    @apply rounded-md px-3 py-2;
-    background: rgba(255, 255, 255, 0.045);
+    @apply border-t border-border/60 pt-3;
   }
 
   .codex-chat-support span {
@@ -4754,7 +4757,7 @@
 
   .codex-chat-chips span {
     @apply min-w-0 truncate rounded-md px-2 py-1 text-xs text-muted-foreground;
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(255, 255, 255, 0.035);
   }
 
   .codex-chat-checks {
@@ -4762,8 +4765,7 @@
   }
 
   .codex-chat-checks li {
-    @apply rounded-md px-2 py-1;
-    background: rgba(255, 255, 255, 0.045);
+    @apply border-l border-border/60 py-1 pl-3;
   }
 
   .codex-chat-reply-form {
@@ -4952,9 +4954,7 @@
   }
 
   .codex-agent-trace {
-    @apply mt-4 space-y-3 rounded-md px-3 py-3;
-    background: rgba(255, 255, 255, 0.04);
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.055);
+    @apply mt-4 space-y-4 border-t border-border/60 pt-4;
   }
 
   .codex-agent-trace-head {
@@ -4979,7 +4979,7 @@
 
   .codex-agent-usage span {
     @apply rounded-md px-2 py-1 text-xs text-muted-foreground;
-    background: rgba(125, 211, 252, 0.08);
+    background: rgba(125, 211, 252, 0.07);
   }
 
   .codex-agent-usage strong {
@@ -4987,8 +4987,7 @@
   }
 
   .codex-agent-section {
-    @apply space-y-2 rounded-md px-3 py-2;
-    background: rgba(255, 255, 255, 0.032);
+    @apply space-y-2 border-l border-border/60 pl-3;
   }
 
   .codex-agent-section > p:not(.app-eyebrow) {
@@ -5001,12 +5000,11 @@
   }
 
   .codex-agent-events {
-    @apply space-y-2;
+    @apply space-y-3;
   }
 
   .codex-agent-events > div {
-    @apply rounded-md px-2.5 py-2;
-    background: rgba(255, 255, 255, 0.032);
+    @apply pl-0;
   }
 
   .codex-agent-events span {
@@ -5038,13 +5036,11 @@
   }
 
   .codex-agent-artifact-list details {
-    @apply rounded-md px-2.5 py-2 text-xs;
-    background: rgba(255, 255, 255, 0.032);
+    @apply border-t border-border/50 py-2 text-xs;
   }
 
   .codex-message-payload {
-    @apply mt-3 space-y-2 rounded-md px-3 py-2;
-    background: rgba(255, 255, 255, 0.035);
+    @apply mt-3 space-y-2 border-t border-border/60 pt-3;
   }
 
   .codex-message-payload p {
