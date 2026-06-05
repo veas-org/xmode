@@ -30,11 +30,13 @@ class ProjectsController < AuthenticatedController
     @operation_count = @schedules.size + @runs.size + @change_requests.size
     @sandbox_pipeline = sandbox_pipeline
     @execution_environment = project_execution_environment(@project)
+    sandbox_run_ids = SandboxSession
+      .where(workspace: current_workspace)
+      .where(pipeline_run_id: current_workspace.pipeline_runs.where(project: @project).select(:id))
+      .select(:pipeline_run_id)
     @sandbox_runs = current_workspace.pipeline_runs
-      .joins(:sandbox_sessions)
       .includes(:pipeline_definition, :change_request, sandbox_sessions: :execution_environment)
-      .where(project: @project)
-      .distinct
+      .where(project: @project, id: sandbox_run_ids)
       .order(created_at: :desc)
       .limit(4)
   end

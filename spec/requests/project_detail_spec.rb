@@ -38,6 +38,45 @@ RSpec.describe "Project detail", type: :request do
     expect(response.body).to include("0 9 * * 1")
   end
 
+  it "renders recent sandbox runs without distincting over json columns" do
+    workspace = Workspace.create!(name: "Spec")
+    team = workspace.teams.create!(name: "Engineering")
+    user = User.create!(name: "Ada", email: "ada-project-sandbox@example.com", password: "password123")
+    workspace.memberships.create!(user: user, role: "owner")
+    project = workspace.projects.create!(team: team, title: "Sandbox Fixture")
+    pipeline = workspace.pipeline_definitions.create!(
+      key: "verify-sandbox-fixture",
+      name: "Verify Sandbox Fixture",
+      version: "1.0.0",
+      graph: { "nodes" => [], "edges" => [] }
+    )
+    run = workspace.pipeline_runs.create!(
+      project: project,
+      pipeline_definition: pipeline,
+      status: "completed",
+      trigger: "sandbox",
+      input_context: { "objective" => "Verify project sandbox" },
+      pipeline_snapshot: { "graph" => { "nodes" => [] } }
+    )
+    2.times do |index|
+      SandboxSession.create!(
+        workspace: workspace,
+        project: project,
+        pipeline_run: run,
+        kind: "docker_worktree",
+        status: "ready",
+        metadata: { "index" => index }
+      )
+    end
+
+    post login_path, params: { email: user.email, password: "password123" }
+    get project_path(project)
+
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include("Recent sandboxes")
+    expect(response.body).to include("Verify Sandbox Fixture")
+  end
+
   it "starts a project sandbox run with the configured execution environment" do
     workspace = Workspace.create!(name: "Spec")
     team = workspace.teams.create!(name: "Engineering")
