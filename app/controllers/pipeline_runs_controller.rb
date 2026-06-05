@@ -14,6 +14,10 @@ class PipelineRunsController < AuthenticatedController
   end
 
   def show
+    @session_runs = current_workspace.pipeline_runs
+      .includes(:pipeline_definition, :issue, :project)
+      .order(created_at: :desc)
+      .limit(30)
     @steps = @run.action_run_steps.order(:position)
     @logs = @run.run_logs.order(:created_at)
     @artifacts = @run.run_artifacts.order(:created_at)

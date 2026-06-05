@@ -4542,6 +4542,421 @@
     background: rgba(255, 255, 255, 0.035);
   }
 
+  .codex-run-shell {
+    @apply grid min-h-0 gap-0 overflow-hidden rounded-md;
+    height: calc(100dvh - 6rem);
+    grid-template-columns: minmax(15rem, 18rem) minmax(0, 1fr) minmax(18rem, 22rem);
+    background: rgba(255, 255, 255, 0.045);
+    box-shadow: inset 0 0 0 1px var(--app-divider-soft), 0 20px 56px var(--app-elevation-shadow);
+  }
+
+  .codex-session-sidebar,
+  .codex-chat-pane,
+  .codex-run-inspector {
+    @apply min-h-0 min-w-0;
+  }
+
+  .codex-session-sidebar {
+    @apply flex flex-col overflow-hidden;
+    background: rgba(5, 8, 14, 0.22);
+    box-shadow: inset -1px 0 0 var(--app-divider-soft);
+  }
+
+  .codex-session-sidebar-head {
+    @apply flex shrink-0 items-center justify-between gap-3 px-3 py-3;
+    box-shadow: inset 0 -1px 0 var(--app-divider-soft);
+  }
+
+  .codex-session-sidebar-head h2 {
+    @apply mt-1 text-sm font-semibold text-foreground;
+  }
+
+  .codex-session-list {
+    @apply min-h-0 flex-1 space-y-1 overflow-y-auto p-2;
+    scrollbar-width: thin;
+  }
+
+  .codex-session-row {
+    @apply block min-w-0 rounded-md px-3 py-2.5 text-sm transition;
+    color: var(--muted-foreground);
+  }
+
+  .codex-session-row:hover,
+  .codex-session-row.is-active {
+    color: var(--foreground);
+    background: var(--app-row-bg-hover);
+  }
+
+  .codex-session-row.is-active {
+    box-shadow: inset 0 0 0 1px rgba(125, 211, 252, 0.18);
+    background: rgba(125, 211, 252, 0.09);
+  }
+
+  .codex-session-row-top {
+    @apply flex min-w-0 items-center justify-between gap-2;
+  }
+
+  .codex-session-row-top strong {
+    @apply truncate text-xs font-semibold text-foreground;
+  }
+
+  .codex-session-row-title {
+    @apply mt-2 line-clamp-2 text-sm font-medium leading-5 text-foreground;
+  }
+
+  .codex-session-row-meta {
+    @apply mt-1 block truncate text-xs text-muted-foreground;
+  }
+
+  .codex-chat-pane {
+    @apply flex flex-col overflow-hidden;
+    background: rgba(255, 255, 255, 0.026);
+  }
+
+  .codex-chat-header {
+    @apply flex shrink-0 items-start justify-between gap-4 px-5 py-4;
+    box-shadow: inset 0 -1px 0 var(--app-divider-soft);
+  }
+
+  .codex-chat-kicker {
+    @apply flex min-w-0 flex-wrap items-center gap-2 text-xs text-muted-foreground;
+  }
+
+  .codex-chat-kicker span {
+    @apply min-w-0 truncate rounded-md px-2 py-1;
+    background: var(--app-row-bg);
+  }
+
+  .codex-chat-header h1 {
+    @apply mt-3 truncate text-xl font-semibold text-foreground;
+  }
+
+  .codex-chat-header p {
+    @apply mt-1 line-clamp-2 max-w-3xl text-sm leading-6 text-muted-foreground;
+  }
+
+  .codex-chat-header-actions {
+    @apply flex shrink-0 flex-wrap items-center justify-end gap-2;
+  }
+
+  .codex-chat-stream {
+    @apply min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-5;
+    scrollbar-width: thin;
+  }
+
+  .codex-chat-bubble {
+    @apply max-w-3xl rounded-md px-4 py-3 text-sm leading-6;
+    background: rgba(255, 255, 255, 0.045);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.052);
+  }
+
+  .codex-chat-bubble.is-user {
+    @apply ml-auto;
+    max-width: min(42rem, 82%);
+    background: rgba(255, 255, 255, 0.085);
+  }
+
+  .codex-chat-bubble.is-assistant,
+  .codex-chat-bubble.is-system {
+    @apply mr-auto;
+  }
+
+  .codex-chat-bubble.is-plan {
+    background: rgba(125, 211, 252, 0.085);
+    box-shadow: inset 0 0 0 1px rgba(125, 211, 252, 0.15);
+  }
+
+  .codex-chat-bubble.is-pending {
+    box-shadow: inset 0 0 0 1px rgba(125, 211, 252, 0.28);
+  }
+
+  .codex-chat-bubble.is-danger {
+    box-shadow: inset 0 0 0 1px rgba(248, 113, 113, 0.2);
+  }
+
+  .codex-chat-bubble-head {
+    @apply mb-2 flex min-w-0 items-center justify-between gap-3 text-xs text-muted-foreground;
+  }
+
+  .codex-chat-bubble-head span {
+    @apply min-w-0 truncate;
+  }
+
+  .codex-chat-bubble-head span:first-child {
+    @apply font-medium text-foreground;
+  }
+
+  .codex-chat-bubble-head span:last-child {
+    @apply text-right;
+  }
+
+  .codex-chat-bubble p {
+    @apply text-foreground;
+  }
+
+  .codex-chat-plan-title {
+    @apply mb-3 flex min-w-0 items-center justify-between gap-3;
+  }
+
+  .codex-chat-plan-title span {
+    @apply text-sm font-semibold text-foreground;
+  }
+
+  .codex-chat-plan-title small {
+    @apply truncate text-xs text-muted-foreground;
+  }
+
+  .codex-chat-markdown {
+    @apply max-h-[42rem] overflow-auto pr-1 text-sm leading-6;
+    scrollbar-width: thin;
+  }
+
+  .codex-chat-markdown h1,
+  .codex-chat-markdown h2,
+  .codex-chat-markdown h3,
+  .codex-chat-markdown h4 {
+    @apply text-base leading-7;
+  }
+
+  .codex-chat-support {
+    @apply mt-4 grid gap-3 sm:grid-cols-2;
+  }
+
+  .codex-chat-support section {
+    @apply rounded-md px-3 py-2;
+    background: rgba(255, 255, 255, 0.045);
+  }
+
+  .codex-chat-support span {
+    @apply text-xs font-medium uppercase tracking-[0.1em] text-muted-foreground;
+  }
+
+  .codex-chat-support ul {
+    @apply mt-2 space-y-1 text-sm text-foreground;
+  }
+
+  .codex-chat-step-line {
+    @apply flex min-w-0 items-start gap-3;
+  }
+
+  .codex-chat-step-line p {
+    @apply min-w-0 flex-1;
+  }
+
+  .codex-chat-chips,
+  .codex-chat-actions {
+    @apply mt-3 flex min-w-0 flex-wrap gap-2;
+  }
+
+  .codex-chat-chips span {
+    @apply min-w-0 truncate rounded-md px-2 py-1 text-xs text-muted-foreground;
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .codex-chat-checks {
+    @apply mt-3 space-y-1 text-sm text-muted-foreground;
+  }
+
+  .codex-chat-checks li {
+    @apply rounded-md px-2 py-1;
+    background: rgba(255, 255, 255, 0.045);
+  }
+
+  .codex-chat-reply-form {
+    @apply mt-3 space-y-2;
+  }
+
+  .codex-chat-composer {
+    @apply shrink-0 px-5 py-4;
+    background: rgba(5, 8, 14, 0.24);
+    box-shadow: inset 0 1px 0 var(--app-divider-soft);
+  }
+
+  .codex-chat-composer-form {
+    @apply flex min-w-0 items-end gap-2;
+  }
+
+  .codex-chat-composer-form .app-textarea {
+    @apply min-h-14 flex-1 resize-none;
+  }
+
+  .codex-chat-composer-actions {
+    @apply mt-2 flex flex-wrap gap-2;
+  }
+
+  .codex-run-inspector {
+    @apply space-y-3 overflow-y-auto p-3;
+    background: rgba(5, 8, 14, 0.18);
+    box-shadow: inset 1px 0 0 var(--app-divider-soft);
+    scrollbar-width: thin;
+  }
+
+  .codex-run-inspector > section,
+  .codex-inspector-appendix {
+    @apply rounded-md px-3 py-3;
+    background: rgba(255, 255, 255, 0.035);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.045);
+  }
+
+  .codex-inspector-head {
+    @apply flex min-w-0 items-start justify-between gap-3;
+  }
+
+  .codex-inspector-head h3 {
+    @apply mt-1 text-sm font-semibold text-foreground;
+  }
+
+  .codex-inspector-grid {
+    @apply mt-3 grid grid-cols-2 gap-2;
+  }
+
+  .codex-inspector-grid div,
+  .codex-inspector-evidence div {
+    @apply min-w-0 rounded-md px-2.5 py-2;
+    background: rgba(255, 255, 255, 0.035);
+  }
+
+  .codex-inspector-grid span,
+  .codex-inspector-evidence span {
+    @apply block truncate text-xs text-muted-foreground;
+  }
+
+  .codex-inspector-grid strong,
+  .codex-inspector-evidence strong {
+    @apply mt-1 block truncate text-sm font-semibold text-foreground;
+  }
+
+  .codex-inspector-step-list {
+    @apply mt-3 space-y-1;
+  }
+
+  .codex-inspector-step-list li {
+    @apply flex min-w-0 items-start gap-2 rounded-md px-2 py-2;
+    background: rgba(255, 255, 255, 0.026);
+  }
+
+  .codex-inspector-step-list span:last-child {
+    @apply min-w-0 flex-1;
+  }
+
+  .codex-inspector-step-list strong {
+    @apply block truncate text-sm font-medium text-foreground;
+  }
+
+  .codex-inspector-step-list small {
+    @apply block truncate text-xs text-muted-foreground;
+  }
+
+  .codex-inspector-evidence {
+    @apply mt-3 grid grid-cols-2 gap-2;
+  }
+
+  .codex-inspector-link {
+    @apply mt-3 flex min-w-0 items-start gap-2 rounded-md px-2.5 py-2 text-sm;
+    background: rgba(255, 255, 255, 0.035);
+  }
+
+  .codex-inspector-link span:last-child {
+    @apply min-w-0 flex-1;
+  }
+
+  .codex-inspector-link strong,
+  .codex-inspector-link small {
+    @apply block truncate;
+  }
+
+  .codex-inspector-link small {
+    @apply text-xs text-muted-foreground;
+  }
+
+  .codex-inspector-appendix summary {
+    @apply flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-medium text-foreground;
+  }
+
+  .codex-inspector-appendix summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .codex-inspector-appendix summary small {
+    @apply truncate text-xs font-normal text-muted-foreground;
+  }
+
+  .codex-inspector-raw-list {
+    @apply mt-3 space-y-2;
+  }
+
+  .codex-inspector-raw-list details,
+  .codex-inspector-raw-list article {
+    @apply rounded-md px-2.5 py-2 text-xs;
+    background: rgba(255, 255, 255, 0.032);
+  }
+
+  .codex-inspector-raw-list details > summary {
+    @apply flex cursor-pointer list-none items-center justify-between gap-2 text-xs text-foreground;
+  }
+
+  .codex-inspector-raw-list details > summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .codex-inspector-raw-list article {
+    @apply flex min-w-0 items-start gap-2 text-muted-foreground;
+  }
+
+  .codex-inspector-raw-list article span:last-child {
+    @apply min-w-0 flex-1 break-words;
+  }
+
+  .codex-inspector-raw-list article strong,
+  .codex-inspector-raw-list article small {
+    @apply block truncate;
+  }
+
+  .codex-inspector-raw-list article strong {
+    @apply text-xs font-medium text-foreground;
+  }
+
+  .codex-inspector-raw-list article small {
+    @apply mt-0.5 text-xs text-muted-foreground;
+  }
+
+  .codex-inspector-terminal {
+    @apply space-y-2 rounded-md px-2 py-2;
+    background: rgba(255, 255, 255, 0.026);
+  }
+
+  .codex-inspector-terminal h4 {
+    @apply px-0.5 text-xs font-medium uppercase tracking-[0.1em] text-muted-foreground;
+  }
+
+  @media (max-width: 1180px) {
+    .codex-run-shell {
+      height: auto;
+      min-height: calc(100dvh - 6rem);
+      grid-template-columns: minmax(13rem, 16rem) minmax(0, 1fr);
+    }
+
+    .codex-run-inspector {
+      @apply hidden;
+    }
+  }
+
+  @media (max-width: 820px) {
+    .codex-run-shell {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .codex-session-sidebar {
+      @apply hidden;
+    }
+
+    .codex-chat-header,
+    .codex-chat-stream,
+    .codex-chat-composer {
+      @apply px-3;
+    }
+  }
+
   .sandbox-file-list {
     @apply mb-2 mt-2 space-y-px rounded-md px-2 py-2;
     background: rgba(255, 255, 255, 0.026);
