@@ -3,6 +3,7 @@ class CodexSession < ApplicationRecord
   RUNTIMES = %w[cloud_subscription local_cli mock].freeze
   SANDBOX_MODES = %w[read-only workspace-write danger-full-access].freeze
   APPROVAL_POLICIES = %w[never on-failure on-request untrusted].freeze
+  DEFAULT_CLI_MODEL = "gpt-5.5"
 
   belongs_to :workspace
   belongs_to :user, optional: true
@@ -21,6 +22,22 @@ class CodexSession < ApplicationRecord
   validates :cloud_environment_id, presence: true, if: :cloud_subscription?
 
   scope :recent, -> { order(updated_at: :desc, created_at: :desc) }
+
+  def self.default_runtime
+    ENV.fetch("CODEX_SDK_RUNTIME", "local_cli")
+  end
+
+  def self.default_model(runtime = default_runtime)
+    case runtime.to_s
+    when "cloud_subscription" then ENV.fetch("CODEX_CLOUD_MODEL", "codex-cloud")
+    when "mock" then "codex-mock"
+    else ENV.fetch("CODEX_CLI_MODEL", ENV.fetch("CODEX_MODEL", DEFAULT_CLI_MODEL))
+    end
+  end
+
+  def self.default_working_directory
+    ENV["CODEX_WORKING_DIRECTORY"].presence || Rails.root.join("storage", "codex_sessions").to_s
+  end
 
   def cloud_subscription?
     runtime == "cloud_subscription"
@@ -81,11 +98,11 @@ class CodexSession < ApplicationRecord
 
   def assign_defaults
     self.status = status.presence || "queued"
-    self.runtime = runtime.presence || ENV.fetch("CODEX_SDK_RUNTIME", "cloud_subscription")
-    self.model = model.presence || ENV.fetch("CODEX_CLOUD_MODEL", "codex-cloud")
+    self.runtime = runtime.presence || self.class.default_runtime
+    self.model = model.presence || self.class.default_model(runtime)
     self.title = objective.to_s.first(80) if title.blank? && objective.present?
     self.cloud_environment_id = cloud_environment_id.presence || ENV["CODEX_CLOUD_ENV_ID"].presence
-    self.working_directory = working_directory.presence || ENV["CODEX_WORKING_DIRECTORY"].presence
+    self.working_directory = working_directory.presence || self.class.default_working_directory if local_cli?
     self.branch = branch.presence || ENV["CODEX_CLOUD_BRANCH"].presence
     self.sandbox_mode = sandbox_mode.presence || "workspace-write"
     self.approval_policy = approval_policy.presence || "never"

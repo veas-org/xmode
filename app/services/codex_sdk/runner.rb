@@ -1,5 +1,7 @@
 require "open3"
 require "timeout"
+require "fileutils"
+require "pathname"
 
 module CodexSdk
   class Runner
@@ -120,7 +122,17 @@ module CodexSdk
     end
 
     def command_directory
-      @session.working_directory.presence || Rails.root.to_s
+      directory = @session.working_directory.presence || default_command_directory
+      FileUtils.mkdir_p(directory) if safe_storage_directory?(directory)
+      directory
+    end
+
+    def default_command_directory
+      @session.local_cli? ? CodexSession.default_working_directory : Rails.root.to_s
+    end
+
+    def safe_storage_directory?(directory)
+      @session.local_cli? && Pathname.new(directory).cleanpath.to_s.start_with?("#{Rails.root.join("storage").cleanpath}/")
     end
 
     def prompt

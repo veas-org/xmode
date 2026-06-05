@@ -460,8 +460,8 @@
             </article>
             <article class="settings-list-row">
               <span class="record-point-main">
-                <span class="record-point-title">Codex Cloud sessions</span>
-                <span class="record-point-meta"><span>Use subscription-backed Codex Cloud through the server CLI, while xmode stores session transcript, task ID, branch, and review evidence.</span></span>
+                <span class="record-point-title">Oracle Codex CLI sessions</span>
+                <span class="record-point-meta"><span>Run authenticated Codex CLI on the Oracle worker, while xmode stores session transcript, sandbox evidence, branch, and review output.</span></span>
               </span>
             </article>
           </div>
@@ -470,8 +470,8 @@
       <div class="settings-subsection">
         <div class="settings-panel-head">
           <div>
-            <p class="app-eyebrow">Codex Cloud</p>
-            <h3>Subscription runtime</h3>
+            <p class="app-eyebrow">Codex CLI</p>
+            <h3>Oracle runtime</h3>
           </div>
           <% if permitted?(:manage_workspace) %>
             <%= link_to "Open session", codex_sessions_path, class: "app-btn app-btn-muted" %>
@@ -482,9 +482,10 @@
             <h3>Connection</h3>
             <dl class="settings-key-values">
               <div><dt>Runtime</dt><dd><%= @codex_cloud_runtime.tr("_", " ").titleize %></dd></div>
-              <div><dt>Model</dt><dd><%= @codex_cloud_model %></dd></div>
-              <div><dt>Environment</dt><dd title="<%= @codex_cloud_environment_id %>"><%= @codex_cloud_environment_id.presence || "Set CODEX_CLOUD_ENV_ID on the server" %></dd></div>
-              <div><dt>Backend</dt><dd>Authenticated Codex CLI subscription</dd></div>
+              <div><dt>CLI model</dt><dd><%= @codex_cli_model %></dd></div>
+              <div><dt>Workspace</dt><dd title="<%= @codex_working_directory %>"><%= @codex_working_directory %></dd></div>
+              <div><dt>Cloud env</dt><dd title="<%= @codex_cloud_environment_id %>"><%= @codex_cloud_environment_id.presence || "Optional for Codex Cloud mode" %></dd></div>
+              <div><dt>Backend</dt><dd>Authenticated Codex CLI on Oracle</dd></div>
             </dl>
           </section>
           <section>
@@ -503,7 +504,7 @@
                 <% end %>
               <% end %>
               <% if @recent_codex_sessions.empty? %>
-                <p class="linear-empty px-0 py-5 text-left">Open a session to submit the first Codex Cloud task from xmode.</p>
+                <p class="linear-empty px-0 py-5 text-left">Open a session to run the first Oracle Codex CLI task from xmode.</p>
               <% end %>
             </div>
           </section>

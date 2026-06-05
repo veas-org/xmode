@@ -60,7 +60,7 @@ class SettingsController < AuthenticatedController
       {
         id: "models",
         label: "Models",
-        description: "Configure code-model routing, BYOK provider keys, Codex Cloud sessions, and the default model used by planning and sandbox-adjacent work.",
+        description: "Configure code-model routing, BYOK provider keys, Oracle Codex CLI sessions, and the default model used by planning and sandbox-adjacent work.",
         icon: "cpu",
         href: "#models",
         action_label: "Model routing",
@@ -140,7 +140,7 @@ class SettingsController < AuthenticatedController
   end
 
   def code_model_detail
-    "#{default_code_model_profile.model} / #{codex_cloud_configured? ? "Codex Cloud" : "Cloud env needed"}"
+    "#{default_code_model_profile.model} / #{CodexSession.default_runtime.tr("_", " ")}"
   end
 
   def local_model_base_url
@@ -199,8 +199,11 @@ class SettingsController < AuthenticatedController
     @local_model_runtime = @default_code_model_profile.provider
     @local_model_timeout = @default_code_model_profile.timeout_seconds
     @local_model_enabled = ActiveModel::Type::Boolean.new.cast(ENV["LOCAL_MODEL_ENABLED"])
+    @codex_runtime = CodexSession.default_runtime
+    @codex_cli_model = CodexSession.default_model("local_cli")
+    @codex_working_directory = CodexSession.default_working_directory
     @codex_cloud_environment_id = ENV["CODEX_CLOUD_ENV_ID"].presence
-    @codex_cloud_runtime = ENV.fetch("CODEX_SDK_RUNTIME", "cloud_subscription")
+    @codex_cloud_runtime = @codex_runtime
     @codex_cloud_model = ENV.fetch("CODEX_CLOUD_MODEL", "codex-cloud")
     @codex_session_count = current_workspace.codex_sessions.count
     @recent_codex_sessions = current_workspace.codex_sessions.recent.limit(4)
@@ -212,7 +215,8 @@ class SettingsController < AuthenticatedController
       [ "Credential mode", @default_code_model_profile.credential_label ],
       [ "Default mode", @local_model_enabled ? "Live for code-model actions" : "Action opt-in" ],
       [ "Timeout", "#{@local_model_timeout} seconds" ],
-      [ "Codex Cloud", codex_cloud_configured? ? "Environment configured" : "Set CODEX_CLOUD_ENV_ID" ]
+      [ "Codex CLI", @codex_runtime == "local_cli" ? "Oracle CLI default" : @codex_runtime.tr("_", " ").titleize ],
+      [ "Codex Cloud", codex_cloud_configured? ? "Optional env configured" : "Optional" ]
     ]
   end
 

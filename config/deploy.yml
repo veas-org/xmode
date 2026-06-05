@@ -53,8 +53,10 @@ env:
     LOCAL_MODEL_FAST_NAME: "qwen2.5-coder:1.5b"
     LOCAL_MODEL_TIMEOUT_SECONDS: "3600"
     CODEX_HOME: "/home/rails/.codex"
-    CODEX_SDK_RUNTIME: "cloud_subscription"
+    CODEX_SDK_RUNTIME: "local_cli"
+    CODEX_CLI_MODEL: "gpt-5.5"
     CODEX_CLOUD_MODEL: "codex-cloud"
+    CODEX_WORKING_DIRECTORY: "/rails/storage/codex_sessions"
     CODEX_SDK_TIMEOUT_SECONDS: "1800"
   secret:
     - RAILS_MASTER_KEY

@@ -25,7 +25,7 @@ RSpec.describe "Codex sessions", type: :request do
 
     expect(response).to have_http_status(:ok)
     expect(response.body).to include("Codex sessions")
-    expect(response.body).to include("Codex Cloud handoff")
+    expect(response.body).to include("Oracle Codex CLI session")
 
     perform_enqueued_jobs do
       post codex_sessions_path,

@@ -5,10 +5,10 @@ class CodexSessionsController < AuthenticatedController
   def index
     @codex_sessions = current_workspace.codex_sessions.includes(:user, :project).recent.limit(25)
     @codex_session = current_workspace.codex_sessions.new(
-      runtime: ENV.fetch("CODEX_SDK_RUNTIME", "cloud_subscription"),
-      model: ENV.fetch("CODEX_CLOUD_MODEL", "codex-cloud"),
+      runtime: CodexSession.default_runtime,
+      model: CodexSession.default_model,
       cloud_environment_id: ENV["CODEX_CLOUD_ENV_ID"].presence,
-      working_directory: ENV["CODEX_WORKING_DIRECTORY"].presence || Rails.root.to_s,
+      working_directory: CodexSession.default_working_directory,
       branch: ENV["CODEX_CLOUD_BRANCH"].presence,
       sandbox_mode: "workspace-write",
       approval_policy: "never"

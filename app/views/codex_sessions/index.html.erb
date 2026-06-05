@@ -5,11 +5,11 @@
     <div class="min-w-0">
       <p class="app-eyebrow">Workspace models</p>
       <h1>Codex sessions</h1>
-      <p>Open a durable xmode session that can submit subscription-backed Codex Cloud tasks, local CLI work, or deterministic mock handoffs.</p>
+      <p>Open a durable xmode session that runs authenticated Codex CLI on the Oracle worker, with Codex Cloud still available as an optional runtime.</p>
       <div class="ops-summary" aria-label="Codex runtime summary">
         <span><strong><%= @codex_sessions.count %></strong> recent sessions</span>
-        <span><strong><%= ENV["CODEX_CLOUD_ENV_ID"].present? ? "configured" : "missing" %></strong> cloud env</span>
-        <span><strong><%= ENV.fetch("CODEX_SDK_RUNTIME", "cloud_subscription") %></strong> default runtime</span>
+        <span><strong><%= ENV["CODEX_CLOUD_ENV_ID"].present? ? "configured" : "optional" %></strong> cloud env</span>
+        <span><strong><%= CodexSession.default_runtime %></strong> default runtime</span>
       </div>
     </div>
     <div class="flex flex-wrap gap-2">
@@ -24,21 +24,21 @@
         <div class="ops-section-head">
           <div>
             <p class="app-eyebrow">Open session</p>
-            <h2>Codex Cloud handoff</h2>
+            <h2>Oracle Codex CLI session</h2>
           </div>
         </div>
 
         <%= form_with model: @codex_session, url: codex_sessions_path, class: "space-y-4" do |form| %>
           <div class="grid gap-4 md:grid-cols-2">
-            <div><%= form.label :title, class: "app-label" %><%= form.text_field :title, class: "app-input", placeholder: "Implement issue in cloud" %></div>
+            <div><%= form.label :title, class: "app-label" %><%= form.text_field :title, class: "app-input", placeholder: "Implement issue in sandbox" %></div>
             <div>
               <%= form.label :runtime, class: "app-label" %>
               <%= form.select :runtime, CodexSession::RUNTIMES.map { |runtime| [ runtime.tr("_", " ").titleize, runtime ] }, {}, class: "app-input" %>
             </div>
-            <div><%= form.label :model, class: "app-label" %><%= form.text_field :model, class: "app-input", placeholder: "codex-cloud" %></div>
-            <div><%= form.label :cloud_environment_id, "Cloud environment", class: "app-label" %><%= form.text_field :cloud_environment_id, class: "app-input", placeholder: "env_..." %></div>
+            <div><%= form.label :model, class: "app-label" %><%= form.text_field :model, class: "app-input", placeholder: CodexSession.default_model("local_cli") %></div>
+            <div><%= form.label :cloud_environment_id, "Cloud environment", class: "app-label" %><%= form.text_field :cloud_environment_id, class: "app-input", placeholder: "Only for Codex Cloud mode" %></div>
             <div><%= form.label :branch, class: "app-label" %><%= form.text_field :branch, class: "app-input", placeholder: "codex/session-branch" %></div>
-            <div><%= form.label :working_directory, class: "app-label" %><%= form.text_field :working_directory, class: "app-input", placeholder: Rails.root.to_s %></div>
+            <div><%= form.label :working_directory, class: "app-label" %><%= form.text_field :working_directory, class: "app-input", placeholder: CodexSession.default_working_directory %></div>
             <div>
               <%= form.label :sandbox_mode, class: "app-label" %>
               <%= form.select :sandbox_mode, CodexSession::SANDBOX_MODES.map { |mode| [ mode.tr("-", " ").titleize, mode ] }, {}, class: "app-input" %>
@@ -51,11 +51,11 @@
 
           <div class="space-y-2">
             <%= form.label :objective, class: "app-label" %>
-            <%= form.text_area :objective, rows: 7, class: "app-textarea", required: true, placeholder: "Describe what Codex should do in the cloud sandbox. Include repository, branch policy, expected evidence, and what should be reviewed." %>
+            <%= form.text_area :objective, rows: 7, class: "app-textarea", required: true, placeholder: "Describe what Codex should do in the Oracle sandbox. Include repository, branch policy, expected evidence, and what should be reviewed." %>
           </div>
 
           <div class="flex flex-wrap items-center justify-between gap-3">
-            <p class="record-point-meta">Cloud mode uses the server's authenticated Codex CLI subscription and stores the returned task ID when available.</p>
+            <p class="record-point-meta">Local CLI mode runs in the server workspace and stores the transcript. Codex Cloud mode is available when a cloud environment id is supplied.</p>
             <%= form.submit "Open Codex session", class: "app-btn app-btn-primary" %>
           </div>
         <% end %>

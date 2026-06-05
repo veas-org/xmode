@@ -64,18 +64,20 @@ module CodexSdk
     private
 
     def default_runtime
-      ENV.fetch("CODEX_SDK_RUNTIME", "cloud_subscription")
+      CodexSession.default_runtime
     end
 
     def default_model
-      ENV.fetch("CODEX_CLOUD_MODEL", "codex-cloud")
+      CodexSession.default_model(@options[:runtime].presence || default_runtime)
     end
 
     def session_metadata
+      runtime = @options[:runtime].presence || default_runtime
       {
         "source" => @options[:source].presence || "xmode_sdk",
         "subscription_mode" => @options.fetch(:subscription_mode, true),
-        "cloud_cli" => true
+        "codex_cli" => true,
+        "cloud_cli" => runtime == "cloud_subscription"
       }.compact
     end
   end

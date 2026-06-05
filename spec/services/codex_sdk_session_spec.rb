@@ -69,4 +69,41 @@ RSpec.describe "Codex SDK sessions" do
       chdir: Rails.root.to_s
     )
   end
+
+  it "runs local CLI sessions through codex exec in the configured workspace" do
+    workspace = Workspace.create!(name: "Spec")
+    working_directory = Rails.root.join("tmp", "codex-cli-spec").to_s
+    codex_session = workspace.codex_sessions.create!(
+      runtime: "local_cli",
+      model: "gpt-5.5",
+      title: "Local CLI task",
+      objective: "Implement a reviewable local task.",
+      working_directory: working_directory,
+      sandbox_mode: "workspace-write",
+      approval_policy: "never"
+    )
+    message = codex_session.codex_session_messages.create!(content: "Continue implementation.")
+    status = instance_double(Process::Status, success?: true)
+
+    allow(Open3).to receive(:capture3).and_return([ %({"message":"Done"}\n), "", status ])
+
+    response = CodexSdk::Runner.call(message)
+
+    expect(response.content).to eq("Done")
+    expect(Open3).to have_received(:capture3).with(
+      "codex",
+      "exec",
+      "--json",
+      "--model",
+      "gpt-5.5",
+      "--sandbox",
+      "workspace-write",
+      "--ask-for-approval",
+      "never",
+      "-C",
+      working_directory,
+      include("Continue implementation."),
+      chdir: working_directory
+    )
+  end
 end
