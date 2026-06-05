@@ -4640,8 +4640,12 @@
   }
 
   .codex-chat-stream {
-    @apply min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-5;
+    @apply min-h-0 flex-1 overflow-y-auto px-5 py-5;
     scrollbar-width: thin;
+  }
+
+  .codex-chat-thread {
+    @apply flex min-h-full flex-col justify-end gap-4;
   }
 
   .codex-chat-bubble {
@@ -4773,11 +4777,29 @@
   }
 
   .codex-chat-composer-form {
-    @apply flex min-w-0 items-end gap-2;
+    @apply min-w-0;
   }
 
-  .codex-chat-composer-form .app-textarea {
-    @apply min-h-14 flex-1 resize-none;
+  .codex-chat-composer-box {
+    @apply rounded-md px-3 py-2;
+    background: rgba(255, 255, 255, 0.052);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.075);
+  }
+
+  .codex-chat-input {
+    @apply min-h-11 w-full resize-none border-0 bg-transparent px-0 py-2 text-sm leading-6 shadow-none outline-none;
+  }
+
+  .codex-chat-input:focus {
+    box-shadow: none;
+  }
+
+  .codex-chat-composer-tools {
+    @apply flex items-center justify-between gap-3;
+  }
+
+  .codex-chat-composer-tools > span {
+    @apply truncate text-xs text-muted-foreground;
   }
 
   .codex-chat-composer-actions {
@@ -4927,6 +4949,122 @@
 
   .codex-inspector-terminal h4 {
     @apply px-0.5 text-xs font-medium uppercase tracking-[0.1em] text-muted-foreground;
+  }
+
+  .codex-agent-trace {
+    @apply mt-4 space-y-3 rounded-md px-3 py-3;
+    background: rgba(255, 255, 255, 0.04);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.055);
+  }
+
+  .codex-agent-trace-head {
+    @apply flex min-w-0 items-start justify-between gap-3;
+  }
+
+  .codex-agent-trace-head > div:first-child {
+    @apply min-w-0;
+  }
+
+  .codex-agent-trace-head span {
+    @apply block truncate text-sm font-semibold text-foreground;
+  }
+
+  .codex-agent-trace-head small {
+    @apply mt-1 block truncate text-xs text-muted-foreground;
+  }
+
+  .codex-agent-usage {
+    @apply flex shrink-0 flex-wrap justify-end gap-1.5;
+  }
+
+  .codex-agent-usage span {
+    @apply rounded-md px-2 py-1 text-xs text-muted-foreground;
+    background: rgba(125, 211, 252, 0.08);
+  }
+
+  .codex-agent-usage strong {
+    @apply font-semibold text-foreground;
+  }
+
+  .codex-agent-section {
+    @apply space-y-2 rounded-md px-3 py-2;
+    background: rgba(255, 255, 255, 0.032);
+  }
+
+  .codex-agent-section > p:not(.app-eyebrow) {
+    @apply text-sm leading-6 text-foreground;
+  }
+
+  .codex-agent-markdown {
+    @apply max-h-80 overflow-auto pr-1 text-sm leading-6;
+    scrollbar-width: thin;
+  }
+
+  .codex-agent-events {
+    @apply space-y-2;
+  }
+
+  .codex-agent-events > div {
+    @apply rounded-md px-2.5 py-2;
+    background: rgba(255, 255, 255, 0.032);
+  }
+
+  .codex-agent-events span {
+    @apply block text-xs font-medium uppercase tracking-[0.08em] text-muted-foreground;
+  }
+
+  .codex-agent-events p {
+    @apply mt-1 text-sm leading-6 text-foreground;
+  }
+
+  .codex-agent-events small {
+    @apply mt-1 block text-xs text-muted-foreground;
+  }
+
+  .codex-agent-artifacts summary {
+    @apply flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-medium text-foreground;
+  }
+
+  .codex-agent-artifacts summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .codex-agent-artifacts summary small {
+    @apply text-xs font-normal text-muted-foreground;
+  }
+
+  .codex-agent-artifact-list {
+    @apply mt-3 space-y-2;
+  }
+
+  .codex-agent-artifact-list details {
+    @apply rounded-md px-2.5 py-2 text-xs;
+    background: rgba(255, 255, 255, 0.032);
+  }
+
+  .codex-message-payload {
+    @apply mt-3 space-y-2 rounded-md px-3 py-2;
+    background: rgba(255, 255, 255, 0.035);
+  }
+
+  .codex-message-payload p {
+    @apply flex min-w-0 gap-2 text-sm leading-6;
+  }
+
+  .codex-message-payload p strong {
+    @apply shrink-0 text-xs font-medium uppercase tracking-[0.08em] text-muted-foreground;
+  }
+
+  .codex-message-payload p span {
+    @apply min-w-0 text-foreground;
+  }
+
+  .codex-message-payload summary {
+    @apply cursor-pointer list-none text-sm font-medium text-foreground;
+  }
+
+  .codex-message-payload summary::-webkit-details-marker {
+    display: none;
   }
 
   @media (max-width: 1180px) {

@@ -100,7 +100,8 @@ module Providers
         "provider" => provider_name,
         "provider_mode" => provider_mode,
         "model" => model,
-        "provider_response_id" => response["id"]
+        "provider_response_id" => response["id"],
+        "provider_usage" => response["usage"]
       ).compact
     end
 

@@ -76,7 +76,7 @@ end %>
     </div>
   </aside>
 
-  <main class="codex-chat-pane">
+  <main class="codex-chat-pane" data-controller="run-chat">
     <header class="codex-chat-header">
       <div class="min-w-0">
         <div class="codex-chat-kicker">
@@ -104,7 +104,8 @@ end %>
       </div>
     </header>
 
-    <section class="codex-chat-stream" aria-label="Run chat">
+    <section class="codex-chat-stream" aria-label="Run chat" data-run-chat-target="stream">
+      <div class="codex-chat-thread">
       <article class="codex-chat-bubble is-user">
         <div class="codex-chat-bubble-head">
           <span>Operator</span>
@@ -116,6 +117,9 @@ end %>
       <% @steps.each do |step| %>
         <% input = step.input_json || {} %>
         <% output = step.output_json || {} %>
+        <% step_messages = @messages_by_step_id.fetch(step.id, []) %>
+        <% step_logs = @logs_by_step_id.fetch(step.id, []) %>
+        <% step_artifacts = @artifacts_by_step_id.fetch(step.id, []) %>
         <% provider = (step.action_definition&.provider || step.action_snapshot.to_h["provider"] || "provider").to_s.tr("_", " ").titleize %>
         <% duration = if step.started_at.present? && step.finished_at.present?
           distance_of_time_in_words(step.started_at, step.finished_at)
@@ -165,6 +169,9 @@ end %>
                 <% end %>
               </div>
             <% end %>
+            <% if agent_trace_available?(step, messages: step_messages, logs: step_logs, artifacts: step_artifacts) %>
+              <%= render "agent_trace", step: step, messages: step_messages, logs: step_logs, artifacts: step_artifacts %>
+            <% end %>
           </article>
         <% else %>
           <article class="codex-chat-bubble is-system <%= "is-danger" if step.error_message.present? %>">
@@ -189,6 +196,9 @@ end %>
                 <% end %>
               </div>
             <% end %>
+            <% if agent_trace_available?(step, messages: step_messages, logs: step_logs, artifacts: step_artifacts) %>
+              <%= render "agent_trace", step: step, messages: step_messages, logs: step_logs, artifacts: step_artifacts %>
+            <% end %>
           </article>
         <% end %>
       <% end %>
@@ -209,6 +219,30 @@ end %>
                 <li><%= check %></li>
               <% end %>
             </ul>
+          <% end %>
+
+          <% message_usage = run_message_usage_items(message) %>
+          <% if message_usage.any? || message.payload["summary"].present? || message.payload["plan"].present? %>
+            <div class="codex-message-payload">
+              <% if message.payload["summary"].present? %>
+                <p><strong>Summary</strong><span><%= message.payload["summary"] %></span></p>
+              <% end %>
+              <% if message.payload["plan"].present? %>
+                <details>
+                  <summary>Plan</summary>
+                  <div class="rich-markdown codex-agent-markdown mt-2">
+                    <%= render_markdown(message.payload["plan"]) %>
+                  </div>
+                </details>
+              <% end %>
+              <% if message_usage.any? %>
+                <div class="codex-agent-usage" aria-label="Message token usage">
+                  <% message_usage.each do |label, value| %>
+                    <span><strong><%= value %></strong> <%= label %></span>
+                  <% end %>
+                </div>
+              <% end %>
+            </div>
           <% end %>
 
           <% if message == @pending_run_message %>
@@ -236,7 +270,11 @@ end %>
                 <%= form.text_area :content,
                       rows: 3,
                       class: "app-textarea",
-                      placeholder: message.kind == "goal_check" ? "Add goal-check notes..." : "Reply with context..." %>
+                      placeholder: message.kind == "goal_check" ? "Add goal-check notes..." : "Reply with context...",
+                      data: {
+                        run_chat_target: "input",
+                        action: "input->run-chat#autosize keydown->run-chat#submitOnEnter"
+                      } %>
                 <%= form.submit "Send", class: "app-btn app-btn-primary" %>
               <% end %>
             <% end %>
@@ -271,15 +309,28 @@ end %>
           <p>No manual response is required right now.</p>
         </article>
       <% end %>
+      </div>
     </section>
 
     <footer class="codex-chat-composer">
       <%= form_with url: pipeline_run_run_messages_path(@run), class: "codex-chat-composer-form" do |form| %>
-        <%= form.text_area :content,
-              rows: 2,
-              class: "app-textarea",
-              placeholder: "Add instruction, constraint, or follow-up..." %>
-        <%= form.submit "Send", class: "app-btn app-btn-primary" %>
+        <div class="codex-chat-composer-box">
+          <%= form.text_area :content,
+                rows: 1,
+                class: "app-textarea codex-chat-input",
+                placeholder: "Message the run...",
+                data: {
+                  run_chat_target: "input",
+                  action: "input->run-chat#autosize keydown->run-chat#submitOnEnter"
+                } %>
+          <div class="codex-chat-composer-tools">
+            <span>Shift + Enter for newline</span>
+            <%= form.button class: "app-btn app-btn-primary", title: "Send message", aria: { label: "Send message" } do %>
+              <%= lucide_icon("send", class_name: "app-icon") %>
+              <span>Send</span>
+            <% end %>
+          </div>
+        </div>
       <% end %>
       <% if @can_resume || @can_cancel %>
         <div class="codex-chat-composer-actions">

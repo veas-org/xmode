@@ -105,7 +105,8 @@ module Providers
         "provider_mode" => "live",
         "model" => @provider_response.model,
         "local_model_base_url" => safe_base_url,
-        "provider_response_id" => provider_response_id
+        "provider_response_id" => provider_response_id,
+        "provider_usage" => @provider_response.usage
       ).compact
     rescue JSON::ParserError => e
       raise CodeModelClient::Error, "Code model response did not contain valid structured JSON: #{e.message}"

@@ -145,6 +145,32 @@ RSpec.describe Pipelines::Runner do
     expect(run.run_artifacts.pluck(:name)).to include("stdout.log", "stderr.log", "output.json")
   end
 
+  it "captures token usage from JSON lines emitted by a shell agent" do
+    workspace = Workspace.create!(name: "Spec")
+    action = workspace.action_definitions.create!(
+      key: "codex-json-usage",
+      name: "Codex JSON Usage",
+      category: "verification",
+      provider: "local_shell",
+      defaults: { "command" => "printf '%s\\n' '{\"usage\":{\"input_tokens\":7,\"output_tokens\":5,\"total_tokens\":12}}'" },
+      input_schema: { type: "object" },
+      output_schema: { type: "object" }
+    )
+    pipeline = workspace.pipeline_definitions.create!(
+      key: "json-usage",
+      name: "JSON Usage",
+      graph: { nodes: [ { id: "usage", action_key: action.key, action_id: action.id, label: action.name } ], edges: [] }
+    )
+    run = workspace.pipeline_runs.create!(pipeline_definition: pipeline)
+
+    described_class.call(run)
+
+    expect(run.reload.status).to eq("completed")
+    expect(run.action_run_steps.first.output_json).to include(
+      "provider_usage" => { "input_tokens" => 7, "output_tokens" => 5, "total_tokens" => 12 }
+    )
+  end
+
   it "opens a Change Request automatically when a local shell step changes files" do
     Dir.mktmpdir("xmode-source-repo") do |repo_path|
       system!("git", "init", chdir: repo_path)

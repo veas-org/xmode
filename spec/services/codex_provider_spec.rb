@@ -72,6 +72,7 @@ RSpec.describe "Codex/OpenAI provider adapter" do
         headers: { "Content-Type" => "application/json" },
         body: {
           id: "resp_spec_123",
+          usage: { input_tokens: 21, output_tokens: 9, total_tokens: 30 },
           output: [
             {
               type: "message",
@@ -130,6 +131,7 @@ RSpec.describe "Codex/OpenAI provider adapter" do
       "provider_mode" => "live",
       "model" => "gpt-spec",
       "provider_response_id" => "resp_spec_123",
+      "provider_usage" => { "input_tokens" => 21, "output_tokens" => 9, "total_tokens" => 30 },
       "changed_files_count" => 0
     )
     expect(captured_payload).to include("model" => "gpt-spec")

@@ -299,6 +299,8 @@ module Runners
         "diff_artifact" => sandbox_changes.fetch(:diff_artifact),
         "changed_files_artifact" => sandbox_changes.fetch(:changed_files_artifact)
       }
+      provider_usage = extract_provider_usage(stdout, stderr)
+      output["provider_usage"] = provider_usage if provider_usage.present?
       output.merge!(planning_output(stdout)) if status.success? && planning_action? && stdout.strip.present?
       output
     rescue Timeout::Error
@@ -342,6 +344,43 @@ module Runners
       Bundler.with_unbundled_env do
         Open3.capture3(command, chdir: sandbox_dir.to_s)
       end
+    end
+
+    def extract_provider_usage(*streams)
+      streams.filter_map { |stream| usage_from_stream(stream) }.first
+    end
+
+    def usage_from_stream(stream)
+      stream.to_s.lines.filter_map do |line|
+        parsed = JSON.parse(line)
+        usage_from_payload(parsed)
+      rescue JSON::ParserError
+        nil
+      end.last
+    end
+
+    def usage_from_payload(payload)
+      payload = payload.to_h.deep_stringify_keys
+      usage = payload["provider_usage"].presence ||
+        payload["token_usage"].presence ||
+        payload["usage"].presence ||
+        payload.dig("message", "usage").presence ||
+        payload.dig("item", "usage").presence
+      return usage if usage.present?
+
+      direct_usage_payload?(payload) ? payload.slice(*usage_keys) : nil
+    end
+
+    def direct_usage_payload?(payload)
+      usage_keys.any? { |key| payload.key?(key) }
+    end
+
+    def usage_keys
+      %w[
+        input_tokens prompt_tokens prompt_eval_count input_token_count
+        output_tokens completion_tokens eval_count output_token_count
+        total_tokens total_token_count cached_tokens cached_input_tokens input_cached_tokens total_duration
+      ]
     end
 
     def execute_in_docker(command)

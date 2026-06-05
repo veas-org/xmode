@@ -1,0 +1,90 @@
+<% output = step.output_json.to_h %>
+<% usage_items = agent_usage_items(step, messages: messages) %>
+<% trace_artifacts = artifacts.select { |artifact| agent_trace_artifact?(artifact) } %>
+
+<div class="codex-agent-trace">
+  <div class="codex-agent-trace-head">
+    <div>
+      <span>Agent trace</span>
+      <% if agent_provider_title(step).present? %>
+        <small><%= agent_provider_title(step) %></small>
+      <% end %>
+    </div>
+    <% if usage_items.any? %>
+      <div class="codex-agent-usage" aria-label="Token usage">
+        <% usage_items.each do |label, value| %>
+          <span><strong><%= value %></strong> <%= label %></span>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+
+  <% if output["summary"].present? %>
+    <section class="codex-agent-section">
+      <p class="app-eyebrow">Summary</p>
+      <p><%= output["summary"] %></p>
+    </section>
+  <% end %>
+
+  <% if output["plan"].present? %>
+    <section class="codex-agent-section">
+      <p class="app-eyebrow">Plan</p>
+      <div class="rich-markdown codex-agent-markdown">
+        <%= render_markdown(output["plan"]) %>
+      </div>
+    </section>
+  <% end %>
+
+  <% if logs.any? || messages.any? %>
+    <section class="codex-agent-section">
+      <p class="app-eyebrow">Thinking log</p>
+      <div class="codex-agent-events">
+        <% logs.each do |log| %>
+          <div>
+            <span><%= log.level %></span>
+            <p><%= log.message %></p>
+          </div>
+        <% end %>
+        <% messages.each do |message| %>
+          <div>
+            <span><%= message.role %> · <%= message.kind.to_s.tr("_", " ") %></span>
+            <p><%= message.content.presence || message.payload["summary"].presence || message.status.to_s.titleize %></p>
+            <% message_usage = run_message_usage_items(message) %>
+            <% if message_usage.any? %>
+              <small><%= message_usage.map { |label, value| "#{label}: #{value}" }.join(" · ") %></small>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    </section>
+  <% end %>
+
+  <% if trace_artifacts.any? %>
+    <details class="codex-agent-section codex-agent-artifacts">
+      <summary>
+        <span>Raw transcript and logs</span>
+        <small><%= pluralize(trace_artifacts.size, "file") %></small>
+      </summary>
+      <div class="codex-agent-artifact-list">
+        <% trace_artifacts.each do |artifact| %>
+          <% preview = artifact_text_preview(artifact, max_bytes: 8_000) %>
+          <details>
+            <summary>
+              <span><%= artifact.name %></span>
+              <small><%= artifact.byte_size.present? ? number_to_human_size(artifact.byte_size) : artifact.content_type.presence || "saved" %></small>
+            </summary>
+            <% if preview.present? && artifact.content_type == "text/markdown" %>
+              <div class="record-artifact-preview rich-markdown mt-3">
+                <%= render_markdown(preview) %>
+              </div>
+            <% elsif preview.present? %>
+              <pre class="record-artifact-preview mt-3 overflow-auto rounded-md bg-muted/35 p-3 text-xs text-muted-foreground"><%= preview %></pre>
+            <% else %>
+              <p class="mt-2 text-xs text-muted-foreground">Preview unavailable.</p>
+            <% end %>
+          </details>
+        <% end %>
+      </div>
+    </details>
+  <% end %>
+</div>

@@ -155,6 +155,85 @@ RSpec.describe "Pipeline run detail", type: :request do
     expect(response.body).not_to include("Plan will be captured before execution continues.")
   end
 
+  it "shows agent trace, thinking log, transcript artifacts, and token usage" do
+    user = User.create!(name: "Owner", email: "owner-run-trace@example.com", password: "password123")
+    workspace = Workspace.create!(name: "Spec")
+    team = workspace.teams.create!(name: "Engineering", key: "eng")
+    workspace.memberships.create!(user: user, team: team, role: "owner")
+    action = workspace.action_definitions.create!(
+      key: "trace-plan",
+      name: "Trace Plan",
+      category: "planning",
+      provider: "openai",
+      input_schema: { type: "object" },
+      output_schema: { type: "object" }
+    )
+    pipeline = workspace.pipeline_definitions.create!(
+      key: "trace-pipeline",
+      name: "Trace Pipeline",
+      graph: { nodes: [ { id: "trace", action_key: action.key, action_id: action.id, label: action.name } ], edges: [] }
+    )
+    run = workspace.pipeline_runs.create!(
+      pipeline_definition: pipeline,
+      trigger: "manual",
+      status: "completed",
+      input_context: { "objective" => "Make the agent conversation reviewable." }
+    )
+    step = run.action_run_steps.create!(
+      action_definition: action,
+      name: action.name,
+      position: 0,
+      status: "completed",
+      output_json: {
+        "summary" => "OpenAI prepared the traceable plan.",
+        "status" => "planned",
+        "provider" => "openai",
+        "provider_mode" => "live",
+        "model" => "gpt-spec",
+        "plan" => "1. Capture plan.\n2. Capture summary.\n3. Show token usage.",
+        "provider_usage" => { "input_tokens" => 12, "output_tokens" => 8, "total_tokens" => 20 }
+      }
+    )
+    run.append_log("Model inspected the objective and prepared a concise plan.", step: step)
+    run.run_messages.create!(
+      action_run_step: step,
+      role: "assistant",
+      kind: "text",
+      status: "resolved",
+      content: "Agent loaded the objective.",
+      payload: {
+        "summary" => "Agent context loaded.",
+        "usage" => { "input_tokens" => 3, "output_tokens" => 2 }
+      }
+    )
+    artifact_root = Rails.root.join("storage", "runs", run.id.to_s, step.id.to_s)
+    artifact_path = artifact_root.join("agent-transcript.md")
+    FileUtils.mkdir_p(artifact_root)
+    File.write(artifact_path, "# Agent transcript\n\nThe visible agent transcript is captured here.")
+    run.run_artifacts.create!(
+      action_run_step: step,
+      name: "agent-transcript.md",
+      path: artifact_path.to_s,
+      content_type: "text/markdown",
+      byte_size: File.size(artifact_path)
+    )
+
+    post login_path, params: { email: user.email, password: "password123" }
+    get pipeline_run_path(run)
+
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include("Agent trace")
+    expect(response.body).to include("Thinking log")
+    expect(response.body).to include("OpenAI prepared the traceable plan.")
+    expect(response.body).to include("Model inspected the objective")
+    expect(response.body).to include("Agent loaded the objective.")
+    expect(response.body).to include("20</strong> total")
+    expect(response.body).to include("Raw transcript and logs")
+    expect(response.body).to include("agent-transcript.md")
+  ensure
+    FileUtils.rm_rf(artifact_root) if artifact_root
+  end
+
   it "promotes a planning step stdout artifact when structured plan output is missing" do
     user = User.create!(name: "Owner", email: "owner-artifact-plan@example.com", password: "password123")
     workspace = Workspace.create!(name: "Spec")
