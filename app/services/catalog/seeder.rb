@@ -402,7 +402,7 @@ module Catalog
         sandbox_kind: "cloud_vm",
         runner_mode: "cloud_worker",
         docker_image: ExecutionEnvironment::DEFAULT_RUBY_DOCKER_IMAGE,
-        agent_command_template: "codex exec --model ${XMODE_CODE_MODEL:-configured-profile} --sandbox workspace-write --skip-git-repo-check - < .xmode/plan.md"
+        agent_command_template: "codex exec --model ${XMODE_CODE_MODEL:-configured-profile} --dangerously-bypass-approvals-and-sandbox --skip-git-repo-check - < .xmode/plan.md"
       }
     end
 
@@ -415,7 +415,8 @@ module Catalog
         sandbox_kind: "cloud_vm",
         runner_mode: "cloud_worker",
         docker_image: ExecutionEnvironment::DEFAULT_RUBY_DOCKER_IMAGE,
-        agent_command_template: "codex exec --model ${XMODE_CODE_MODEL:-configured-profile} --sandbox #{sandbox_mode} --skip-git-repo-check - < .xmode/plan.md"
+        agent_command_template: "codex exec --model ${XMODE_CODE_MODEL:-configured-profile} --dangerously-bypass-approvals-and-sandbox --skip-git-repo-check - < .xmode/plan.md",
+        codex_requested_sandbox: sandbox_mode
       }
     end
 
