@@ -20,9 +20,11 @@ RUN apt-get update -qq && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
 # Install the standalone Codex CLI for subscription-backed Codex Cloud sessions.
-RUN CODEX_NON_INTERACTIVE=1 CODEX_INSTALL_DIR=/usr/local/bin CODEX_HOME=/tmp/codex-install \
-    sh -c "$(curl -fsSL https://chatgpt.com/codex/install.sh)" && \
-    rm -rf /tmp/codex-install
+# The installer symlinks /usr/local/bin/codex into CODEX_HOME, so keep the
+# package directory in the final image and use /home/rails/.codex only for auth.
+RUN mkdir -p /usr/local/share/codex && \
+    CODEX_NON_INTERACTIVE=1 CODEX_INSTALL_DIR=/usr/local/bin CODEX_HOME=/usr/local/share/codex \
+    sh -c "$(curl -fsSL https://chatgpt.com/codex/install.sh)"
 
 # Set production environment
 ENV RAILS_ENV="production" \
