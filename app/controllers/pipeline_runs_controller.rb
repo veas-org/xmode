@@ -30,6 +30,7 @@ class PipelineRunsController < AuthenticatedController
     @messages_by_step_id = @run_messages.group_by(&:action_run_step_id)
     @logs_by_step_id = @logs.group_by(&:action_run_step_id)
     @artifacts_by_step_id = @artifacts.group_by(&:action_run_step_id)
+    @sandboxes_by_step_id = @sandbox_sessions.group_by(&:action_run_step_id)
     @change_request = @run.change_request
     @snapshot_nodes = @run.pipeline_snapshot.dig("graph", "nodes") || []
     @can_resume = @run.status.in?(%w[queued failed])

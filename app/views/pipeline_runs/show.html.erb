@@ -13,8 +13,10 @@
   @artifacts.find { |artifact| artifact.action_run_step_id == artifact_plan_step.id && artifact.name == "stdout.log" && artifact.content_type.to_s.start_with?("text/") }
 end %>
 <% generated_plan_artifact_text = generated_plan_artifact ? artifact_text_preview(generated_plan_artifact, max_bytes: 32_000)&.strip : nil %>
-<% generated_plan_text = generated_plan_output&.dig("plan").presence || generated_plan_artifact_text.presence %>
-<% plan_text = run_context["plan"].presence || generated_plan_text || @steps.map { |step| (step.input_json || {}).to_h["plan"].presence }.compact.first || "Plan will be captured before execution continues." %>
+<% generated_plan_text = renderable_plan_text(generated_plan_output&.dig("plan")).presence || generated_plan_artifact_text.presence %>
+<% run_plan_text = renderable_plan_text(run_context["plan"]).presence %>
+<% input_plan_text = @steps.map { |step| renderable_plan_text((step.input_json || {}).to_h["plan"]).presence }.compact.first %>
+<% plan_text = run_plan_text || generated_plan_text || input_plan_text || "Plan will be captured before execution continues." %>
 <% plan_source_detail = generated_plan_output["model"].presence || (generated_plan_artifact&.name if generated_plan_artifact_text.present?) %>
 <% plan_source_label = generated_plan_step ? "#{generated_plan_step.name}#{plan_source_detail.present? ? " · #{plan_source_detail}" : ""}" : "Run context" %>
 <% plan_acceptance_checks = Array(generated_plan_output&.dig("acceptance_checks")).select(&:present?) %>
@@ -45,7 +47,7 @@ else
   "Run is waiting for its first step."
 end %>
 
-<div class="codex-run-shell">
+<div class="codex-run-shell" data-controller="run-chat">
   <aside class="codex-session-sidebar">
     <header class="codex-session-sidebar-head">
       <div>
@@ -76,7 +78,7 @@ end %>
     </div>
   </aside>
 
-  <main class="codex-chat-pane" data-controller="run-chat">
+  <main class="codex-chat-pane">
     <header class="codex-chat-header">
       <div class="min-w-0">
         <div class="codex-chat-kicker">
@@ -89,6 +91,11 @@ end %>
       </div>
       <div class="codex-chat-header-actions">
         <%= status_icon_pill(@run.status, title: @run.display_status) %>
+        <% if current_step %>
+          <%= link_to "##{step_anchor(current_step)}", class: "app-btn app-btn-muted", data: { action: "run-chat#jumpToStep" } do %>
+            <span>Current step</span>
+          <% end %>
+        <% end %>
         <% if @run.issue %>
           <%= link_to issue_path(@run.issue), class: "app-btn app-btn-muted" do %>
             <%= lucide_icon("circle-dot", class_name: "app-icon") %>
@@ -131,7 +138,7 @@ end %>
         <% step_summary = output["summary"].presence || step.error_message.presence || input["objective"].presence || step.action_definition&.description.presence || "Step recorded." %>
 
         <% if step == generated_plan_step && generated_plan_text.present? %>
-          <article class="codex-chat-bubble is-assistant is-plan">
+          <article id="<%= step_anchor(step) %>" class="codex-chat-bubble is-assistant is-plan">
             <div class="codex-chat-bubble-head">
               <span>Codex</span>
               <span><%= plan_source_label %></span>
@@ -174,7 +181,7 @@ end %>
             <% end %>
           </article>
         <% else %>
-          <article class="codex-chat-bubble is-system <%= "is-danger" if step.error_message.present? %>">
+          <article id="<%= step_anchor(step) %>" class="codex-chat-bubble is-system <%= "is-danger" if step.error_message.present? %>">
             <div class="codex-chat-bubble-head">
               <span><%= step.name %></span>
               <span><%= provider %> · <%= duration %></span>
@@ -352,6 +359,46 @@ end %>
   </main>
 
   <aside class="codex-run-inspector">
+    <section class="codex-run-outline">
+      <div class="codex-inspector-head">
+        <p class="app-eyebrow">Execution</p>
+        <h3>Run outline</h3>
+        <span class="linear-count"><%= completed_steps %>/<%= @steps.size %></span>
+      </div>
+      <div class="codex-run-progress" aria-label="Run progress">
+        <span style="width: <%= @steps.any? ? ((completed_steps.to_f / @steps.size) * 100).round : 0 %>%"></span>
+      </div>
+      <ol class="codex-step-outline">
+        <% @steps.each do |step| %>
+          <% step_messages = @messages_by_step_id.fetch(step.id, []) %>
+          <% step_logs = @logs_by_step_id.fetch(step.id, []) %>
+          <% step_artifacts = @artifacts_by_step_id.fetch(step.id, []) %>
+          <% step_sandboxes = @sandboxes_by_step_id.fetch(step.id, []) %>
+          <% substeps = step_outline_substeps(step, messages: step_messages, logs: step_logs, artifacts: step_artifacts, sandboxes: step_sandboxes) %>
+          <% step_active = step == current_step %>
+          <li>
+            <%= link_to "##{step_anchor(step)}", class: "codex-step-outline-link #{step_active ? "is-current" : ""}", data: { action: "run-chat#jumpToStep" } do %>
+              <%= status_icon_pill(step.status, title: step.display_status) %>
+              <span>
+                <strong><%= step.name %></strong>
+                <small><%= step.display_status %></small>
+              </span>
+            <% end %>
+            <% if substeps.any? %>
+              <ol class="codex-step-substeps">
+                <% substeps.each do |substep| %>
+                  <li>
+                    <span class="codex-step-substep-dot" aria-hidden="true"></span>
+                    <span><%= substep %></span>
+                  </li>
+                <% end %>
+              </ol>
+            <% end %>
+          </li>
+        <% end %>
+      </ol>
+    </section>
+
     <section>
       <div class="codex-inspector-head">
         <p class="app-eyebrow">Inspector</p>
@@ -375,25 +422,6 @@ end %>
           <strong><%= pluralize(evidence_total, "item") %></strong>
         </div>
       </div>
-    </section>
-
-    <section>
-      <div class="codex-inspector-head">
-        <p class="app-eyebrow">Execution</p>
-        <h3>Steps</h3>
-        <span class="linear-count"><%= completed_steps %>/<%= @steps.size %></span>
-      </div>
-      <ol class="codex-inspector-step-list">
-        <% @steps.each do |step| %>
-          <li>
-            <%= status_icon_pill(step.status, title: step.display_status) %>
-            <span>
-              <strong><%= step.name %></strong>
-              <small><%= step.display_status %></small>
-            </span>
-          </li>
-        <% end %>
-      </ol>
     </section>
 
     <section>
