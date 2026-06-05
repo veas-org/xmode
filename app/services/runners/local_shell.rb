@@ -1,5 +1,7 @@
 module Runners
   class LocalShell
+    require "shellwords"
+
     class TimeoutError < StandardError; end
 
     def self.call(step)
@@ -43,15 +45,17 @@ module Runners
       end
 
       command = @action.defaults["command"].presence || @step.input_json["command"].presence || "pwd"
-      session.update!(metadata: session.metadata.merge("command" => command))
+      execution_command = execution_command_for(command)
+      session.update!(metadata: session.metadata.merge("command" => execution_command, "sandbox_command" => command))
       artifact_dir.mkpath
       sandbox_dir.mkpath
       @run.append_log("#{sandbox_label} prepared at #{sandbox_dir}", step: @step)
-      @run.append_log("Command: #{command}", step: @step)
+      @run.append_log(agent_command_template.present? ? "Sandbox command: #{command}" : "Command: #{command}", step: @step)
+      @run.append_log("Agent command: #{execution_command}", step: @step) if agent_command_template.present?
 
       prepare_repository
       prepare_agent_instruction!(command)
-      output = execute(command)
+      output = execute(execution_command)
       artifact_path = artifact_dir.join("output.json")
       artifact_path.write(JSON.pretty_generate(output))
       record_artifact("output.json", artifact_path, "application/json")
@@ -108,17 +112,25 @@ module Runners
     end
 
     def sandbox_dir
-      artifact_dir.join("sandbox")
+      @sandbox_dir ||= @run.project&.repository_url.present? ? shared_sandbox_dir : artifact_dir.join("sandbox")
+    end
+
+    def shared_sandbox_dir
+      Rails.root.join("storage", "runs", @run.id.to_s, "worktree")
     end
 
     def prepare_repository
       repo_url = @run.project&.repository_url.presence
       if repo_url
-        reset_sandbox_dir!
-        cloned = system("git", "clone", "--depth", "1", repo_url, sandbox_dir.to_s, out: File::NULL, err: File::NULL)
-        raise "Repository clone failed for #{repo_url}" unless cloned
+        if sandbox_dir.join(".git").directory?
+          @run.append_log("Reusing repository sandbox worktree", step: @step)
+        else
+          reset_sandbox_dir!
+          cloned = system("git", "clone", "--depth", "1", repo_url, sandbox_dir.to_s, out: File::NULL, err: File::NULL)
+          raise "Repository clone failed for #{repo_url}" unless cloned
 
-        @run.append_log("Repository cloned into sandbox", step: @step)
+          @run.append_log("Repository cloned into sandbox", step: @step)
+        end
       else
         sandbox_dir.join("README.md").write("xmode run #{@run.id} sandbox\n")
         @run.append_log("No repository URL configured; using empty sandbox", step: @step)
@@ -144,7 +156,7 @@ module Runners
             "agent_model" => configured_agent_model,
             "agent_instruction_path" => ".xmode/plan.md",
             "agent_instruction_artifact" => "agent-instruction.md",
-            "agent_command_template" => @action.runtime_config["agent_command_template"].presence
+            "agent_command_template" => agent_command_template
           }.compact
         )
       )
@@ -152,7 +164,7 @@ module Runners
     end
 
     def agent_instruction_enabled?
-      execution_environment.cloud_worker? || @action.runtime_config["agent_command_template"].present?
+      execution_environment.cloud_worker? || agent_command_template.present?
     end
 
     def agent_instruction_markdown(command)
@@ -219,8 +231,23 @@ module Runners
 
     def configured_agent_model
       @action.runtime_config["agent_model"].presence ||
+        (CodexSession.default_model("local_cli") if agent_command_template.present?) ||
         @run.workspace.code_model_profiles.active.find_by(default_profile: true)&.model ||
         ENV.fetch("LOCAL_MODEL_NAME", "qwen3-coder:30b")
+    end
+
+    def agent_command_template
+      @action.runtime_config["agent_command_template"].presence
+    end
+
+    def execution_command_for(command)
+      return command if agent_command_template.blank?
+
+      agent_command_template
+        .gsub("${XMODE_CODE_MODEL:-configured-profile}", Shellwords.escape(configured_agent_model))
+        .gsub("${XMODE_CODE_MODEL}", Shellwords.escape(configured_agent_model))
+        .gsub("${XMODE_AGENT_INSTRUCTION}", Shellwords.escape(".xmode/plan.md"))
+        .gsub("${XMODE_SANDBOX_COMMAND}", Shellwords.escape(command.to_s))
     end
 
     def exclude_agent_instruction_from_diff
@@ -242,7 +269,8 @@ module Runners
     end
 
     def real_sandbox_in_demo?
-      ActiveModel::Type::Boolean.new.cast(@action.runtime_config["real_sandbox_in_demo"])
+      ActiveModel::Type::Boolean.new.cast(@step.input_json["real_sandbox_in_demo"]) ||
+        ActiveModel::Type::Boolean.new.cast(@action.runtime_config["real_sandbox_in_demo"])
     end
 
     def execute(command)
@@ -279,7 +307,9 @@ module Runners
       return execute_in_docker(command) if execution_environment.docker?
 
       @run.append_log("Cloud worker executing inside the hosted xmode worker container", step: @step) if execution_environment.cloud_worker?
-      Open3.capture3(command, chdir: sandbox_dir.to_s)
+      Bundler.with_unbundled_env do
+        Open3.capture3(command, chdir: sandbox_dir.to_s)
+      end
     end
 
     def execute_in_docker(command)

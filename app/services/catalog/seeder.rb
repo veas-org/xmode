@@ -24,6 +24,8 @@ module Catalog
       [ "verify-typescript-sandbox", "Verify TypeScript Sandbox", "verification", "local_shell", [ "run_code_actions" ], "verification" ],
       [ "verify-ruby-rails-sandbox", "Verify Ruby Rails Sandbox", "verification", "local_shell", [ "run_code_actions" ], "verification" ],
       [ "cloud-rails-code", "Cloud Rails Code", "coding", "local_shell", [ "run_code_actions" ], "cloud-sandbox-implementation" ],
+      [ "codex-plan-dependencies", "Codex Plan Dependencies", "planning", "local_shell", [ "run_code_actions" ], "cloud-sandbox-implementation" ],
+      [ "codex-update-dependencies", "Codex Update Dependencies", "maintenance", "local_shell", [ "run_code_actions" ], "cloud-sandbox-implementation" ],
       [ "present-sandbox-result", "Present Sandbox Result", "review", "local_model", [ "view_project" ], "change-review" ],
       [ "open-change-request", "Open Change Request", "review", "local_shell", [ "approve_change_requests" ], "change-review" ],
       [ "manual-approval", "Manual Approval", "manual", "manual", [ "approve_change_requests" ], "manual-decision" ],
@@ -35,6 +37,7 @@ module Catalog
     PIPELINES = [
       [ "implement-issue", "Implement Issue", %w[plan-story verify-plan code run-tests review-diff open-change-request] ],
       [ "update-dependencies", "Update Dependencies", %w[update-dependencies run-tests open-change-request] ],
+      [ "codex-update-dependencies", "Codex Update Dependencies", %w[codex-plan-dependencies manual-approval codex-update-dependencies run-tests open-change-request] ],
       [ "fix-failing-build", "Fix Failing Build", %w[handle-event plan-story code run-tests open-change-request] ],
       [ "handle-production-event", "Handle Production Event", %w[handle-event plan-story manual-approval code run-tests open-change-request] ],
       [ "review-change-request", "Review Change Request", %w[review-diff security-scan manual-approval] ],
@@ -346,11 +349,19 @@ module Catalog
     def default_for(key)
       case key
       when "run-tests"
-        { command: "bin/rails test" }
+        { command: "if [ -x bin/rails ]; then bin/rails test; else bundle exec rails test; fi" }
       when "security-scan"
         { command: "bin/brakeman --no-pager" }
       when "update-dependencies"
-        { command: "bundle update --patch" }
+        { command: "if [ -f Gemfile.lock ]; then bundle update --patch; else bundle lock && bundle update --patch; fi" }
+      when "codex-plan-dependencies"
+        {
+          command: "Inspect the repository dependency files and prepare a concise dependency update plan. Do not edit files."
+        }
+      when "codex-update-dependencies"
+        {
+          command: "Update Ruby dependencies safely. If Gemfile.lock exists, run bundle update --patch. If Gemfile.lock is missing, create it with bundle lock, then run bundle update --patch. Verify the Rails environment or tests, and summarize changed files."
+        }
       when "verify-typescript-sandbox"
         { command: "npm install --no-audit --no-fund && npm run verify && npm run xmode:agent-change -- Bender" }
       when "verify-ruby-rails-sandbox"
@@ -366,6 +377,8 @@ module Catalog
       return { shell: true, real_sandbox_in_demo: true, fixture: "hello-world-typescript" } if key == "verify-typescript-sandbox"
       return { shell: true, real_sandbox_in_demo: true, fixture: "hello-world-rails", language: "ruby", framework: "rails" } if key == "verify-ruby-rails-sandbox"
       return cloud_rails_runtime if key == "cloud-rails-code"
+      return codex_cli_runtime(sandbox_mode: "read-only") if key == "codex-plan-dependencies"
+      return codex_cli_runtime(sandbox_mode: "workspace-write") if key == "codex-update-dependencies"
       return { "mode" => "live", "temperature" => 0.1, "max_tokens" => 360, "num_predict" => 360 } if key == "present-sandbox-result"
       return { "mode" => "live", "temperature" => 0.1, "max_tokens" => 420, "num_predict" => 420 } if key == "local-model-plan"
 
@@ -389,7 +402,20 @@ module Catalog
         sandbox_kind: "cloud_vm",
         runner_mode: "cloud_worker",
         docker_image: ExecutionEnvironment::DEFAULT_RUBY_DOCKER_IMAGE,
-        agent_command_template: "codex exec --model ${XMODE_CODE_MODEL:-configured-profile} --sandbox workspace --instruction-file .xmode/plan.md"
+        agent_command_template: "codex exec --model ${XMODE_CODE_MODEL:-configured-profile} --sandbox workspace-write --skip-git-repo-check - < .xmode/plan.md"
+      }
+    end
+
+    def codex_cli_runtime(sandbox_mode:)
+      {
+        shell: true,
+        real_sandbox_in_demo: true,
+        language: "ruby",
+        framework: "rails",
+        sandbox_kind: "cloud_vm",
+        runner_mode: "cloud_worker",
+        docker_image: ExecutionEnvironment::DEFAULT_RUBY_DOCKER_IMAGE,
+        agent_command_template: "codex exec --model ${XMODE_CODE_MODEL:-configured-profile} --sandbox #{sandbox_mode} --skip-git-repo-check - < .xmode/plan.md"
       }
     end
 
@@ -445,6 +471,10 @@ module Catalog
         "Verify that xmode can clone, inspect, and modify the {{project}} Ruby on Rails sandbox fixture."
       when "cloud-rails-code"
         "Implement the approved plan for {{issue}} {{issue_title}} inside a hosted Rails cloud sandbox for {{project}}."
+      when "codex-plan-dependencies"
+        "Use Oracle Codex CLI to prepare a dependency update plan for {{project}} without changing files."
+      when "codex-update-dependencies"
+        "Use Oracle Codex CLI to update dependencies for {{project}} inside the cloud sandbox."
       when "present-sandbox-result"
         "Explain the cloud sandbox output, changed files, tests, and review package for {{issue}} {{issue_title}}."
       when "open-change-request"
@@ -472,6 +502,10 @@ module Catalog
         "Clone the Rails fixture repository, run the Ruby sandbox script, generate a predictable README/service/test diff, and record sandbox evidence."
       when "cloud-rails-code"
         "Clone the Rails repository in the cloud worker, apply the approved agent change, capture stdout/stderr, changed files, and a sandbox diff, and leave the local checkout untouched."
+      when "codex-plan-dependencies"
+        "Clone the repository in the Oracle worker, ask Codex CLI to inspect dependency files, produce a concise update plan, and make no repository edits."
+      when "codex-update-dependencies"
+        "Clone the repository in the Oracle worker, run Codex CLI against the approved dependency objective, update dependency state, capture stdout/stderr, changed files, and diff evidence."
       when "present-sandbox-result"
         "Read the previous planning and cloud sandbox evidence, then produce a concise reviewer-facing result summary with changed files, tests, and next review action."
       when "open-change-request"
@@ -489,6 +523,10 @@ module Catalog
         "Update the plan while preserving the original objective and unresolved constraints."
       when "cloud-rails-code"
         "Run only inside the hosted sandbox worktree. Use the approved plan as the contract, capture evidence, and never mutate the user's local checkout."
+      when "codex-plan-dependencies"
+        "Run Codex CLI in read-only mode on the Oracle worker and produce planning evidence before any dependency file is changed."
+      when "codex-update-dependencies"
+        "Run Codex CLI in the hosted sandbox worktree. Keep dependency edits scoped and package changed files into a Change Request."
       when "present-sandbox-result"
         "Present the result as a review brief. Do not claim additional code changes; summarize only evidence produced by earlier sandbox steps."
       else
@@ -498,7 +536,8 @@ module Catalog
 
     def action_best_practices_for(key)
       base = [ "Use structured input and output.", "Keep the action scoped to its objective.", "Record evidence for the next pipeline step." ]
-      return base + [ "Do not change the main checkout directly.", "Every code change should end in a new Change Request." ] if key.in?(%w[code cloud-rails-code update-dependencies open-change-request])
+      return base + [ "Do not change the main checkout directly.", "Every code change should end in a new Change Request." ] if key.in?(%w[code cloud-rails-code codex-update-dependencies update-dependencies open-change-request])
+      return base + [ "Run Codex in read-only mode.", "Make the dependency plan visible before approval." ] if key == "codex-plan-dependencies"
       return base + [ "Make approval choices explicit: approve, revise, trigger, or reject." ] if key.in?(%w[verify-plan manual-approval review-diff])
       return base + [ "Reference only actual sandbox evidence.", "Keep the summary concise enough for review." ] if key == "present-sandbox-result"
 
