@@ -76,8 +76,7 @@ module CodexSdk
         @session.model,
         "--sandbox",
         @session.sandbox_mode,
-        "--ask-for-approval",
-        @session.approval_policy
+        "--skip-git-repo-check"
       ]
       command += [ "-C", @session.working_directory ] if @session.working_directory.present?
       command << prompt
