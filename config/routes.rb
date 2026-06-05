@@ -87,6 +87,9 @@ Rails.application.routes.draw do
   end
   resources :schedules, except: :destroy
   resources :change_requests, only: %i[index show]
+  resources :codex_sessions, only: %i[index show create] do
+    member { post :message }
+  end
   resources :integrations, only: %i[index new create] do
     collection do
       get :github_app

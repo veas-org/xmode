@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_06_04_020000) do
+ActiveRecord::Schema[8.0].define(version: 2026_06_04_030000) do
   create_table "action_definitions", force: :cascade do |t|
     t.integer "workspace_id"
     t.string "key", null: false
@@ -193,6 +193,59 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_04_020000) do
     t.index ["workspace_id", "provider", "name"], name: "idx_on_workspace_id_provider_name_1b3eec67d8", unique: true
     t.index ["workspace_id", "status"], name: "index_code_model_profiles_on_workspace_id_and_status"
     t.index ["workspace_id"], name: "index_code_model_profiles_on_workspace_id"
+  end
+
+  create_table "codex_session_messages", force: :cascade do |t|
+    t.integer "codex_session_id", null: false
+    t.integer "user_id"
+    t.string "role", default: "user", null: false
+    t.string "status", default: "queued", null: false
+    t.text "content", null: false
+    t.text "response"
+    t.json "metadata", default: {}, null: false
+    t.integer "duration_ms"
+    t.datetime "started_at"
+    t.datetime "finished_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["codex_session_id", "created_at"], name: "index_codex_messages_on_session_created_at"
+    t.index ["codex_session_id", "status"], name: "index_codex_messages_on_session_status"
+    t.index ["codex_session_id"], name: "index_codex_session_messages_on_codex_session_id"
+    t.index ["user_id"], name: "index_codex_session_messages_on_user_id"
+  end
+
+  create_table "codex_sessions", force: :cascade do |t|
+    t.integer "workspace_id", null: false
+    t.integer "user_id"
+    t.integer "project_id"
+    t.integer "pipeline_run_id"
+    t.integer "sandbox_session_id"
+    t.string "status", default: "queued", null: false
+    t.string "runtime", default: "cloud_subscription", null: false
+    t.string "model", default: "codex-cloud", null: false
+    t.string "title", null: false
+    t.text "objective", null: false
+    t.string "cloud_environment_id"
+    t.string "cloud_task_id"
+    t.string "branch"
+    t.string "working_directory"
+    t.string "sandbox_mode", default: "workspace-write", null: false
+    t.string "approval_policy", default: "never", null: false
+    t.json "metadata", default: {}, null: false
+    t.text "last_error"
+    t.datetime "started_at"
+    t.datetime "finished_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["cloud_environment_id"], name: "index_codex_sessions_on_cloud_environment_id"
+    t.index ["cloud_task_id"], name: "index_codex_sessions_on_cloud_task_id"
+    t.index ["pipeline_run_id"], name: "index_codex_sessions_on_pipeline_run_id"
+    t.index ["project_id"], name: "index_codex_sessions_on_project_id"
+    t.index ["sandbox_session_id"], name: "index_codex_sessions_on_sandbox_session_id"
+    t.index ["user_id"], name: "index_codex_sessions_on_user_id"
+    t.index ["workspace_id", "created_at"], name: "index_codex_sessions_on_workspace_id_and_created_at"
+    t.index ["workspace_id", "status"], name: "index_codex_sessions_on_workspace_id_and_status"
+    t.index ["workspace_id"], name: "index_codex_sessions_on_workspace_id"
   end
 
   create_table "cycles", force: :cascade do |t|
@@ -708,6 +761,13 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_04_020000) do
   add_foreign_key "change_requests", "repository_connections"
   add_foreign_key "change_requests", "workspaces"
   add_foreign_key "code_model_profiles", "workspaces"
+  add_foreign_key "codex_session_messages", "codex_sessions"
+  add_foreign_key "codex_session_messages", "users"
+  add_foreign_key "codex_sessions", "pipeline_runs"
+  add_foreign_key "codex_sessions", "projects"
+  add_foreign_key "codex_sessions", "sandbox_sessions"
+  add_foreign_key "codex_sessions", "users"
+  add_foreign_key "codex_sessions", "workspaces"
   add_foreign_key "cycles", "teams"
   add_foreign_key "cycles", "workspaces"
   add_foreign_key "event_rules", "workspaces"

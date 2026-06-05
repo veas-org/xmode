@@ -4,7 +4,7 @@ module Providers
 
     def self.call(provider, step)
       output = case provider
-      when "codex", "openai"
+      when "codex", "codex_cloud", "openai"
         CodexProvider.call(step)
       when "code_model", "local_model", "ollama", "anthropic", "claude"
         LocalModelProvider.call(step)

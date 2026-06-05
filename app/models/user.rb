@@ -11,6 +11,8 @@ class User < ApplicationRecord
   has_many :audit_events, dependent: :nullify
   has_many :sso_identities, dependent: :destroy
   has_many :admin_model_requests, dependent: :destroy
+  has_many :codex_sessions, dependent: :nullify
+  has_many :codex_session_messages, dependent: :nullify
 
   normalizes :email, with: ->(email) { email.to_s.strip.downcase }
 

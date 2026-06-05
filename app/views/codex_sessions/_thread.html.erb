@@ -1,0 +1,49 @@
+<%= turbo_frame_tag dom_id(codex_session, :thread) do %>
+  <section class="ops-section">
+    <div class="ops-section-head">
+      <div>
+        <p class="app-eyebrow">Transcript</p>
+        <h2>Session thread</h2>
+      </div>
+      <%= status_icon_pill(codex_session.status, title: codex_session.display_status) %>
+    </div>
+
+    <div class="ops-list">
+      <% codex_session.codex_session_messages.includes(:user).chronological.each do |message| %>
+        <article class="ops-row items-start">
+          <%= status_icon_pill(message.status, title: message.display_status) %>
+          <div class="record-point-main min-w-0">
+            <span class="record-point-title">
+              <%= message.user&.display_name || message.role.titleize %>
+              <span class="linear-count ml-2"><%= message.role %></span>
+            </span>
+            <span class="record-point-meta">
+              <span><%= message.display_status %></span>
+              <% if message.duration_ms.present? %>
+                <span><%= message.duration_ms %> ms</span>
+              <% end %>
+              <span><%= time_ago_in_words(message.created_at) %> ago</span>
+            </span>
+            <span class="mt-3 block whitespace-pre-wrap text-sm leading-6 text-foreground"><%= message.content %></span>
+            <% if message.response.present? %>
+              <div class="mt-4 rounded-md bg-muted/45 p-4 text-sm leading-6 text-foreground/90">
+                <%= simple_format(message.response) %>
+              </div>
+            <% end %>
+            <% if message.metadata.present? && message.metadata["command"].present? %>
+              <span class="mt-3 block text-xs text-muted-foreground">
+                Command: <code><%= Array(message.metadata["command"]).join(" ") %></code>
+              </span>
+            <% end %>
+          </div>
+        </article>
+      <% end %>
+    </div>
+
+    <% if codex_session.last_error.present? %>
+      <div class="mt-4 rounded-md bg-destructive/10 p-4 text-sm text-destructive">
+        <strong>Last error:</strong> <%= codex_session.last_error %>
+      </div>
+    <% end %>
+  </section>
+<% end %>

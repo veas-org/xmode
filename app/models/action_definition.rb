@@ -1,6 +1,6 @@
 class ActionDefinition < ApplicationRecord
   CATEGORIES = %w[planning coding verification review release incident maintenance manual].freeze
-  PROVIDERS = %w[manual local_shell codex openai code_model local_model ollama anthropic claude github_actions gitlab_ci mcp].freeze
+  PROVIDERS = %w[manual local_shell codex codex_cloud openai code_model local_model ollama anthropic claude github_actions gitlab_ci mcp].freeze
   SEMVER_PATTERN = CatalogVersioning::SEMVER_PATTERN
 
   include CatalogVersioning

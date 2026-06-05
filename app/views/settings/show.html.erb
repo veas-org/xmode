@@ -417,6 +417,7 @@
           <span class="linear-count"><%= @default_code_model_profile.display_provider %></span>
           <% if permitted?(:manage_workspace) %>
             <%= link_to "Model console", qwen_admin_path, class: "app-btn app-btn-muted" %>
+            <%= link_to "Codex sessions", codex_sessions_path, class: "app-btn app-btn-muted" %>
           <% end %>
         </div>
       </div>
@@ -424,6 +425,7 @@
         <span><strong><%= @default_code_model_profile.name %></strong> default</span>
         <span><strong><%= @local_model_name %></strong> model</span>
         <span><strong><%= @default_code_model_profile.credential_label %></strong> credentials</span>
+        <span><strong><%= @codex_session_count %></strong> Codex sessions</span>
         <span><strong><%= @local_model_timeout %>s</strong> timeout</span>
       </div>
       <div class="settings-overview-grid">
@@ -456,8 +458,56 @@
                 <span class="record-point-meta"><span>Model output can plan and ask follow-ups, but code-changing work still needs sandbox evidence and a Change Request.</span></span>
               </span>
             </article>
+            <article class="settings-list-row">
+              <span class="record-point-main">
+                <span class="record-point-title">Codex Cloud sessions</span>
+                <span class="record-point-meta"><span>Use subscription-backed Codex Cloud through the server CLI, while xmode stores session transcript, task ID, branch, and review evidence.</span></span>
+              </span>
+            </article>
           </div>
         </section>
+      </div>
+      <div class="settings-subsection">
+        <div class="settings-panel-head">
+          <div>
+            <p class="app-eyebrow">Codex Cloud</p>
+            <h3>Subscription runtime</h3>
+          </div>
+          <% if permitted?(:manage_workspace) %>
+            <%= link_to "Open session", codex_sessions_path, class: "app-btn app-btn-muted" %>
+          <% end %>
+        </div>
+        <div class="settings-overview-grid">
+          <section>
+            <h3>Connection</h3>
+            <dl class="settings-key-values">
+              <div><dt>Runtime</dt><dd><%= @codex_cloud_runtime.tr("_", " ").titleize %></dd></div>
+              <div><dt>Model</dt><dd><%= @codex_cloud_model %></dd></div>
+              <div><dt>Environment</dt><dd title="<%= @codex_cloud_environment_id %>"><%= @codex_cloud_environment_id.presence || "Set CODEX_CLOUD_ENV_ID on the server" %></dd></div>
+              <div><dt>Backend</dt><dd>Authenticated Codex CLI subscription</dd></div>
+            </dl>
+          </section>
+          <section>
+            <h3>Recent sessions</h3>
+            <div class="settings-list">
+              <% @recent_codex_sessions.each do |codex_session| %>
+                <%= link_to codex_session_path(codex_session), class: "settings-list-row" do %>
+                  <span class="record-point-main">
+                    <span class="record-point-title"><%= codex_session.title %></span>
+                    <span class="record-point-meta">
+                      <span><%= codex_session.runtime_label %></span>
+                      <span><%= codex_session.display_status %></span>
+                      <span><%= time_ago_in_words(codex_session.updated_at) %> ago</span>
+                    </span>
+                  </span>
+                <% end %>
+              <% end %>
+              <% if @recent_codex_sessions.empty? %>
+                <p class="linear-empty px-0 py-5 text-left">Open a session to submit the first Codex Cloud task from xmode.</p>
+              <% end %>
+            </div>
+          </section>
+        </div>
       </div>
       <div class="settings-subsection">
         <div class="settings-panel-head">

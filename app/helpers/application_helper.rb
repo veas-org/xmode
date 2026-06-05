@@ -164,7 +164,7 @@ module ApplicationHelper
       { label: "Schedules", href: schedules_path }
     when "change_requests"
       { label: "Change Requests", href: change_requests_path }
-    when "integrations", "repository_connections", "admin", "invitations", "audit_events", "billings"
+    when "integrations", "repository_connections", "admin", "codex_sessions", "invitations", "audit_events", "billings"
       { label: "Settings", href: settings_path }
     when "settings"
       { label: "Settings", href: settings_path }

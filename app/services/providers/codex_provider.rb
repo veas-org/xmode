@@ -28,7 +28,10 @@ module Providers
     end
 
     def provider_name
-      @action.provider == "openai" ? "openai" : "codex"
+      return "openai" if @action.provider == "openai"
+      return "codex_cloud" if @action.provider == "codex_cloud"
+
+      "codex"
     end
 
     def objective
@@ -284,7 +287,11 @@ module Providers
     end
 
     def provider_label
-      provider_name == "openai" ? "OpenAI" : "Codex"
+      case provider_name
+      when "openai" then "OpenAI"
+      when "codex_cloud" then "Codex Cloud"
+      else "Codex"
+      end
     end
 
     def provider_follow_up_response

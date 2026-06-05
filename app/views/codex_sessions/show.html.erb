@@ -1,0 +1,90 @@
+<% content_for :page_title, @codex_session.title %>
+<%= turbo_stream_from @codex_session.stream_key %>
+
+<div class="ops-page">
+  <header class="ops-hero">
+    <div class="min-w-0">
+      <p class="app-eyebrow">Codex session</p>
+      <h1><%= @codex_session.title %></h1>
+      <p><%= @codex_session.objective %></p>
+      <div class="ops-summary" aria-label="Codex session summary">
+        <span><strong><%= @codex_session.runtime_label %></strong> runtime</span>
+        <span><strong><%= @codex_session.model %></strong> model</span>
+        <span><strong><%= @codex_session.display_status %></strong> status</span>
+        <% if @codex_session.cloud_task_id.present? %>
+          <span><strong><%= @codex_session.cloud_task_id %></strong> cloud task</span>
+        <% end %>
+      </div>
+    </div>
+    <div class="flex flex-wrap gap-2">
+      <%= link_to "All sessions", codex_sessions_path, class: "app-btn app-btn-muted" %>
+      <%= link_to "Settings", settings_path(anchor: "models"), class: "app-btn app-btn-muted" %>
+    </div>
+  </header>
+
+  <div class="ops-layout">
+    <main class="min-w-0 space-y-5">
+      <%= render "thread", codex_session: @codex_session %>
+
+      <section class="ops-section">
+        <div class="ops-section-head">
+          <div>
+            <p class="app-eyebrow">Interact</p>
+            <h2>Send follow-up</h2>
+          </div>
+        </div>
+        <%= form_with scope: :codex_session_message, url: message_codex_session_path(@codex_session), method: :post, class: "space-y-4" do |form| %>
+          <div class="space-y-2">
+            <%= form.label :content, "Instruction", class: "app-label" %>
+            <%= form.text_area :content, rows: 5, class: "app-textarea", required: true, placeholder: "Ask Codex to revise the plan, inspect a file, continue the implementation, or summarize the cloud task result..." %>
+          </div>
+          <div class="flex justify-end">
+            <%= form.submit "Send to Codex", class: "app-btn app-btn-primary" %>
+          </div>
+        <% end %>
+      </section>
+    </main>
+
+    <aside class="ops-side">
+      <section class="ops-section">
+        <div class="ops-section-head">
+          <div>
+            <p class="app-eyebrow">Connection</p>
+            <h2>Runtime</h2>
+          </div>
+        </div>
+        <dl class="ops-kv-list">
+          <div><dt>Status</dt><dd><%= @codex_session.display_status %></dd></div>
+          <div><dt>Runtime</dt><dd><%= @codex_session.runtime_label %></dd></div>
+          <div><dt>Model</dt><dd><%= @codex_session.model %></dd></div>
+          <div><dt>Cloud env</dt><dd class="break-all"><%= @codex_session.cloud_environment_id.presence || "Not used" %></dd></div>
+          <div><dt>Task</dt><dd class="break-all"><%= @codex_session.cloud_task_id.presence || "Not submitted yet" %></dd></div>
+          <div><dt>Branch</dt><dd class="break-all"><%= @codex_session.branch.presence || "Default branch" %></dd></div>
+          <div><dt>Directory</dt><dd class="break-all"><%= @codex_session.working_directory.presence || Rails.root.to_s %></dd></div>
+          <div><dt>Sandbox</dt><dd><%= @codex_session.sandbox_mode %></dd></div>
+          <div><dt>Approval</dt><dd><%= @codex_session.approval_policy %></dd></div>
+        </dl>
+      </section>
+
+      <section class="ops-section">
+        <div class="ops-section-head">
+          <div>
+            <p class="app-eyebrow">Recent</p>
+            <h2>Other sessions</h2>
+          </div>
+        </div>
+        <div class="ops-list">
+          <% @codex_sessions.reject { |session| session.id == @codex_session.id }.first(8).each do |session| %>
+            <%= link_to codex_session_path(session), class: "ops-row" do %>
+              <%= status_icon_pill(session.status, title: session.display_status) %>
+              <span class="record-point-main">
+                <span class="record-point-title"><%= session.title %></span>
+                <span class="record-point-meta"><span><%= session.runtime_label %></span><span><%= time_ago_in_words(session.updated_at) %> ago</span></span>
+              </span>
+            <% end %>
+          <% end %>
+        </div>
+      </section>
+    </aside>
+  </div>
+</div>
