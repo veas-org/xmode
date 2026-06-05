@@ -110,6 +110,41 @@ RSpec.describe Pipelines::Runner do
     expect(sandbox.worktree_path).to include("storage/runs")
   end
 
+  it "stores planning local shell stdout as structured plan output" do
+    workspace = Workspace.create!(name: "Spec")
+    action = workspace.action_definitions.create!(
+      key: "codex-plan-dependencies",
+      name: "Codex Plan Dependencies",
+      category: "planning",
+      provider: "local_shell",
+      defaults: { "command" => "printf 'Dependency update plan:\\n\\n1. Inspect Gemfile.\\n2. Approve before edits.\\n'" },
+      objective_template: "Plan dependency updates.",
+      input_schema: { type: "object" },
+      output_schema: { type: "object" }
+    )
+    pipeline = workspace.pipeline_definitions.create!(
+      key: "dependency-plan",
+      name: "Dependency Plan",
+      graph: { nodes: [ { id: "plan", action_key: action.key, action_id: action.id, label: action.name } ], edges: [] }
+    )
+    run = workspace.pipeline_runs.create!(pipeline_definition: pipeline)
+
+    described_class.call(run)
+
+    step = run.action_run_steps.first
+    expect(run.reload.status).to eq("completed")
+    expect(step.output_json).to include(
+      "summary" => "Dependency update plan",
+      "status" => "planned",
+      "provider" => "local_shell"
+    )
+    expect(step.output_json.fetch("provider_mode")).to be_present
+    expect(step.output_json.fetch("plan")).to include("Inspect Gemfile", "Approve before edits")
+    expect(step.output_json.fetch("next_steps")).to include("Review the generated plan.")
+    expect(step.output_json.fetch("acceptance_checks").join("\n")).to include("Change Request")
+    expect(run.run_artifacts.pluck(:name)).to include("stdout.log", "stderr.log", "output.json")
+  end
+
   it "opens a Change Request automatically when a local shell step changes files" do
     Dir.mktmpdir("xmode-source-repo") do |repo_path|
       system!("git", "init", chdir: repo_path)

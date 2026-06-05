@@ -289,7 +289,7 @@ module Runners
       @run.append_log(stderr.lines.last.to_s, level: "warn", step: @step) if stderr.present?
       record_command_artifacts
       sandbox_changes = capture_sandbox_changes
-      {
+      output = {
         "summary" => status.success? ? "Command completed" : "Command failed",
         "status" => status.success? ? "completed" : "failed",
         "command" => command,
@@ -299,8 +299,40 @@ module Runners
         "diff_artifact" => sandbox_changes.fetch(:diff_artifact),
         "changed_files_artifact" => sandbox_changes.fetch(:changed_files_artifact)
       }
+      output.merge!(planning_output(stdout)) if status.success? && planning_action? && stdout.strip.present?
+      output
     rescue Timeout::Error
       raise TimeoutError, "Action timed out after #{@action.timeout_seconds} seconds"
+    end
+
+    def planning_action?
+      @action.category == "planning" || @action.key.to_s.include?("plan")
+    end
+
+    def planning_output(stdout)
+      plan = stdout.to_s.strip
+
+      {
+        "summary" => plan_summary(plan),
+        "status" => "planned",
+        "plan" => plan,
+        "provider" => agent_command_template.present? ? "codex_cli" : "local_shell",
+        "provider_mode" => execution_environment.runner_mode,
+        "model" => agent_command_template.present? ? configured_agent_model : nil,
+        "next_steps" => [
+          "Review the generated plan.",
+          "Approve to continue or revise before code-changing work starts."
+        ],
+        "acceptance_checks" => [
+          "The plan names the intended dependency or code changes.",
+          "The plan defines verification commands and evidence to capture.",
+          "Code-changing work continues only inside the sandbox and opens a Change Request."
+        ]
+      }.compact
+    end
+
+    def plan_summary(plan)
+      plan.lines.map(&:strip).find(&:present?)&.delete_suffix(":").presence || "Generated plan"
     end
 
     def execute_command(command)

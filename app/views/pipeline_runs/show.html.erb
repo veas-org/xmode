@@ -3,13 +3,20 @@
 <% target_label = @run.issue&.identifier || @run.project&.title || @run.event&.title || "workspace run" %>
 <% run_context = (@run.input_context || {}).to_h %>
 <% objective_text = run_context["objective"].presence || @steps.map { |step| (step.input_json || {}).to_h["objective"].presence }.compact.first || @run.issue&.title || "Objective not captured yet." %>
-<% generated_plan_step = @steps.find { |step| step.output_json.to_h["status"] == "planned" && step.output_json.to_h["plan"].present? } ||
+<% structured_plan_step = @steps.find { |step| step.output_json.to_h["status"] == "planned" && step.output_json.to_h["plan"].present? } ||
   @steps.find { |step| step.action_definition&.category == "planning" && step.output_json.to_h["plan"].present? } ||
   @steps.find { |step| step.output_json.to_h["plan"].present? && step.name.to_s.match?(/plan/i) } %>
+<% artifact_plan_step = structured_plan_step || @steps.find { |step| step.action_definition&.category == "planning" || step.name.to_s.match?(/plan/i) } %>
+<% generated_plan_step = structured_plan_step || artifact_plan_step %>
 <% generated_plan_output = generated_plan_step&.output_json.to_h %>
-<% generated_plan_text = generated_plan_output&.dig("plan").presence %>
+<% generated_plan_artifact = if generated_plan_output&.dig("plan").blank? && artifact_plan_step
+  @artifacts.find { |artifact| artifact.action_run_step_id == artifact_plan_step.id && artifact.name == "stdout.log" && artifact.content_type.to_s.start_with?("text/") }
+end %>
+<% generated_plan_artifact_text = generated_plan_artifact ? artifact_text_preview(generated_plan_artifact, max_bytes: 32_000)&.strip : nil %>
+<% generated_plan_text = generated_plan_output&.dig("plan").presence || generated_plan_artifact_text.presence %>
 <% plan_text = run_context["plan"].presence || generated_plan_text || @steps.map { |step| (step.input_json || {}).to_h["plan"].presence }.compact.first || "Plan will be captured before execution continues." %>
-<% plan_source_label = generated_plan_step ? "#{generated_plan_step.name}#{generated_plan_output["model"].present? ? " · #{generated_plan_output["model"]}" : ""}" : "Run context" %>
+<% plan_source_detail = generated_plan_output["model"].presence || (generated_plan_artifact&.name if generated_plan_artifact_text.present?) %>
+<% plan_source_label = generated_plan_step ? "#{generated_plan_step.name}#{plan_source_detail.present? ? " · #{plan_source_detail}" : ""}" : "Run context" %>
 <% plan_acceptance_checks = Array(generated_plan_output&.dig("acceptance_checks")).select(&:present?) %>
 <% plan_next_steps = Array(generated_plan_output&.dig("next_steps")).select(&:present?) %>
 <% current_step = @steps.find { |step| step.status.in?(%w[running waiting_for_approval waiting_for_input]) } || @steps.last %>
@@ -201,87 +208,115 @@ end %>
   </main>
 
   <aside class="record-detail-side run-review-side">
-    <section class="record-detail-section run-review-now-section <%= "is-action-required" if @pending_run_message || @pending_approval %>">
+    <section class="record-detail-section run-review-now-section run-chat-section <%= "is-action-required" if @pending_run_message || @pending_approval %>">
       <div class="record-detail-section-head">
         <div>
-          <p class="app-eyebrow">Now</p>
-          <h3><%= next_label %></h3>
+          <p class="app-eyebrow">Interaction</p>
+          <h3>Run chat</h3>
         </div>
         <%= status_icon_pill(@pending_run_message ? "waiting_for_input" : @run.status, title: next_label) %>
       </div>
 
-      <% if current_step %>
-        <p class="run-review-side-copy"><%= current_step.name %></p>
-      <% end %>
+      <div class="run-chat-thread is-primary">
+        <article class="run-chat-message is-user">
+          <div class="run-chat-message-head">
+            <span>Operator</span>
+            <span>Objective</span>
+          </div>
+          <p><%= objective_text %></p>
+        </article>
 
-      <% if @pending_run_message %>
-        <article class="run-interaction">
-          <span><%= @pending_run_message.kind.to_s.tr("_", " ").titleize %></span>
-          <p><%= @pending_run_message.content %></p>
-
-          <% if generated_plan_text.present? %>
-            <div class="run-decision-plan">
-              <header>
-                <span>Plan under review</span>
-                <small><%= plan_source_label %></small>
-              </header>
-              <div class="rich-markdown">
-                <%= render_markdown(generated_plan_text) %>
-              </div>
+        <% if generated_plan_text.present? %>
+          <article class="run-chat-message is-assistant is-plan">
+            <div class="run-chat-message-head">
+              <span>Codex</span>
+              <span><%= plan_source_label %></span>
             </div>
-          <% end %>
+            <div class="rich-markdown run-chat-markdown">
+              <%= render_markdown(generated_plan_text) %>
+            </div>
+          </article>
+        <% end %>
 
-          <% if @pending_run_message.kind == "goal_check" && @pending_run_message.payload["checks"].present? %>
-            <ul class="run-chat-checks">
-              <% @pending_run_message.payload["checks"].each do |check| %>
-                <li><%= check %></li>
-              <% end %>
-            </ul>
-          <% end %>
+        <% @run_messages.each do |message| %>
+          <article class="run-chat-message is-<%= message.role %> <%= "is-pending" if message.pending? %>">
+            <div class="run-chat-message-head">
+              <span><%= message.role == "user" ? (message.user&.display_name || "You") : "xmode" %></span>
+              <span><%= message.pending? ? next_label : message.kind.to_s.tr("_", " ") %></span>
+            </div>
+            <% if message.content.present? %>
+              <p><%= message.content %></p>
+            <% end %>
 
-          <% if @pending_run_message.choices.any? %>
-            <div class="run-chat-actions">
-              <% @pending_run_message.choices.each do |choice| %>
-                <% choice_key = choice["key"].to_s %>
-                <% choice_button_class = if choice_key.match?(/approve|accept|continue|yes/)
-                  "app-btn app-btn-primary"
-                elsif choice_key.match?(/reject|cancel|stop|no/)
-                  "app-btn app-btn-danger"
-                else
-                  "app-btn app-btn-muted"
-                end %>
-                <%= button_to pipeline_run_run_message_path(@run, @pending_run_message),
-                      method: :post,
-                      params: { choice: choice["key"] },
-                      class: choice_button_class do %>
-                  <span><%= choice["label"].presence || choice["key"].to_s.humanize %></span>
+            <% if message.kind == "goal_check" && message.payload["checks"].present? %>
+              <ul class="run-chat-checks">
+                <% message.payload["checks"].each do |check| %>
+                  <li><%= check %></li>
+                <% end %>
+              </ul>
+            <% end %>
+
+            <% if message == @pending_run_message %>
+              <% if message.choices.any? %>
+                <div class="run-chat-actions">
+                  <% message.choices.each do |choice| %>
+                    <% choice_key = choice["key"].to_s %>
+                    <% choice_button_class = if choice_key.match?(/approve|accept|continue|yes/)
+                      "app-btn app-btn-primary"
+                    elsif choice_key.match?(/reject|cancel|stop|no/)
+                      "app-btn app-btn-danger"
+                    else
+                      "app-btn app-btn-muted"
+                    end %>
+                    <%= button_to pipeline_run_run_message_path(@run, message),
+                          method: :post,
+                          params: { choice: choice["key"] },
+                          class: choice_button_class do %>
+                      <span><%= choice["label"].presence || choice["key"].to_s.humanize %></span>
+                    <% end %>
+                  <% end %>
+                </div>
+              <% else %>
+                <%= form_with url: pipeline_run_run_message_path(@run, message), class: "run-chat-form" do |form| %>
+                  <%= form.text_area :content,
+                        rows: 3,
+                        class: "app-textarea",
+                        placeholder: message.kind == "goal_check" ? "Add goal-check notes..." : "Reply with context..." %>
+                  <%= form.submit "Send", class: "app-btn app-btn-primary" %>
                 <% end %>
               <% end %>
-            </div>
-          <% else %>
-            <%= form_with url: pipeline_run_run_message_path(@run, @pending_run_message), class: "run-chat-form" do |form| %>
-              <%= form.text_area :content,
-                    rows: 3,
-                    class: "app-textarea",
-                    placeholder: @pending_run_message.kind == "goal_check" ? "Add goal-check notes..." : "Reply with context..." %>
-              <%= form.submit "Send", class: "app-btn app-btn-primary" %>
             <% end %>
-          <% end %>
-        </article>
-      <% elsif @pending_approval %>
-        <div class="run-control-actions">
-          <%= button_to approve_pipeline_run_path(@run), method: :post, class: "app-btn app-btn-primary" do %>
-            <%= lucide_icon("check", class_name: "app-icon") %>
-            <span>Approve</span>
-          <% end %>
-          <%= button_to reject_pipeline_run_path(@run), method: :post, class: "app-btn app-btn-danger" do %>
-            <%= lucide_icon("x", class_name: "app-icon") %>
-            <span>Reject</span>
-          <% end %>
-        </div>
-      <% else %>
-        <p class="run-review-side-copy">No manual response is required right now.</p>
-      <% end %>
+          </article>
+        <% end %>
+
+        <% if @pending_approval && @pending_run_message.blank? %>
+          <article class="run-chat-message is-assistant is-pending">
+            <div class="run-chat-message-head">
+              <span>xmode</span>
+              <span>Approval required</span>
+            </div>
+            <p><%= current_step&.name || "Manual approval" %> needs a decision before the run can continue.</p>
+            <div class="run-chat-actions">
+              <%= button_to approve_pipeline_run_path(@run), method: :post, class: "app-btn app-btn-primary" do %>
+                <%= lucide_icon("check", class_name: "app-icon") %>
+                <span>Approve</span>
+              <% end %>
+              <%= button_to reject_pipeline_run_path(@run), method: :post, class: "app-btn app-btn-danger" do %>
+                <%= lucide_icon("x", class_name: "app-icon") %>
+                <span>Reject</span>
+              <% end %>
+            </div>
+          </article>
+        <% elsif @run_messages.blank? && @pending_approval.blank? %>
+          <article class="run-chat-message is-assistant">
+            <div class="run-chat-message-head">
+              <span>xmode</span>
+              <span><%= @run.display_status %></span>
+            </div>
+            <p>No manual response is required right now.</p>
+          </article>
+        <% end %>
+      </div>
 
       <details class="run-follow-up">
         <summary>Add instruction</summary>

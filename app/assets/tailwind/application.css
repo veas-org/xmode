@@ -4451,11 +4451,15 @@
   }
 
   .run-chat-section {
-    background: rgba(255, 255, 255, 0.07);
+    background: rgba(255, 255, 255, 0.055);
   }
 
   .run-chat-thread {
     @apply mt-3 space-y-2;
+  }
+
+  .run-chat-thread.is-primary {
+    @apply max-h-[min(66vh,48rem)] overflow-auto pr-1;
   }
 
   .run-chat-message {
@@ -4467,6 +4471,15 @@
     background: rgba(255, 255, 255, 0.08);
   }
 
+  .run-chat-message.is-assistant {
+    background: rgba(125, 211, 252, 0.06);
+  }
+
+  .run-chat-message.is-plan {
+    background: rgba(125, 211, 252, 0.085);
+    box-shadow: inset 0 0 0 1px rgba(125, 211, 252, 0.13);
+  }
+
   .run-chat-message.is-pending {
     box-shadow: inset 0 0 0 1px rgba(125, 211, 252, 0.24);
   }
@@ -4475,8 +4488,27 @@
     @apply mb-1 flex items-center justify-between gap-3 text-xs text-muted-foreground;
   }
 
+  .run-chat-message-head span {
+    @apply min-w-0 truncate;
+  }
+
+  .run-chat-message-head span:last-child {
+    @apply text-right;
+  }
+
   .run-chat-message p {
     @apply text-foreground;
+  }
+
+  .run-chat-markdown {
+    @apply max-h-[34rem] overflow-auto pr-1 text-sm leading-6;
+  }
+
+  .run-chat-markdown h1,
+  .run-chat-markdown h2,
+  .run-chat-markdown h3,
+  .run-chat-markdown h4 {
+    @apply text-sm leading-6;
   }
 
   .run-chat-actions {

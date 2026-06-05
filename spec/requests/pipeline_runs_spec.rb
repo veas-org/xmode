@@ -145,11 +145,64 @@ RSpec.describe "Pipeline run detail", type: :request do
 
     expect(response).to have_http_status(:ok)
     expect(response.body).to include("Generated plan")
-    expect(response.body).to include("Plan under review")
+    expect(response.body).to include("Run chat")
+    expect(response.body).to include("Codex")
+    expect(response.body).to include("Approve plan")
     expect(response.body).to include("Cloud sandbox plan")
     expect(response.body).to include("Clone <code>hello-world-rails</code> in Oracle")
     expect(response.body).to include("Sandbox diff is attached")
     expect(response.body).not_to include("Plan will be captured before execution continues.")
+  end
+
+  it "promotes a planning step stdout artifact when structured plan output is missing" do
+    user = User.create!(name: "Owner", email: "owner-artifact-plan@example.com", password: "password123")
+    workspace = Workspace.create!(name: "Spec")
+    team = workspace.teams.create!(name: "Engineering", key: "eng")
+    workspace.memberships.create!(user: user, team: team, role: "owner")
+    action = workspace.action_definitions.create!(
+      key: "codex-plan-dependencies",
+      name: "Codex Plan Dependencies",
+      category: "planning",
+      provider: "local_shell",
+      input_schema: { type: "object" },
+      output_schema: { type: "object" }
+    )
+    pipeline = workspace.pipeline_definitions.create!(
+      key: "dependency-plan",
+      name: "Dependency Plan",
+      graph: { nodes: [ { id: "plan", action_key: action.key, action_id: action.id, label: action.name } ], edges: [] }
+    )
+    run = workspace.pipeline_runs.create!(pipeline_definition: pipeline, trigger: "manual", status: "waiting_for_approval")
+    step = run.action_run_steps.create!(
+      action_definition: action,
+      name: action.name,
+      position: 0,
+      status: "completed",
+      output_json: { "summary" => "Command completed", "status" => "completed" }
+    )
+    artifact_root = Rails.root.join("storage", "runs", run.id.to_s, step.id.to_s)
+    artifact_path = artifact_root.join("stdout.log")
+    FileUtils.mkdir_p(artifact_root)
+    File.write(artifact_path, "Dependency update plan:\n\n1. Inspect `Gemfile`.\n2. Approve this plan before editing files.\n")
+    run.run_artifacts.create!(
+      action_run_step: step,
+      name: "stdout.log",
+      path: artifact_path.to_s,
+      content_type: "text/plain",
+      byte_size: File.size(artifact_path)
+    )
+
+    post login_path, params: { email: user.email, password: "password123" }
+    get pipeline_run_path(run)
+
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include("Generated plan")
+    expect(response.body).to include("Dependency update plan")
+    expect(response.body).to include("Codex Plan Dependencies · stdout.log")
+    expect(response.body).to include("Approve this plan before editing files")
+    expect(response.body).not_to include("Plan will be captured before execution continues.")
+  ensure
+    FileUtils.rm_rf(artifact_root) if artifact_root
   end
 
   it "renders sandbox files for a local shell run" do
