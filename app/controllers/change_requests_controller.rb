@@ -96,9 +96,17 @@ class ChangeRequestsController < AuthenticatedController
     storage_root = Rails.root.join("storage", "runs").to_s
     return unless path.file? && path.to_s.start_with?(storage_root)
 
-    path.open("rb") { |file| file.read(max_bytes) }
+    normalize_artifact_text(path.open("rb") { |file| file.read(max_bytes) })
   rescue Errno::ENOENT, Errno::EACCES
     nil
+  end
+
+  def normalize_artifact_text(content)
+    content.to_s
+      .dup
+      .force_encoding(Encoding::UTF_8)
+      .scrub("?")
+      .gsub(/\e\[[0-?]*[ -\/]*[@-~]/, "")
   end
 
   def changed_file_status_label(status)

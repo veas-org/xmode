@@ -49,7 +49,7 @@ module ApplicationHelper
     storage_root = Rails.root.join("storage", "runs").to_s
     return unless path.file? && path.to_s.start_with?(storage_root)
 
-    path.open("rb") { |file| file.read(max_bytes) }
+    normalize_text_preview(path.open("rb") { |file| file.read(max_bytes) })
   rescue Errno::ENOENT, Errno::EACCES
     nil
   end
@@ -137,6 +137,14 @@ module ApplicationHelper
   end
 
   private
+
+  def normalize_text_preview(content)
+    content.to_s
+      .dup
+      .force_encoding(Encoding::UTF_8)
+      .scrub("?")
+      .gsub(/\e\[[0-?]*[ -\/]*[@-~]/, "")
+  end
 
   def app_topbar_section
     case controller_name

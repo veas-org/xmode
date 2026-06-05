@@ -54,6 +54,35 @@ RSpec.describe "Pipeline run detail", type: :request do
     expect(response.body).not_to include(">Resume</span>")
   end
 
+  it "renders text artifacts with invalid byte sequences" do
+    user = User.create!(name: "Owner", email: "owner-artifact-preview@example.com", password: "password123")
+    workspace = Workspace.create!(name: "Spec")
+    team = workspace.teams.create!(name: "Engineering", key: "eng")
+    workspace.memberships.create!(user: user, team: team, role: "owner")
+    pipeline = workspace.pipeline_definitions.create!(key: "artifact-preview", name: "Artifact Preview")
+    run = workspace.pipeline_runs.create!(pipeline_definition: pipeline, trigger: "manual", status: "completed")
+    artifact_root = Rails.root.join("storage", "runs", run.id.to_s)
+    artifact_path = artifact_root.join("stderr.log")
+    FileUtils.mkdir_p(artifact_root)
+    File.binwrite(artifact_path, "\e[31mCodex stderr:\xC3\x28 ready\e[0m".b)
+    run.run_artifacts.create!(
+      name: "stderr.log",
+      path: artifact_path.to_s,
+      content_type: "text/plain",
+      byte_size: File.size(artifact_path)
+    )
+
+    post login_path, params: { email: user.email, password: "password123" }
+    get pipeline_run_path(run)
+
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include("stderr.log")
+    expect(response.body).to include("Codex stderr")
+    expect(response.body).not_to include("[31m")
+  ensure
+    FileUtils.rm_rf(artifact_root) if artifact_root
+  end
+
   it "shows the generated model plan before revise or approve decisions" do
     user = User.create!(name: "Owner", email: "owner-run-plan@example.com", password: "password123")
     workspace = Workspace.create!(name: "Spec")
