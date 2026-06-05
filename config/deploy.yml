@@ -52,6 +52,10 @@ env:
     LOCAL_MODEL_NAME: "qwen3-coder:30b"
     LOCAL_MODEL_FAST_NAME: "qwen2.5-coder:1.5b"
     LOCAL_MODEL_TIMEOUT_SECONDS: "3600"
+    CODEX_HOME: "/home/rails/.codex"
+    CODEX_SDK_RUNTIME: "cloud_subscription"
+    CODEX_CLOUD_MODEL: "codex-cloud"
+    CODEX_SDK_TIMEOUT_SECONDS: "1800"
   secret:
     - RAILS_MASTER_KEY
     - POSTGRES_PASSWORD
@@ -68,6 +72,7 @@ env:
 
 volumes:
   - "xmode_storage:/rails/storage"
+  - "xmode_codex:/home/rails/.codex"
 
 accessories:
   postgres:

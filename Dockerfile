@@ -19,10 +19,16 @@ RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y curl git libjemalloc2 libvips sqlite3 && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
+# Install the standalone Codex CLI for subscription-backed Codex Cloud sessions.
+RUN CODEX_NON_INTERACTIVE=1 CODEX_INSTALL_DIR=/usr/local/bin CODEX_HOME=/tmp/codex-install \
+    sh -c "$(curl -fsSL https://chatgpt.com/codex/install.sh)" && \
+    rm -rf /tmp/codex-install
+
 # Set production environment
 ENV RAILS_ENV="production" \
     BUNDLE_DEPLOYMENT="1" \
     BUNDLE_PATH="/usr/local/bundle" \
+    CODEX_HOME="/home/rails/.codex" \
     BUNDLE_WITHOUT="development"
 
 # Throw-away build stage to reduce size of final image
@@ -62,7 +68,8 @@ COPY --from=build /rails /rails
 # Run and own only the runtime files as a non-root user for security
 RUN groupadd --system --gid 1000 rails && \
     useradd rails --uid 1000 --gid 1000 --create-home --shell /bin/bash && \
-    chown -R rails:rails db log storage tmp
+    mkdir -p /home/rails/.codex && \
+    chown -R rails:rails db log storage tmp /home/rails/.codex
 USER 1000:1000
 
 # Entrypoint prepares the database.
