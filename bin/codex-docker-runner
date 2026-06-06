@@ -5,11 +5,19 @@ export CODEX_HOME="${CODEX_HOME:-/tmp/codex-home}"
 mkdir -p "${CODEX_HOME}"
 
 if [ -d /codex-auth ]; then
-  shopt -s dotglob nullglob
-  auth_files=(/codex-auth/*)
-  if [ "${#auth_files[@]}" -gt 0 ]; then
-    cp -R /codex-auth/. "${CODEX_HOME}/"
-  fi
+  shopt -s nullglob
+  auth_files=(
+    /codex-auth/auth.json
+    /codex-auth/config.toml
+    /codex-auth/installation_id
+    /codex-auth/models_cache.json
+    /codex-auth/state_*.sqlite
+    /codex-auth/state_*.sqlite-shm
+    /codex-auth/state_*.sqlite-wal
+  )
+  for auth_file in "${auth_files[@]}"; do
+    cp "${auth_file}" "${CODEX_HOME}/"
+  done
 fi
 
 exec "$@"
