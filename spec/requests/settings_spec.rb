@@ -40,8 +40,11 @@ RSpec.describe "Settings", type: :request do
     expect(doc.at_css(%(form[action="#{code_model_profiles_path}"]))).to be_present
     expect(doc.at_css(%(form[action="#{github_app_manifest_integrations_path}"]))).to be_present
     expect(doc.css(".settings-list-row").size).to be >= 6
-    expect(doc.at_css(%(a.settings-nav-link[href="#overview"]))).to be_present
-    expect(doc.at_css(%(a.settings-nav-link[href="#billing"]))).to be_present
+    expect(doc.at_css(%(a.settings-nav-link[href="#{settings_path(section: "overview")}"]))).to be_present
+    expect(doc.at_css(%(a.settings-nav-link[href="#{settings_path(section: "billing")}"]))).to be_present
+    expect(doc.at_css(".settings-nav-link.is-active")&.text).to include("Overview")
+    expect(doc.at_css("section#overview")["hidden"]).to be_nil
+    expect(doc.at_css("section#billing").attributes).to have_key("hidden")
     expect(doc.text).not_to include("Settings areas")
     expect(doc.css(".settings-control-grid")).to be_empty
     expect(doc.css(".settings-control-row")).to be_empty
@@ -74,7 +77,7 @@ RSpec.describe "Settings", type: :request do
       }
 
     profile = workspace.code_model_profiles.find_by!(name: "OpenAI Production")
-    expect(response).to redirect_to(settings_path(anchor: "models"))
+    expect(response).to redirect_to(settings_path(section: "models"))
     expect(profile).to have_attributes(
       provider: "openai",
       model: "gpt-4.1",

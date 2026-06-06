@@ -27,7 +27,7 @@ RSpec.describe "SSO providers", type: :request do
     }.to change(workspace.sso_providers, :count).by(1)
 
     provider = workspace.sso_providers.find_by!(name: "Okta")
-    expect(response).to redirect_to(settings_path(anchor: "security"))
+    expect(response).to redirect_to(settings_path(section: "security"))
     expect(provider).to have_attributes(
       provider_type: "oidc",
       status: "active",
@@ -52,7 +52,7 @@ RSpec.describe "SSO providers", type: :request do
       }
     }
 
-    expect(response).to redirect_to(settings_path(anchor: "security"))
+    expect(response).to redirect_to(settings_path(section: "security"))
     expect(provider.reload).to have_attributes(
       name: "Okta Workforce",
       status: "disabled",

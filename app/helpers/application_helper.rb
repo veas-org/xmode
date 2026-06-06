@@ -256,6 +256,8 @@ module ApplicationHelper
     case controller_name
     when "app"
       { label: "Command Center", href: app_path }
+    when "automations"
+      { label: "Automation", href: automations_path }
     when "issues"
       { label: action_name == "index" && params[:view].to_s == "inbox" ? "Inbox" : "Issues", href: issues_path(view: "inbox") }
     when "projects"
@@ -264,20 +266,8 @@ module ApplicationHelper
       { label: "Cycles", href: cycles_path }
     when "saved_views"
       { label: "Views", href: views_path }
-    when "events"
-      { label: "Events", href: events_path }
-    when "skill_definitions"
-      { label: "Skills", href: skills_home_path }
-    when "action_definitions"
-      { label: "Actions", href: actions_home_path }
-    when "pipeline_definitions"
-      { label: "Pipelines", href: pipelines_home_path }
-    when "pipeline_runs"
-      { label: "Pipeline Runs", href: pipeline_runs_path }
-    when "sandbox_sessions"
-      { label: "Sandboxes", href: sandbox_sessions_path }
-    when "schedules"
-      { label: "Schedules", href: schedules_path }
+    when "events", "event_rules", "skill_definitions", "action_definitions", "pipeline_definitions", "pipeline_runs", "sandbox_sessions", "schedules"
+      { label: "Automation", href: automations_path }
     when "change_requests"
       { label: "Change Requests", href: change_requests_path }
     when "integrations", "repository_connections", "admin", "codex_sessions", "invitations", "audit_events", "billings"

@@ -65,6 +65,7 @@ RSpec.describe "Side panel forms", type: :request do
       issue_path(selected_issue) => [ edit_issue_path(selected_issue) ],
       cycles_path => [ new_cycle_path ],
       cycle_path(cycle) => [ edit_cycle_path(cycle), new_issue_path(cycle_id: cycle.id) ],
+      automations_path(tab: "library") => [ import_skills_path, import_actions_path, import_pipelines_path, new_pipeline_path ],
       schedules_path => [ new_schedule_path ],
       schedule_path(schedule) => [ edit_schedule_path(schedule) ],
       skills_home_path => [ import_skills_path, new_skill_path ],

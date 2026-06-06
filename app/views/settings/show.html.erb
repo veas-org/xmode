@@ -7,12 +7,11 @@
       <p><%= current_workspace.name %></p>
     </div>
     <nav class="settings-nav-list">
-      <a href="#overview" class="settings-nav-link is-active"><span>Overview</span><small><%= current_membership&.role&.titleize || "Member" %></small></a>
-      <% @settings_sections.each do |section| %>
-        <a href="#<%= section.fetch(:id) %>" class="settings-nav-link">
+      <% @settings_nav_items.each do |section| %>
+        <%= link_to settings_path(section: section.fetch(:id)), class: "settings-nav-link #{'is-active' if @active_settings_section == section.fetch(:id)}" do %>
           <span><%= section.fetch(:label) %></span>
           <small><%= section.fetch(:detail) %></small>
-        </a>
+        <% end %>
       <% end %>
     </nav>
   </aside>
@@ -21,8 +20,8 @@
     <header class="settings-header">
       <div class="min-w-0">
         <p class="app-eyebrow">Workspace settings</p>
-        <h1>Settings</h1>
-        <p>One scrollable workspace control surface for identity, access, integrations, billing, audit evidence, and local appearance.</p>
+        <h1><%= @active_settings_nav_item.fetch(:label) %></h1>
+        <p><%= @active_settings_nav_item.fetch(:description) %></p>
       </div>
       <div class="settings-header-stats" aria-label="Settings summary">
         <span><strong><%= current_workspace.projects.count %></strong> projects</span>
@@ -32,7 +31,7 @@
       </div>
     </header>
 
-    <section id="overview" class="settings-panel">
+    <section id="overview" class="settings-panel" <%= "hidden" unless @active_settings_section == "overview" %>>
       <div class="settings-panel-head">
         <div>
           <p class="app-eyebrow">Overview</p>
@@ -59,7 +58,7 @@
       </div>
     </section>
 
-    <section id="workspace" class="settings-panel">
+    <section id="workspace" class="settings-panel" <%= "hidden" unless @active_settings_section == "workspace" %>>
       <div class="settings-panel-head">
         <div>
           <p class="app-eyebrow">Workspace</p>
@@ -93,7 +92,7 @@
       </div>
     </section>
 
-    <section id="members" class="settings-panel">
+    <section id="members" class="settings-panel" <%= "hidden" unless @active_settings_section == "members" %>>
       <div class="settings-panel-head">
         <div>
           <p class="app-eyebrow">Members</p>
@@ -150,7 +149,7 @@
       <% end %>
     </section>
 
-    <section id="security" class="settings-panel">
+    <section id="security" class="settings-panel" <%= "hidden" unless @active_settings_section == "security" %>>
       <div class="settings-panel-head">
         <div>
           <p class="app-eyebrow">Security</p>
@@ -196,7 +195,7 @@
       </div>
     </section>
 
-    <section id="integrations" class="settings-panel settings-integrations-panel">
+    <section id="integrations" class="settings-panel settings-integrations-panel" <%= "hidden" unless @active_settings_section == "integrations" %>>
       <div class="settings-panel-head settings-integrations-header">
         <div>
           <p class="app-eyebrow">Integrations</p>
@@ -407,7 +406,7 @@
       </div>
     </section>
 
-    <section id="models" class="settings-panel">
+    <section id="models" class="settings-panel" <%= "hidden" unless @active_settings_section == "models" %>>
       <div class="settings-panel-head">
         <div>
           <p class="app-eyebrow">Models</p>
@@ -601,7 +600,7 @@
       <% end %>
     </section>
 
-    <section id="billing" class="settings-panel">
+    <section id="billing" class="settings-panel" <%= "hidden" unless @active_settings_section == "billing" %>>
       <div class="settings-panel-head">
         <div>
           <p class="app-eyebrow">Billing</p>
@@ -671,7 +670,7 @@
       </div>
     </section>
 
-    <section id="audit" class="settings-panel">
+    <section id="audit" class="settings-panel" <%= "hidden" unless @active_settings_section == "audit" %>>
       <div class="settings-panel-head">
         <div>
           <p class="app-eyebrow">Audit</p>
@@ -710,7 +709,7 @@
       </div>
     </section>
 
-    <section id="appearance" class="settings-panel">
+    <section id="appearance" class="settings-panel" <%= "hidden" unless @active_settings_section == "appearance" %>>
       <div class="settings-panel-head">
         <div>
           <p class="app-eyebrow">Appearance</p>

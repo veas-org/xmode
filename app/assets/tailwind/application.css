@@ -2045,6 +2045,58 @@
     @apply truncate text-sm font-semibold text-foreground;
   }
 
+  .automation-hero {
+    @apply items-start;
+  }
+
+  .automation-tabs {
+    @apply max-w-full justify-start;
+  }
+
+  .automation-library-grid {
+    @apply grid min-w-0 gap-4 xl:grid-cols-3;
+  }
+
+  .automation-library-column {
+    @apply min-w-0 rounded-lg px-4 py-4;
+    background: rgba(255, 255, 255, 0.012);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.026);
+  }
+
+  .automation-column-actions {
+    @apply mt-4 flex min-w-0 flex-wrap items-center gap-3 border-t border-white/5 pt-3;
+  }
+
+  .automation-two-column-list {
+    @apply grid min-w-0 gap-5 xl:grid-cols-2;
+  }
+
+  .automation-subhead {
+    @apply mb-2 flex min-w-0 items-center justify-between gap-3 px-1;
+  }
+
+  .automation-subhead h3 {
+    @apply truncate text-sm font-semibold text-foreground;
+  }
+
+  .automation-sandbox-layout {
+    @apply mt-0;
+  }
+
+  .command-loop-compact {
+    @apply grid min-w-0 gap-2;
+  }
+
+  .command-loop-compact span {
+    @apply flex min-w-0 items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground;
+    background: rgba(255, 255, 255, 0.018);
+  }
+
+  .command-loop-compact strong {
+    @apply grid h-6 w-6 shrink-0 place-items-center rounded-md text-xs font-semibold text-foreground;
+    background: var(--app-count-bg);
+  }
+
   .views-page {
     @apply max-w-none;
   }

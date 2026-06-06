@@ -48,7 +48,7 @@ class IntegrationsController < AuthenticatedController
   def github_app_manifest
     owner = github_owner_param
     unless valid_github_owner?(owner)
-      redirect_to settings_path(anchor: "integrations"), alert: "GitHub organization can contain only letters, numbers, and hyphens."
+      redirect_to settings_path(section: "integrations"), alert: "GitHub organization can contain only letters, numbers, and hyphens."
       return
     end
 
@@ -65,7 +65,7 @@ class IntegrationsController < AuthenticatedController
 
   def github_app_manifest_callback
     unless valid_github_app_manifest_state?
-      redirect_to settings_path(anchor: "integrations"), alert: "GitHub App creation could not be verified. Please try again."
+      redirect_to settings_path(section: "integrations"), alert: "GitHub App creation could not be verified. Please try again."
       return
     end
 
@@ -80,7 +80,7 @@ class IntegrationsController < AuthenticatedController
 
     start_github_app_install!(account: integration)
   rescue => e
-    redirect_to settings_path(anchor: "integrations"), alert: "GitHub App creation failed: #{e.message}"
+    redirect_to settings_path(section: "integrations"), alert: "GitHub App creation failed: #{e.message}"
   end
 
   def github_app_callback

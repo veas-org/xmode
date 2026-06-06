@@ -1,45 +1,60 @@
 <% content_for :page_title, "Command Center" %>
 
 <div class="ops-page command-center-page">
-  <header class="ops-hero">
+  <header class="ops-hero command-center-hero">
     <div class="min-w-0">
-      <p class="app-eyebrow"><%= current_workspace&.name %> operating model</p>
-      <h1>One governed loop from objective to Change Request</h1>
-      <p>Every automation run should make the intended outcome, approved plan, execution evidence, and review package visible to the team.</p>
-      <div class="ops-summary" aria-label="Operating model summary">
-        <span><strong><%= @operating_counts.fetch(:objectives) %></strong> objectives</span>
-        <span><strong><%= @operating_counts.fetch(:plans) %></strong> plans</span>
-        <span><strong><%= @operating_counts.fetch(:skills) %></strong> skills</span>
-        <span><strong><%= @operating_counts.fetch(:actions) %></strong> actions</span>
-        <span><strong><%= @operating_counts.fetch(:runs) %></strong> runs</span>
-        <span><strong><%= @operating_counts.fetch(:change_requests) %></strong> Change Requests</span>
+      <p class="app-eyebrow"><%= current_workspace&.name %></p>
+      <h1>Command Center</h1>
+      <p>Review decisions, follow active work, and open the next useful surface.</p>
+      <div class="ops-summary" aria-label="Workspace action summary">
+        <span><strong><%= @command_counts.fetch(:waiting) %></strong> waiting</span>
+        <span><strong><%= @command_counts.fetch(:active) %></strong> active</span>
+        <span><strong><%= @command_counts.fetch(:failed) %></strong> failed</span>
+        <span><strong><%= @command_counts.fetch(:change_requests) %></strong> Change Requests</span>
       </div>
+    </div>
+    <div class="skill-home-actions">
+      <%= link_to automations_path, class: "app-btn app-btn-primary" do %>
+        <%= lucide_icon("workflow", class_name: "app-icon") %>
+        <span>Open automation</span>
+      <% end %>
+      <%= link_to new_issue_path, class: "app-btn app-btn-muted", data: side_panel_data do %>
+        <%= lucide_icon("plus", class_name: "app-icon") %>
+        <span>Issue</span>
+      <% end %>
     </div>
   </header>
 
   <div class="ops-layout">
     <main class="min-w-0 space-y-5">
-      <section class="ops-section">
+      <section class="ops-section command-attention-section">
         <div class="ops-section-head">
           <div>
-            <p class="app-eyebrow">Operating model</p>
-            <h2>Governed automation loop</h2>
+            <p class="app-eyebrow">Needs attention</p>
+            <h2><%= @attention_runs.any? ? "Review next" : "Clear right now" %></h2>
           </div>
+          <%= link_to "Queue", automations_path, class: "app-link text-xs" %>
         </div>
-        <div class="command-loop-grid">
-          <% [
-            [ "Objective", "#{@operating_counts.fetch(:objectives)} active", "Defines the outcome before any agent work starts." ],
-            [ "Plan", "#{@operating_counts.fetch(:plans)} records", "Names scope, risks, checks, and approval points." ],
-            [ "Skill + Action", "#{@operating_counts.fetch(:skills)} skills", "Turns reusable team capability into executable steps." ],
-            [ "Run", "#{@operating_counts.fetch(:runs)} runs", "Captures logs, artifacts, approvals, and structured output." ],
-            [ "Change Request", "#{@operating_counts.fetch(:change_requests)} open", "Packages code-changing work on a branch for review." ]
-          ].each_with_index do |(title, count, body), index| %>
-            <article class="command-loop-step">
-              <span class="linear-count"><%= index + 1 %></span>
-              <h3><%= title %></h3>
-              <p><%= body %></p>
-              <strong><%= count %></strong>
-            </article>
+        <div class="ops-list">
+          <% @attention_runs.each do |run| %>
+            <% run_target = run.issue&.identifier || run.project&.title || run.event&.title || "Workspace" %>
+            <%= link_to pipeline_run_path(run), class: "ops-row" do %>
+              <%= status_icon_pill(run.status, title: run.display_status) %>
+              <span class="record-point-main">
+                <span class="record-point-title"><%= run.pipeline_definition&.name || "Pipeline run" %></span>
+                <span class="record-point-meta">
+                  <span><%= run.display_status %></span>
+                  <span><%= run_target %></span>
+                  <span><%= time_ago_in_words(run.created_at) %> ago</span>
+                </span>
+                <% if run.input_context["objective"].present? %>
+                  <span class="pipeline-run-home-objective"><%= run.input_context["objective"] %></span>
+                <% end %>
+              </span>
+            <% end %>
+          <% end %>
+          <% if @attention_runs.empty? %>
+            <p class="linear-empty px-0 py-4 text-left">No approvals, failed runs, or blocked automation need action.</p>
           <% end %>
         </div>
       </section>
@@ -74,6 +89,40 @@
       <section class="ops-section">
         <div class="ops-section-head">
           <div>
+            <p class="app-eyebrow">Automation</p>
+            <h2>Recent runs</h2>
+          </div>
+          <%= link_to "All automation", automations_path, class: "app-link text-xs" %>
+        </div>
+        <div class="ops-list">
+          <% @runs.first(6).each do |run| %>
+            <%= link_to pipeline_run_path(run), class: "ops-row" do %>
+              <%= status_icon_pill(run.status, title: run.display_status) %>
+              <span class="record-point-main">
+                <span class="record-point-title"><%= run.pipeline_definition&.name || "Pipeline run" %></span>
+                <span class="record-point-meta">
+                  <span><%= run.display_trigger %></span>
+                  <span><%= time_ago_in_words(run.created_at) %> ago</span>
+                  <span><%= pluralize(run.run_artifacts.size, "artifact") %></span>
+                </span>
+              </span>
+              <% if run.change_request %>
+                <span class="ops-row-trailing">
+                  <%= status_icon_pill(run.change_request.status, title: "#{run.change_request.status.to_s.titleize} Change Request") %>
+                  <span class="linear-count">CR</span>
+                </span>
+              <% end %>
+            <% end %>
+          <% end %>
+          <% if @runs.empty? %>
+            <p class="linear-empty px-0 py-5 text-left">No runs yet.</p>
+          <% end %>
+        </div>
+      </section>
+
+      <section class="ops-section">
+        <div class="ops-section-head">
+          <div>
             <p class="app-eyebrow">Projects</p>
             <h2>Active delivery tracks</h2>
           </div>
@@ -101,40 +150,15 @@
     </main>
 
     <aside class="ops-side">
-      <section class="ops-section home-decision-panel">
-        <div class="ops-section-head">
-          <div>
-            <p class="app-eyebrow">Next decision</p>
-            <h2><%= @approval_run ? (@approval_run.pipeline_definition&.name || "Pipeline run") : "No pending approvals" %></h2>
-          </div>
-        </div>
-        <% if @approval_run %>
-          <p class="text-sm leading-6 text-muted-foreground"><%= @approval_run.issue&.title || @approval_run.input_context["objective"] || "Review the pending automation decision." %></p>
-          <div class="mt-3 flex min-w-0 flex-wrap items-center gap-2">
-            <span class="inline-flex items-center gap-2">
-              <%= status_icon_pill(@approval_run.status, title: "Waiting for approval") %>
-              <span class="text-sm text-muted-foreground">Approval</span>
-            </span>
-            <span class="linear-count"><%= time_ago_in_words(@approval_run.created_at) %> ago</span>
-          </div>
-          <%= link_to pipeline_run_path(@approval_run), class: "app-btn app-btn-primary mt-4 w-full" do %>
-            <span>Review run</span>
-          <% end %>
-        <% else %>
-          <p class="text-sm leading-6 text-muted-foreground">Create or run a pipeline when the team has a clear objective ready for automation.</p>
-        <% end %>
-      </section>
-
       <% if current_workspace.demo? && @demo_agent_pipeline %>
         <section class="ops-section home-demo-panel">
           <div class="ops-section-head">
             <div>
               <p class="app-eyebrow">Planet Express demo</p>
-              <h2>Governed agent scenario</h2>
+              <h2>Run the core loop</h2>
             </div>
           </div>
           <%= form_with url: run_pipeline_path(@demo_agent_pipeline), method: :post, class: "space-y-4" do %>
-            <p class="text-sm leading-6 text-muted-foreground">Launch a realistic Implement Issue run: objective capture, plan verification, sandboxed agent execution, test evidence, and a Change Request trail.</p>
             <div class="home-pipeline-brief" aria-label="Demo pipeline steps">
               <% [ "Plan", "Approve", "Code", "Test", "Change Request" ].each do |step| %>
                 <span><%= step %></span>
@@ -162,26 +186,26 @@
       <section class="ops-section">
         <div class="ops-section-head">
           <div>
-            <p class="app-eyebrow">Automation queue</p>
-            <h2>Recent runs</h2>
+            <p class="app-eyebrow">Change Requests</p>
+            <h2>Latest review output</h2>
           </div>
-          <span class="linear-count"><%= @runs.size %></span>
+          <%= link_to "All", change_requests_path, class: "app-link text-xs" %>
         </div>
         <div class="ops-list">
-          <% @runs.each do |run| %>
-            <%= link_to pipeline_run_path(run), class: "ops-row" do %>
-              <%= status_icon_pill(run.status, title: run.display_status) %>
+          <% @recent_change_requests.each do |change_request| %>
+            <%= link_to change_request_path(change_request), class: "ops-row" do %>
+              <%= status_icon_pill(change_request.status, title: change_request.status.to_s.titleize) %>
               <span class="record-point-main">
-                <span class="record-point-title"><%= run.pipeline_definition&.name || "Pipeline run" %></span>
+                <span class="record-point-title"><%= change_request.title %></span>
                 <span class="record-point-meta">
-                  <span><%= run.display_trigger %></span>
-                  <span><%= time_ago_in_words(run.created_at) %> ago</span>
+                  <span><%= change_request.provider %></span>
+                  <span><%= change_request.issue&.identifier || "No issue" %></span>
                 </span>
               </span>
             <% end %>
           <% end %>
-          <% if @runs.empty? %>
-            <p class="linear-empty px-0 py-5 text-left">No runs yet.</p>
+          <% if @recent_change_requests.empty? %>
+            <p class="linear-empty px-0 py-5 text-left">No Change Requests yet.</p>
           <% end %>
         </div>
       </section>
@@ -192,7 +216,7 @@
             <p class="app-eyebrow">Event inbox</p>
             <h2>Latest events</h2>
           </div>
-          <span class="linear-count"><%= @events.size %></span>
+          <%= link_to "Triggers", automations_path(tab: "triggers"), class: "app-link text-xs" %>
         </div>
         <div class="ops-list">
           <% @events.each do |event| %>
@@ -207,6 +231,20 @@
           <% end %>
           <% if @events.empty? %>
             <p class="linear-empty px-0 py-5 text-left">No events yet.</p>
+          <% end %>
+        </div>
+      </section>
+
+      <section class="ops-section command-model-section">
+        <div class="ops-section-head">
+          <div>
+            <p class="app-eyebrow">How it works</p>
+            <h2>Governed loop</h2>
+          </div>
+        </div>
+        <div class="command-loop-compact">
+          <% [ "Objective", "Plan", "Action", "Run", "Change Request" ].each_with_index do |title, index| %>
+            <span><strong><%= index + 1 %></strong><%= title %></span>
           <% end %>
         </div>
       </section>

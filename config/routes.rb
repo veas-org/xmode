@@ -21,6 +21,7 @@ Rails.application.routes.draw do
 
   resource :app, only: :show, controller: :app
   resource :settings, only: :show, controller: :settings
+  get "automations", to: "automations#index", as: :automations
   resource :admin, only: :show, controller: :admin do
     get :qwen
     post :qwen, action: :ask_qwen

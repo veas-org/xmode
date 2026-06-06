@@ -33,7 +33,7 @@ RSpec.describe "Catalog detail pages", type: :request do
     expect(catalog_nav_text(doc)).not_to include("Actions")
     expect(catalog_nav_text(doc)).not_to include("Skills")
     expect(catalog_nav_text(doc)).not_to include("Pipelines")
-    expect(doc.at_css(%(nav.app-breadcrumbs a[href="#{actions_home_path}"]))).to be_present
+    expect(doc.at_css(%(nav.app-breadcrumbs a[href="#{automations_path}"]))).to be_present
     expect(doc.at_css(%(a.catalog-doc-shortcut[href="#{actions_home_path}"]))).to be_present
     expect(doc.at_css(%(a.catalog-doc-shortcut[href="#{actions_path(mode: "list")}"]))).to be_present
     expect(doc.css(".linear-surface")).to be_empty
@@ -63,7 +63,7 @@ RSpec.describe "Catalog detail pages", type: :request do
     expect(catalog_nav_text(doc)).not_to include("Pipelines")
     expect(catalog_nav_text(doc)).not_to include("Actions")
     expect(catalog_nav_text(doc)).not_to include("Skills")
-    expect(doc.at_css(%(nav.app-breadcrumbs a[href="#{pipelines_home_path}"]))).to be_present
+    expect(doc.at_css(%(nav.app-breadcrumbs a[href="#{automations_path}"]))).to be_present
     expect(doc.at_css(%(a.catalog-doc-shortcut[href="#{pipelines_home_path}"]))).to be_present
     expect(doc.at_css(%(a.catalog-doc-shortcut[href="#{pipelines_path(mode: "list")}"]))).to be_present
   end
@@ -101,7 +101,7 @@ RSpec.describe "Catalog detail pages", type: :request do
     expect(catalog_nav_text(skill_doc_page)).not_to include("Skills")
     expect(catalog_nav_text(skill_doc_page)).not_to include("Actions")
     expect(catalog_nav_text(skill_doc_page)).not_to include("Pipelines")
-    expect(skill_doc_page.at_css(%(nav.app-breadcrumbs a[href="#{skills_home_path}"]))).to be_present
+    expect(skill_doc_page.at_css(%(nav.app-breadcrumbs a[href="#{automations_path}"]))).to be_present
     expect(skill_doc_page.at_css(%(a.catalog-doc-shortcut[href="#{skills_home_path}"]))).to be_present
     expect(skill_doc_page.at_css(%(a.catalog-doc-shortcut[href="#{skills_path(mode: "list")}"]))).to be_present
     expect(skill_doc_page.at_css(".app-topbar-list-link")).to be_nil

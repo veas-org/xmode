@@ -5,7 +5,7 @@
         title: "Edit #{@sso_provider.name}",
         eyebrow: "Workspace security",
         description: "Update OIDC settings, signup policy, and the default workspace role.",
-        back_path: settings_path(anchor: "security")
+        back_path: settings_path(section: "security")
       } do %>
   <%= render "form", sso_provider: @sso_provider %>
 <% end %>

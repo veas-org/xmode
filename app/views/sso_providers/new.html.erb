@@ -5,7 +5,7 @@
         title: "New SSO provider",
         eyebrow: "Workspace security",
         description: "Connect an OIDC identity provider for workspace sign-in.",
-        back_path: settings_path(anchor: "security")
+        back_path: settings_path(section: "security")
       } do %>
   <%= render "form", sso_provider: @sso_provider %>
 <% end %>

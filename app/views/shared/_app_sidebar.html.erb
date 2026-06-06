@@ -2,27 +2,24 @@
   target = path.to_s
   target.include?("?") ? request.fullpath == target : request.path == target
 end %>
+<% active_entry = ->(path, controllers = []) do
+  active_path.call(path) || controllers.map(&:to_s).include?(controller_name)
+end %>
 <% nav_sections = [
   [
     "Workspace",
     [
-      [ "Inbox", issues_path(view: "inbox"), "inbox" ],
-      [ "My Issues", issues_path(view: "my"), "user-circle" ],
-      [ "Projects", projects_path, "folder" ],
-      [ "Cycles", cycles_path, "calendar" ],
-      [ "Views", views_path, "list-filter" ]
+      [ "Command Center", app_path, "layout-dashboard", %w[app] ],
+      [ "Inbox", issues_path(view: "inbox"), "inbox", [] ],
+      [ "My Issues", issues_path(view: "my"), "user-circle", [] ],
+      [ "Projects", projects_path, "folder", %w[projects cycles saved_views] ]
     ]
   ],
   [
     "Automation",
     [
-      [ "Events", events_path, "bell" ],
-      [ "Skills", skills_home_path, "sparkles" ],
-      [ "Pipelines", pipelines_home_path, "workflow" ],
-      [ "Actions", actions_home_path, "play" ],
-      [ "Sandboxes", sandbox_sessions_path, "folder-git-2" ],
-      [ "Schedules", schedules_path, "clock" ],
-      [ "Change Requests", change_requests_path, "git-pull-request" ]
+      [ "Automation", automations_path, "workflow", %w[automations events event_rules skill_definitions action_definitions pipeline_definitions pipeline_runs sandbox_sessions schedules] ],
+      [ "Change Requests", change_requests_path, "git-pull-request", %w[change_requests] ]
     ]
   ]
 ] %>
@@ -42,8 +39,8 @@ end %>
     <% nav_sections.each do |section, links| %>
       <p class="app-sidebar-section"><%= section %></p>
       <div class="mt-1 space-y-0.5">
-        <% links.each do |label, path, icon| %>
-          <%= link_to path, class: "app-sidebar-link #{'is-active' if active_path.call(path)}" do %>
+        <% links.each do |label, path, icon, controllers| %>
+          <%= link_to path, class: "app-sidebar-link #{'is-active' if active_entry.call(path, controllers)}" do %>
             <%= lucide_icon(icon, class_name: "app-sidebar-icon") %>
             <span class="truncate"><%= label %></span>
           <% end %>

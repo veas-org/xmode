@@ -1,8 +1,22 @@
 class SettingsController < AuthenticatedController
+  OVERVIEW_SECTION = {
+    id: "overview",
+    label: "Overview",
+    description: "Workspace identity, account state, and the key setup areas.",
+    icon: "layout-dashboard",
+    href: "#overview",
+    action_label: "Overview",
+    accessible: true,
+    detail: "Owner"
+  }.freeze
+
   def show
     current_workspace.ensure_webhook_secret!
     @subscription = current_subscription
     @settings_sections = settings_sections
+    @settings_nav_items = [ OVERVIEW_SECTION.merge(detail: current_membership&.role&.titleize || "Member") ] + @settings_sections
+    @active_settings_section = active_settings_section
+    @active_settings_nav_item = @settings_nav_items.find { |section| section.fetch(:id) == @active_settings_section } || OVERVIEW_SECTION
     @workspace_rows = workspace_rows
     @account_rows = account_rows
     load_member_settings
@@ -14,6 +28,12 @@ class SettingsController < AuthenticatedController
   end
 
   private
+
+  def active_settings_section
+    requested = params[:section].to_s.presence || "overview"
+    allowed = @settings_nav_items.map { |section| section.fetch(:id) }
+    allowed.include?(requested) ? requested : "overview"
+  end
 
   def settings_sections
     [

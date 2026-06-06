@@ -1,0 +1,515 @@
+<% content_for :page_title, "Automation" %>
+
+<% tab_links = [
+  [ "Queue", "queue", @run_counts.fetch(:waiting) + @run_counts.fetch(:active) + @run_counts.fetch(:failed) ],
+  [ "Library", "library", @library_counts.values.sum ],
+  [ "Triggers", "triggers", @trigger_counts.fetch(:rules) + @trigger_counts.fetch(:schedules) ],
+  [ "Sandboxes", "sandboxes", @sandbox_usage.fetch(:used_count) ]
+] %>
+
+<div class="ops-page automation-page">
+  <header class="ops-hero automation-hero">
+    <div class="min-w-0">
+      <p class="app-eyebrow">Automation</p>
+      <h1>Run, route, and review agent work</h1>
+      <p>Start with the queue. Open the library or triggers only when you need to change how automation runs.</p>
+      <div class="ops-summary" aria-label="Automation summary">
+        <span><strong><%= @run_counts.fetch(:waiting) %></strong> waiting</span>
+        <span><strong><%= @run_counts.fetch(:active) %></strong> active</span>
+        <span><strong><%= @run_counts.fetch(:failed) %></strong> failed</span>
+        <span><strong><%= @change_requests.size %></strong> recent CRs</span>
+      </div>
+    </div>
+    <nav class="workspace-pill-tabs automation-tabs" aria-label="Automation sections">
+      <% tab_links.each do |label, tab, count| %>
+        <%= link_to automations_path(tab: tab), class: "workspace-pill-tab #{'is-active' if @automation_tab == tab}" do %>
+          <span><%= label %></span>
+          <span class="linear-count"><%= count %></span>
+        <% end %>
+      <% end %>
+    </nav>
+  </header>
+
+  <% case @automation_tab %>
+  <% when "library" %>
+    <section class="ops-section">
+      <div class="ops-section-head">
+        <div>
+          <p class="app-eyebrow">Library</p>
+          <h2>Reusable automation pieces</h2>
+        </div>
+        <div class="skill-home-actions">
+          <%= link_to pipelines_home_path, class: "app-btn app-btn-muted" do %>
+            <span>Full catalog</span>
+          <% end %>
+          <% if permitted?(:manage_pipelines) %>
+            <%= link_to new_pipeline_path, class: "app-btn app-btn-primary", data: side_panel_data do %>
+              <%= lucide_icon("plus", class_name: "app-icon") %>
+              <span>Pipeline</span>
+            <% end %>
+          <% end %>
+        </div>
+      </div>
+      <div class="automation-library-grid">
+        <section class="automation-library-column">
+          <div class="skill-section-title">
+            <div>
+              <p class="app-eyebrow">Pipelines</p>
+              <h2>What can run</h2>
+            </div>
+            <span class="linear-count"><%= @library_counts.fetch(:pipelines) %></span>
+          </div>
+          <div class="skill-home-list">
+            <% @favorite_pipelines.each do |pipeline| %>
+              <%= link_to pipeline_path(pipeline), class: "skill-home-row" do %>
+                <span class="record-point-main">
+                  <span class="record-point-title"><%= pipeline.name %></span>
+                  <span class="record-point-meta">
+                    <span><%= pipeline.triggers.presence&.join(", ") || "manual" %></span>
+                    <span><%= pluralize(pipeline.graph.fetch("nodes", []).size, "step") %></span>
+                    <span><%= @pipeline_usage_counts.fetch(pipeline.id, 0) %> runs</span>
+                  </span>
+                </span>
+              <% end %>
+            <% end %>
+          </div>
+          <div class="automation-column-actions">
+            <%= link_to "Browse pipelines", pipelines_home_path, class: "app-link text-sm" %>
+            <% if permitted?(:manage_pipelines) %>
+              <%= link_to "Import", import_pipelines_path, class: "app-link text-sm", data: side_panel_data %>
+            <% end %>
+          </div>
+        </section>
+
+        <section class="automation-library-column">
+          <div class="skill-section-title">
+            <div>
+              <p class="app-eyebrow">Actions</p>
+              <h2>How steps execute</h2>
+            </div>
+            <span class="linear-count"><%= @library_counts.fetch(:actions) %></span>
+          </div>
+          <div class="skill-home-list">
+            <% @favorite_actions.each do |action| %>
+              <%= link_to action_path(action), class: "skill-home-row" do %>
+                <span class="record-point-main">
+                  <span class="record-point-title"><%= action.name %></span>
+                  <span class="record-point-meta">
+                    <span><%= action.provider.to_s.tr("_", " ").titleize %></span>
+                    <span><%= action.category.to_s.titleize %></span>
+                    <span><%= action.skill_definition&.name || "No skill" %></span>
+                  </span>
+                </span>
+              <% end %>
+            <% end %>
+          </div>
+          <div class="automation-column-actions">
+            <%= link_to "Browse actions", actions_home_path, class: "app-link text-sm" %>
+            <% if permitted?(:manage_pipelines) %>
+              <%= link_to "Import", import_actions_path, class: "app-link text-sm", data: side_panel_data %>
+            <% end %>
+          </div>
+        </section>
+
+        <section class="automation-library-column">
+          <div class="skill-section-title">
+            <div>
+              <p class="app-eyebrow">Skills</p>
+              <h2>Guidance behind actions</h2>
+            </div>
+            <span class="linear-count"><%= @library_counts.fetch(:skills) %></span>
+          </div>
+          <div class="skill-home-list">
+            <% @favorite_skills.each do |skill| %>
+              <%= link_to skill_path(skill), class: "skill-home-row" do %>
+                <span class="record-point-main">
+                  <span class="record-point-title"><%= skill.name %></span>
+                  <span class="record-point-meta">
+                    <span><%= skill.category.to_s.titleize %></span>
+                    <span>@<%= skill.version %></span>
+                    <span><%= pluralize(skill.action_definitions.size, "action") %></span>
+                  </span>
+                </span>
+              <% end %>
+            <% end %>
+          </div>
+          <div class="automation-column-actions">
+            <%= link_to "Browse skills", skills_home_path, class: "app-link text-sm" %>
+            <% if permitted?(:manage_pipelines) %>
+              <%= link_to "Import", import_skills_path, class: "app-link text-sm", data: side_panel_data %>
+            <% end %>
+          </div>
+        </section>
+      </div>
+    </section>
+
+  <% when "triggers" %>
+    <div class="ops-layout">
+      <section class="ops-section">
+        <div class="ops-section-head">
+          <div>
+            <p class="app-eyebrow">Incoming signals</p>
+            <h2>Events and schedules</h2>
+          </div>
+          <div class="skill-home-actions">
+            <% if permitted?(:manage_pipelines) %>
+              <%= link_to new_event_rule_path, class: "app-btn app-btn-muted", data: side_panel_data do %>
+                <%= lucide_icon("plus", class_name: "app-icon") %>
+                <span>Rule</span>
+              <% end %>
+            <% end %>
+            <%= link_to new_schedule_path, class: "app-btn app-btn-primary", data: side_panel_data do %>
+              <%= lucide_icon("clock", class_name: "app-icon") %>
+              <span>Schedule</span>
+            <% end %>
+          </div>
+        </div>
+        <div class="automation-two-column-list">
+          <section>
+            <div class="automation-subhead">
+              <h3>Latest events</h3>
+              <%= link_to "All events", events_path, class: "app-link text-xs" %>
+            </div>
+            <div class="ops-list">
+              <% @events.each do |event| %>
+                <% matched_count = @rules.count { |rule| rule.matches?(event) } %>
+                <%= link_to event_path(event), class: "ops-row" do %>
+                  <%= status_icon_pill(event.severity, title: "#{event.severity.titleize} severity") %>
+                  <span class="record-point-main">
+                    <span class="record-point-title"><%= event.title %></span>
+                    <span class="record-point-meta">
+                      <span><%= event.source %></span>
+                      <span><%= event.event_type %></span>
+                      <span><%= matched_count %> rules</span>
+                    </span>
+                  </span>
+                <% end %>
+              <% end %>
+              <% if @events.empty? %>
+                <p class="linear-empty px-0 py-4 text-left">No events yet.</p>
+              <% end %>
+            </div>
+          </section>
+
+          <section>
+            <div class="automation-subhead">
+              <h3>Schedules</h3>
+              <%= link_to "All schedules", schedules_path, class: "app-link text-xs" %>
+            </div>
+            <div class="ops-list">
+              <% @schedules.each do |schedule| %>
+                <%= link_to schedule_path(schedule), class: "ops-row" do %>
+                  <%= status_icon_pill(schedule.status, title: schedule.status.to_s.titleize) %>
+                  <span class="record-point-main">
+                    <span class="record-point-title"><%= schedule.pipeline_definition.name %></span>
+                    <span class="record-point-meta">
+                      <span><%= schedule.kind.tr("_", " ").titleize %></span>
+                      <span><%= schedule.schedulable&.try(:title) || schedule.schedulable&.try(:name) || "Workspace" %></span>
+                      <span><%= schedule.run_at&.strftime("%b %-d, %-I:%M %p") || schedule.cron %></span>
+                    </span>
+                  </span>
+                <% end %>
+              <% end %>
+              <% if @schedules.empty? %>
+                <p class="linear-empty px-0 py-4 text-left">No schedules yet.</p>
+              <% end %>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <aside class="ops-side">
+        <section class="ops-section">
+          <div class="ops-section-head">
+            <div>
+              <p class="app-eyebrow">Routing rules</p>
+              <h2>Matched automation</h2>
+            </div>
+            <span class="linear-count"><%= @rules.size %></span>
+          </div>
+          <div class="ops-list">
+            <% @rules.first(8).each do |rule| %>
+              <%= link_to permitted?(:manage_pipelines) ? edit_event_rule_path(rule) : events_path,
+                    class: "ops-row",
+                    data: permitted?(:manage_pipelines) ? side_panel_data : {} do %>
+                <span class="record-point-main">
+                  <span class="record-point-title"><%= rule.name %></span>
+                  <span class="record-point-meta">
+                    <span><%= rule.pipeline_definition&.name || "No pipeline" %></span>
+                    <span><%= rule.active? ? "active" : "paused" %></span>
+                  </span>
+                </span>
+              <% end %>
+            <% end %>
+            <% if @rules.empty? %>
+              <p class="linear-empty px-0 py-4 text-left">No routing rules configured.</p>
+            <% end %>
+          </div>
+        </section>
+        <section class="ops-section">
+          <div class="ops-section-head">
+            <div>
+              <p class="app-eyebrow">Webhook</p>
+              <h2>Signed intake</h2>
+            </div>
+          </div>
+          <dl class="ops-kv-list">
+            <div><dt>Endpoint</dt><dd class="break-all" title="<%= @webhook_endpoint %>"><%= @webhook_endpoint %></dd></div>
+            <div><dt>Signature</dt><dd>X-Xmode-Signature</dd></div>
+            <div><dt>Secret</dt><dd><%= link_to "Integrations", settings_path(section: "integrations"), class: "app-link" %></dd></div>
+          </dl>
+        </section>
+      </aside>
+    </div>
+
+  <% when "sandboxes" %>
+    <div class="record-detail-layout sandbox-record-layout automation-sandbox-layout">
+      <main class="record-detail-main">
+        <section class="record-detail-section">
+          <div class="record-detail-section-head">
+            <div>
+              <p class="app-eyebrow">Open</p>
+              <h3>Active sandboxes</h3>
+            </div>
+            <span class="linear-count"><%= @open_sandbox_sessions.size %></span>
+          </div>
+          <div class="record-detail-list">
+            <% @open_sandbox_sessions.each do |sandbox| %>
+              <article class="record-detail-row">
+                <%= status_icon_pill(sandbox.status, title: sandbox.status.to_s.titleize) %>
+                <%= link_to sandbox_session_path(sandbox), class: "record-point-main min-w-0 flex-1" do %>
+                  <span class="record-point-title"><%= sandbox_session_title(sandbox) %></span>
+                  <span class="record-point-meta">
+                    <span><%= sandbox_session_meta(sandbox) %></span>
+                    <span><%= pluralize(sandbox.sandbox_commands.size, "command") %></span>
+                  </span>
+                <% end %>
+                <% if permitted?("run_code_actions") %>
+                  <%= button_to "Stop",
+                        stop_sandbox_session_path(sandbox),
+                        method: :post,
+                        class: "app-btn app-btn-muted",
+                        form: { data: { turbo_confirm: "Stop this sandbox?" } } %>
+                <% end %>
+              </article>
+            <% end %>
+            <% @pending_sandbox_runs.each do |run| %>
+              <%= link_to pipeline_run_path(run), class: "record-detail-row" do %>
+                <%= status_icon_pill(run.status, title: run.display_status) %>
+                <span class="record-point-main">
+                  <span class="record-point-title"><%= run.pipeline_definition&.name || "Pending sandbox" %></span>
+                  <span class="record-point-meta">
+                    <span><%= run.project&.title || "Workspace" %></span>
+                    <span>Starting</span>
+                  </span>
+                </span>
+              <% end %>
+            <% end %>
+            <% if @open_sandbox_sessions.empty? && @pending_sandbox_runs.empty? %>
+              <p class="linear-empty px-0 py-3 text-left">No open sandboxes.</p>
+            <% end %>
+          </div>
+        </section>
+
+        <section class="record-detail-section">
+          <div class="record-detail-section-head">
+            <div>
+              <p class="app-eyebrow">History</p>
+              <h3>Recent sandboxes</h3>
+            </div>
+            <%= link_to "Dedicated view", sandbox_sessions_path, class: "app-link text-xs" %>
+          </div>
+          <div class="record-detail-list">
+            <% @recent_sandbox_sessions.each do |sandbox| %>
+              <%= link_to sandbox_session_path(sandbox), class: "record-detail-row" do %>
+                <%= status_icon_pill(sandbox.status, title: sandbox.status.to_s.titleize) %>
+                <span class="record-point-main">
+                  <span class="record-point-title"><%= sandbox_session_title(sandbox) %></span>
+                  <span class="record-point-meta">
+                    <span><%= sandbox_session_meta(sandbox) %></span>
+                    <span><%= sandbox.finished_at&.strftime("%b %-d, %-I:%M %p") || sandbox.created_at.strftime("%b %-d, %-I:%M %p") %></span>
+                  </span>
+                </span>
+              <% end %>
+            <% end %>
+            <% if @recent_sandbox_sessions.empty? %>
+              <p class="linear-empty px-0 py-3 text-left">No completed sandbox sessions yet.</p>
+            <% end %>
+          </div>
+        </section>
+      </main>
+
+      <aside class="record-detail-side">
+        <section class="record-detail-side-section">
+          <div class="record-detail-side-title">
+            <h3>Start sandbox</h3>
+            <span class="linear-count"><%= @sandbox_usage.fetch(:available_count) %> left</span>
+          </div>
+          <%= form_with url: sandbox_sessions_path, method: :post, class: "mt-3 space-y-3" do |form| %>
+            <div>
+              <%= form.label :project_id, "Project", class: "app-label" %>
+              <%= form.select :project_id,
+                    options_from_collection_for_select(@projects, :id, :title, params[:project_id]),
+                    {},
+                    class: "app-input",
+                    disabled: @projects.empty? || @sandbox_usage.fetch(:used_count) >= @sandbox_usage.fetch(:limit) || !permitted?("run_code_actions") %>
+            </div>
+            <div>
+              <%= form.label :objective, "Objective", class: "app-label" %>
+              <%= form.text_area :objective,
+                    rows: 5,
+                    class: "app-textarea",
+                    placeholder: "Describe the sandbox work to run.",
+                    disabled: @projects.empty? || @sandbox_usage.fetch(:used_count) >= @sandbox_usage.fetch(:limit) || !permitted?("run_code_actions") %>
+            </div>
+            <%= form.submit "Start sandbox",
+                  class: "app-btn app-btn-primary w-full",
+                  disabled: @projects.empty? || @sandbox_usage.fetch(:used_count) >= @sandbox_usage.fetch(:limit) || !permitted?("run_code_actions") %>
+          <% end %>
+          <% if @sandbox_usage.fetch(:used_count) >= @sandbox_usage.fetch(:limit) %>
+            <p class="linear-empty px-0 py-3 text-left">Open sandbox limit reached. Stop an open sandbox before starting another.</p>
+          <% end %>
+        </section>
+      </aside>
+    </div>
+
+  <% else %>
+    <div class="ops-layout">
+      <main class="min-w-0 space-y-4">
+        <section class="ops-section">
+          <div class="ops-section-head">
+            <div>
+              <p class="app-eyebrow">Needs attention</p>
+              <h2>Review next</h2>
+            </div>
+            <span class="linear-count"><%= @attention_runs.size %></span>
+          </div>
+          <div class="ops-list">
+            <% @attention_runs.each do |run| %>
+              <% run_target = run.issue&.identifier || run.project&.title || run.event&.title || "Workspace" %>
+              <%= link_to pipeline_run_path(run), class: "ops-row" do %>
+                <%= status_icon_pill(run.status, title: run.display_status) %>
+                <span class="record-point-main">
+                  <span class="record-point-title"><%= run.pipeline_definition&.name || "Run ##{run.id}" %></span>
+                  <span class="record-point-meta">
+                    <span><%= run.display_status %></span>
+                    <span><%= run_target %></span>
+                    <span><%= time_ago_in_words(run.created_at) %> ago</span>
+                  </span>
+                  <% if run.input_context["objective"].present? %>
+                    <span class="mt-1 line-clamp-2 block text-xs leading-5 text-muted-foreground"><%= run.input_context["objective"] %></span>
+                  <% end %>
+                </span>
+              <% end %>
+            <% end %>
+            <% if @attention_runs.empty? %>
+              <p class="linear-empty px-0 py-4 text-left">No automation needs a decision right now.</p>
+            <% end %>
+          </div>
+        </section>
+
+        <section class="ops-section">
+          <div class="ops-section-head">
+            <div>
+              <p class="app-eyebrow">Run queue</p>
+              <h2>Recent runs</h2>
+            </div>
+            <%= link_to "Full ledger", pipeline_runs_path, class: "app-link text-xs" %>
+          </div>
+          <div class="ops-list">
+            <% @recent_runs.each do |run| %>
+              <% run_target = run.issue&.identifier || run.project&.title || run.event&.title || "Workspace" %>
+              <%= link_to pipeline_run_path(run), class: "ops-row" do %>
+                <%= status_icon_pill(run.status, title: run.display_status) %>
+                <span class="record-point-main">
+                  <span class="record-point-title"><%= run.pipeline_definition&.name || "Run ##{run.id}" %></span>
+                  <span class="record-point-meta">
+                    <span><%= run.display_trigger %></span>
+                    <span><%= run_target %></span>
+                    <span><%= pluralize(run.run_artifacts.size, "artifact") %></span>
+                  </span>
+                </span>
+                <% if run.change_request %>
+                  <span class="ops-row-trailing">
+                    <%= status_icon_pill(run.change_request.status, title: "#{run.change_request.status.to_s.titleize} Change Request") %>
+                    <span class="linear-count">CR</span>
+                  </span>
+                <% end %>
+              <% end %>
+            <% end %>
+            <% if @recent_runs.empty? %>
+              <p class="linear-empty px-0 py-4 text-left">No runs yet.</p>
+            <% end %>
+          </div>
+        </section>
+      </main>
+
+      <aside class="ops-side">
+        <section class="ops-section">
+          <div class="ops-section-head">
+            <div>
+              <p class="app-eyebrow">Change Requests</p>
+              <h2>Review output</h2>
+            </div>
+            <%= link_to "All", change_requests_path, class: "app-link text-xs" %>
+          </div>
+          <div class="ops-list">
+            <% @change_requests.each do |change_request| %>
+              <%= link_to change_request_path(change_request), class: "ops-row" do %>
+                <%= status_icon_pill(change_request.status, title: change_request.status.to_s.titleize) %>
+                <span class="record-point-main">
+                  <span class="record-point-title"><%= change_request.title %></span>
+                  <span class="record-point-meta">
+                    <span><%= change_request.provider %></span>
+                    <span><%= change_request.issue&.identifier || "No issue" %></span>
+                  </span>
+                </span>
+              <% end %>
+            <% end %>
+            <% if @change_requests.empty? %>
+              <p class="linear-empty px-0 py-4 text-left">No Change Requests yet.</p>
+            <% end %>
+          </div>
+        </section>
+
+        <section class="ops-section">
+          <div class="ops-section-head">
+            <div>
+              <p class="app-eyebrow">Start here</p>
+              <h2>Common actions</h2>
+            </div>
+          </div>
+          <div class="settings-action-list">
+            <%= link_to automations_path(tab: "library"), class: "settings-action-row" do %>
+              <span class="settings-action-body">
+                <span class="settings-action-icon"><%= lucide_icon("workflow", class_name: "app-icon") %></span>
+                <span class="settings-action-copy">
+                  <strong>Run or edit a pipeline</strong>
+                  <small>Use the library when you need reusable automation.</small>
+                </span>
+              </span>
+            <% end %>
+            <%= link_to automations_path(tab: "triggers"), class: "settings-action-row" do %>
+              <span class="settings-action-body">
+                <span class="settings-action-icon"><%= lucide_icon("clock", class_name: "app-icon") %></span>
+                <span class="settings-action-copy">
+                  <strong>Route events or schedules</strong>
+                  <small>Connect incoming signals to the right pipeline.</small>
+                </span>
+              </span>
+            <% end %>
+            <%= link_to automations_path(tab: "sandboxes"), class: "settings-action-row" do %>
+              <span class="settings-action-body">
+                <span class="settings-action-icon"><%= lucide_icon("folder-git-2", class_name: "app-icon") %></span>
+                <span class="settings-action-copy">
+                  <strong>Open a sandbox</strong>
+                  <small>Start isolated work from a project.</small>
+                </span>
+              </span>
+            <% end %>
+          </div>
+        </section>
+      </aside>
+    </div>
+  <% end %>
+</div>

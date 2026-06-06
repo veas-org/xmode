@@ -9,9 +9,9 @@ class CodeModelProfilesController < AuthenticatedController
 
     if @profile.save
       audit!("code_model_profile.created", @profile)
-      redirect_to settings_path(anchor: "models"), notice: "Code model profile saved."
+      redirect_to settings_path(section: "models"), notice: "Code model profile saved."
     else
-      redirect_to settings_path(anchor: "models"), alert: @profile.errors.full_messages.to_sentence
+      redirect_to settings_path(section: "models"), alert: @profile.errors.full_messages.to_sentence
     end
   end
 
@@ -23,22 +23,22 @@ class CodeModelProfilesController < AuthenticatedController
 
     if @profile.save
       audit!("code_model_profile.updated", @profile)
-      redirect_to settings_path(anchor: "models"), notice: "Code model profile updated."
+      redirect_to settings_path(section: "models"), notice: "Code model profile updated."
     else
-      redirect_to settings_path(anchor: "models"), alert: @profile.errors.full_messages.to_sentence
+      redirect_to settings_path(section: "models"), alert: @profile.errors.full_messages.to_sentence
     end
   end
 
   def destroy
     @profile.destroy!
     audit!("code_model_profile.deleted", @profile)
-    redirect_to settings_path(anchor: "models"), notice: "Code model profile deleted."
+    redirect_to settings_path(section: "models"), notice: "Code model profile deleted."
   end
 
   def make_default
     @profile.update!(default_profile: true, status: "active")
     audit!("code_model_profile.default_changed", @profile)
-    redirect_to settings_path(anchor: "models"), notice: "#{@profile.name} is now the default code model profile."
+    redirect_to settings_path(section: "models"), notice: "#{@profile.name} is now the default code model profile."
   end
 
   private

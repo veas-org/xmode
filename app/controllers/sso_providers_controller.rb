@@ -16,7 +16,7 @@ class SsoProvidersController < AuthenticatedController
     @sso_provider = current_workspace.sso_providers.new(sso_provider_params)
     if @sso_provider.save
       audit!("sso_provider.created")
-      redirect_to settings_path(anchor: "security"), notice: "SSO provider saved."
+      redirect_to settings_path(section: "security"), notice: "SSO provider saved."
     else
       render :new, status: :unprocessable_entity
     end
@@ -28,7 +28,7 @@ class SsoProvidersController < AuthenticatedController
   def update
     if @sso_provider.update(sso_provider_params)
       audit!("sso_provider.updated")
-      redirect_to settings_path(anchor: "security"), notice: "SSO provider updated."
+      redirect_to settings_path(section: "security"), notice: "SSO provider updated."
     else
       render :edit, status: :unprocessable_entity
     end
