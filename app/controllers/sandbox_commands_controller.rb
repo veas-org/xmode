@@ -6,7 +6,7 @@ class SandboxCommandsController < AuthenticatedController
   def create
     command_text = params.require(:command).to_s.strip
     if command_text.blank?
-      redirect_to pipeline_run_path(@run), alert: "Command cannot be blank."
+      redirect_back fallback_location: pipeline_run_path(@run), alert: "Command cannot be blank."
       return
     end
 
@@ -17,7 +17,7 @@ class SandboxCommandsController < AuthenticatedController
       command: command_text
     )
     Sandboxes::CommandRunner.call(command)
-    redirect_to pipeline_run_path(@run), notice: "Sandbox command recorded."
+    redirect_back fallback_location: pipeline_run_path(@run), notice: "Sandbox command recorded."
   end
 
   private

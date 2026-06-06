@@ -22,7 +22,13 @@ class SandboxSessionsController < AuthenticatedController
   end
 
   def show
+    @run = @sandbox_session.pipeline_run
+    @change_request = @run.change_request
+    @run_artifacts = @run.run_artifacts.order(:created_at)
+    @run_logs = @run.run_logs.order(created_at: :desc).limit(6)
     @sandbox_files = Sandboxes::FileInventory.call(@sandbox_session)
+    @sandbox_file_count = @sandbox_files.count { |file| file.fetch(:type) == "file" }
+    @sandbox_directory_count = @sandbox_files.count { |file| file.fetch(:type) == "directory" }
     @recent_commands = @sandbox_session.sandbox_commands.includes(:user).order(created_at: :desc)
     @workspace_open_sandboxes = current_workspace.sandbox_sessions
       .open

@@ -1,120 +1,264 @@
 <% content_for :page_title, sandbox_session_title(@sandbox_session) %>
+<% started_at = @sandbox_session.started_at || @sandbox_session.created_at %>
+<% finished_at = @sandbox_session.finished_at %>
+<% duration_label = finished_at.present? ? distance_of_time_in_words(started_at, finished_at) : "Open" %>
+<% runtime_label = sandbox_runtime_label(@sandbox_session.execution_environment) %>
+<% run_title = @run.pipeline_definition&.name || "Pipeline run" %>
+<% project_title = @sandbox_session.project&.title || "Workspace" %>
 
 <div class="record-detail-layout sandbox-record-layout">
-  <main class="record-detail-main">
-    <header class="record-doc-hero">
-      <div class="record-doc-hero-top">
+  <main class="record-detail-main sandbox-main">
+    <header class="record-doc-hero sandbox-console-hero">
+      <div class="sandbox-hero-kicker">
         <div class="flex min-w-0 flex-wrap items-center gap-2">
-          <span class="linear-count">Sandbox</span>
+          <span class="linear-count">Sandbox #<%= @sandbox_session.id %></span>
           <%= status_icon_pill(@sandbox_session.status, title: @sandbox_session.status.to_s.titleize) %>
+          <span class="linear-count"><%= @sandbox_session.kind.tr("_", " ").titleize %></span>
         </div>
-        <div class="record-detail-page-actions">
-          <%= link_to "All sandboxes", sandbox_sessions_path, class: "app-btn app-btn-muted" %>
-          <%= link_to "Pipeline run", pipeline_run_path(@sandbox_session.pipeline_run), class: "app-btn app-btn-muted" %>
+        <span class="linear-count"><%= started_at.strftime("%b %-d, %-I:%M %p") %></span>
+      </div>
+
+      <div class="sandbox-title-row">
+        <div class="min-w-0">
+          <h2 class="record-detail-page-title"><%= sandbox_session_title(@sandbox_session) %></h2>
+          <p class="sandbox-identity-line">
+            <span><%= project_title %></span>
+            <span><%= runtime_label %></span>
+            <span><%= run_title %></span>
+          </p>
+        </div>
+
+        <div class="record-detail-page-actions sandbox-page-actions">
+          <%= link_to sandbox_sessions_path, class: "app-icon-btn", title: "All sandboxes", aria: { label: "All sandboxes" } do %>
+            <%= lucide_icon("folder-git-2", class_name: "app-icon") %>
+          <% end %>
+          <%= link_to pipeline_run_path(@run), class: "app-btn app-btn-muted" do %>
+            <%= lucide_icon("route", class_name: "app-icon") %>
+            <span>Run</span>
+          <% end %>
+          <% if @change_request %>
+            <%= link_to change_request_path(@change_request), class: "app-btn app-btn-muted" do %>
+              <%= lucide_icon("git-pull-request", class_name: "app-icon") %>
+              <span>Review</span>
+            <% end %>
+          <% end %>
           <% if @sandbox_session.open? && permitted?("run_code_actions") %>
-            <%= button_to "Stop",
-                  stop_sandbox_session_path(@sandbox_session),
+            <%= button_to stop_sandbox_session_path(@sandbox_session),
                   method: :post,
                   class: "app-btn app-btn-danger",
-                  form: { data: { turbo_confirm: "Stop this sandbox?" } } %>
+                  form: { data: { turbo_confirm: "Stop this sandbox?" } } do %>
+              <%= lucide_icon("ban", class_name: "app-icon") %>
+              <span>Stop</span>
+            <% end %>
           <% end %>
         </div>
       </div>
 
-      <h2 class="record-detail-page-title"><%= sandbox_session_title(@sandbox_session) %></h2>
-      <p class="project-record-subtitle"><%= sandbox_session_meta(@sandbox_session) %></p>
+      <div class="sandbox-signal-strip">
+        <div>
+          <span>Status</span>
+          <strong><%= @sandbox_session.status.titleize %></strong>
+          <small><%= finished_at.present? ? "Finished #{time_ago_in_words(finished_at)} ago" : "Still open" %></small>
+        </div>
+        <div>
+          <span>Files</span>
+          <strong><%= @sandbox_file_count %></strong>
+          <small><%= pluralize(@sandbox_directory_count, "directory") %></small>
+        </div>
+        <div>
+          <span>Commands</span>
+          <strong><%= @recent_commands.size %></strong>
+          <small><%= @recent_commands.first&.status&.titleize || "No terminal evidence" %></small>
+        </div>
+        <div>
+          <span>Duration</span>
+          <strong><%= duration_label %></strong>
+          <small><%= @run.display_status %></small>
+        </div>
+      </div>
     </header>
 
-    <section class="record-detail-section project-workbench-section">
+    <section class="sandbox-flow-section">
       <div class="record-detail-section-head">
         <div>
-          <p class="app-eyebrow">Map</p>
-          <h3>Sandbox lineage</h3>
+          <p class="app-eyebrow">Run chain</p>
+          <h3>Project to review</h3>
         </div>
       </div>
-      <div class="project-contract-strip">
-        <div>
+
+      <div class="sandbox-flow">
+        <%= link_to(@sandbox_session.project ? project_path(@sandbox_session.project) : sandbox_session_path(@sandbox_session), class: "sandbox-flow-node") do %>
           <span>Project</span>
-          <strong><%= @sandbox_session.project&.title || "Workspace" %></strong>
+          <strong><%= project_title %></strong>
+          <small><%= @sandbox_session.project&.repository_url.presence || "No repository" %></small>
+        <% end %>
+        <span class="sandbox-flow-arrow"><%= lucide_icon("chevron-right", class_name: "app-icon") %></span>
+        <div class="sandbox-flow-node is-current">
+          <span>Worktree</span>
+          <strong><%= @sandbox_session.kind.tr("_", " ").titleize %></strong>
+          <small><%= @sandbox_session.worktree_path.presence || "Path not captured" %></small>
         </div>
-        <div>
-          <span>Runtime</span>
-          <strong><%= sandbox_runtime_label(@sandbox_session.execution_environment) %></strong>
-        </div>
-        <div>
-          <span>Run</span>
-          <strong><%= @sandbox_session.pipeline_run&.pipeline_definition&.name || "Pipeline run" %></strong>
-        </div>
+        <span class="sandbox-flow-arrow"><%= lucide_icon("chevron-right", class_name: "app-icon") %></span>
+        <%= link_to pipeline_run_path(@run), class: "sandbox-flow-node" do %>
+          <span>Pipeline</span>
+          <strong><%= run_title %></strong>
+          <small><%= @run.display_status %></small>
+        <% end %>
+        <span class="sandbox-flow-arrow"><%= lucide_icon("chevron-right", class_name: "app-icon") %></span>
+        <% if @change_request %>
+          <%= link_to change_request_path(@change_request), class: "sandbox-flow-node" do %>
+            <span>Review</span>
+            <strong><%= @change_request.status.titleize %></strong>
+            <small><%= @change_request.branch_name.presence || @change_request.title %></small>
+          <% end %>
+        <% else %>
+          <div class="sandbox-flow-node">
+            <span>Review</span>
+            <strong>Not opened</strong>
+            <small><%= pluralize(@run_artifacts.size, "artifact") %></small>
+          </div>
+        <% end %>
       </div>
     </section>
 
-    <section class="record-detail-section">
-      <div class="record-detail-section-head">
-        <div>
-          <p class="app-eyebrow">Files</p>
-          <h3>Workspace inventory</h3>
+    <section class="sandbox-evidence-grid">
+      <div class="sandbox-tool-panel sandbox-files-panel">
+        <div class="sandbox-tool-head">
+          <div>
+            <p class="app-eyebrow">Workspace</p>
+            <h3>Captured files</h3>
+          </div>
+          <span class="linear-count"><%= pluralize(@sandbox_files.size, "entry") %></span>
         </div>
-        <span class="linear-count"><%= @sandbox_files.size %></span>
-      </div>
-      <div class="record-detail-list">
-        <% @sandbox_files.first(40).each do |file| %>
-          <article class="record-detail-row">
-            <%= lucide_icon(file.fetch(:type) == "directory" ? "folder" : "file", class_name: "app-icon text-muted-foreground") %>
-            <span class="record-point-main">
-              <span class="record-point-title"><%= file.fetch(:path) %></span>
-              <span class="record-point-meta">
-                <% if file.fetch(:type) == "file" && file[:byte_size].present? %>
-                  <span><%= number_to_human_size(file[:byte_size]) %></span>
-                <% else %>
-                  <span><%= file.fetch(:type).to_s.titleize %></span>
-                <% end %>
+
+        <div class="sandbox-file-list">
+          <% @sandbox_files.first(40).each do |file| %>
+            <article class="sandbox-file-row">
+              <span class="sandbox-file-icon">
+                <%= lucide_icon(file.fetch(:type) == "directory" ? "folder" : "file", class_name: "app-icon") %>
               </span>
-            </span>
-          </article>
-        <% end %>
-        <% if @sandbox_files.empty? %>
-          <p class="linear-empty px-0 py-3 text-left">No sandbox files have been captured yet.</p>
-        <% end %>
-      </div>
-    </section>
+              <span class="min-w-0">
+                <strong title="<%= file.fetch(:path) %>"><%= file.fetch(:path) %></strong>
+                <small>
+                  <% if file.fetch(:type) == "file" && file[:byte_size].present? %>
+                    <%= number_to_human_size(file[:byte_size]) %>
+                  <% else %>
+                    <%= file.fetch(:type).to_s.titleize %>
+                  <% end %>
+                </small>
+              </span>
+            </article>
+          <% end %>
 
-    <section class="record-detail-section">
-      <div class="record-detail-section-head">
-        <div>
-          <p class="app-eyebrow">Terminal</p>
-          <h3>Commands</h3>
+          <% if @sandbox_files.empty? %>
+            <p class="linear-empty px-0 py-6 text-left">No sandbox files have been captured yet.</p>
+          <% end %>
         </div>
-        <span class="linear-count"><%= @recent_commands.size %></span>
       </div>
-      <div class="codex-inspector-raw-list">
-        <% @recent_commands.each do |command| %>
-          <article>
-            <%= status_icon_pill(command.status, title: command.status.to_s.titleize) %>
-            <span>
-              <strong>$ <%= command.command %></strong>
-              <small><%= command.stdout.presence || command.stderr.presence || command.status.to_s.titleize %></small>
-            </span>
-          </article>
+
+      <div class="sandbox-tool-panel sandbox-terminal-panel">
+        <div class="sandbox-tool-head">
+          <div>
+            <p class="app-eyebrow">Terminal</p>
+            <h3>Commands</h3>
+          </div>
+          <span class="linear-count"><%= @recent_commands.size %></span>
+        </div>
+
+        <% if @sandbox_session.open? && permitted?("run_code_actions") %>
+          <%= form_with url: pipeline_run_sandbox_session_commands_path(@run, @sandbox_session), method: :post, class: "sandbox-command-form" do %>
+            <span>$</span>
+            <%= text_field_tag :command, nil, class: "sandbox-command-input", placeholder: "Run command in sandbox" %>
+            <button class="app-icon-btn" type="submit" title="Run command" aria-label="Run command">
+              <%= lucide_icon("terminal", class_name: "app-icon") %>
+            </button>
+          <% end %>
         <% end %>
-        <% if @recent_commands.empty? %>
-          <p class="linear-empty px-0 py-3 text-left">No interactive commands recorded.</p>
-        <% end %>
+
+        <div class="sandbox-command-list">
+          <% @recent_commands.each do |command| %>
+            <article>
+              <div class="sandbox-command-row-head">
+                <%= status_icon_pill(command.status, title: command.status.to_s.titleize) %>
+                <strong>$ <%= command.command %></strong>
+              </div>
+              <pre><%= command.stdout.presence || command.stderr.presence || command.status.to_s.titleize %></pre>
+            </article>
+          <% end %>
+
+          <% if @recent_commands.empty? %>
+            <p class="linear-empty px-0 py-6 text-left">No interactive commands recorded.</p>
+          <% end %>
+        </div>
       </div>
     </section>
   </main>
 
-  <aside class="record-detail-side">
-    <section class="record-detail-side-section">
+  <aside class="record-detail-side sandbox-side">
+    <section class="record-detail-side-section sandbox-side-primary">
       <div class="record-detail-side-title">
-        <h3>Details</h3>
+        <h3>Runtime</h3>
+        <%= status_icon_pill(@sandbox_session.status, title: @sandbox_session.status.to_s.titleize) %>
       </div>
       <dl class="catalog-contract-list">
-        <div><dt>Status</dt><dd><%= @sandbox_session.status.titleize %></dd></div>
-        <div><dt>Kind</dt><dd><%= @sandbox_session.kind.tr("_", " ").titleize %></dd></div>
-        <div><dt>Started</dt><dd><%= @sandbox_session.started_at&.strftime("%b %-d, %-I:%M %p") || @sandbox_session.created_at.strftime("%b %-d, %-I:%M %p") %></dd></div>
-        <div><dt>Finished</dt><dd><%= @sandbox_session.finished_at&.strftime("%b %-d, %-I:%M %p") || "-" %></dd></div>
+        <div><dt>Mode</dt><dd><%= @sandbox_session.kind.tr("_", " ").titleize %></dd></div>
+        <div><dt>Runtime</dt><dd title="<%= runtime_label %>"><%= runtime_label %></dd></div>
+        <div><dt>Environment</dt><dd><%= @sandbox_session.execution_environment&.name || "-" %></dd></div>
+        <div><dt>Container</dt><dd class="break-all"><%= @sandbox_session.container_id.presence || "-" %></dd></div>
         <div><dt>Worktree</dt><dd class="break-all"><%= @sandbox_session.worktree_path.presence || "-" %></dd></div>
       </dl>
+    </section>
+
+    <section class="record-detail-side-section">
+      <div class="record-detail-side-title">
+        <h3>Timeline</h3>
+      </div>
+      <dl class="catalog-contract-list">
+        <div><dt>Created</dt><dd><%= @sandbox_session.created_at.strftime("%b %-d, %-I:%M %p") %></dd></div>
+        <div><dt>Started</dt><dd><%= @sandbox_session.started_at&.strftime("%b %-d, %-I:%M %p") || "-" %></dd></div>
+        <div><dt>Finished</dt><dd><%= finished_at&.strftime("%b %-d, %-I:%M %p") || "-" %></dd></div>
+        <div><dt>Expires</dt><dd><%= @sandbox_session.expires_at&.strftime("%b %-d, %-I:%M %p") || "-" %></dd></div>
+      </dl>
+    </section>
+
+    <section class="record-detail-side-section">
+      <div class="record-detail-side-title">
+        <h3>Evidence</h3>
+        <span class="linear-count"><%= @run_artifacts.size + @run_logs.size %></span>
+      </div>
+      <div class="sandbox-evidence-pack">
+        <%= link_to pipeline_run_path(@run), class: "sandbox-evidence-link" do %>
+          <%= lucide_icon("route", class_name: "app-icon text-muted-foreground") %>
+          <span>
+            <strong><%= run_title %></strong>
+            <small><%= @run.display_status %></small>
+          </span>
+        <% end %>
+
+        <% if @change_request %>
+          <%= link_to change_request_path(@change_request), class: "sandbox-evidence-link" do %>
+            <%= lucide_icon("git-pull-request", class_name: "app-icon text-muted-foreground") %>
+            <span>
+              <strong><%= @change_request.title %></strong>
+              <small><%= @change_request.branch_name.presence || @change_request.status %></small>
+            </span>
+          <% end %>
+        <% end %>
+
+        <% @run_artifacts.first(5).each do |artifact| %>
+          <%= link_to pipeline_run_path(@run, anchor: "raw-evidence"), class: "sandbox-evidence-link" do %>
+            <%= lucide_icon("file", class_name: "app-icon text-muted-foreground") %>
+            <span>
+              <strong><%= artifact.name %></strong>
+              <small><%= artifact.byte_size.present? ? number_to_human_size(artifact.byte_size) : artifact.content_type.presence || "artifact" %></small>
+            </span>
+          <% end %>
+        <% end %>
+
+        <% if @run_artifacts.empty? && !@change_request %>
+          <p class="linear-empty px-0 py-3 text-left">No review package attached yet.</p>
+        <% end %>
+      </div>
     </section>
 
     <section class="record-detail-side-section">

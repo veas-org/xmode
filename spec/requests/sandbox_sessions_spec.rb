@@ -36,7 +36,8 @@ RSpec.describe "Sandbox sessions", type: :request do
 
     get sandbox_session_path(sandbox)
     expect(response).to have_http_status(:ok)
-    expect(response.body).to include("Sandbox lineage")
+    expect(response.body).to include("Project to review")
+    expect(response.body).to include("Captured files")
     expect(response.body).to include("README.md")
 
     post stop_sandbox_session_path(sandbox)
@@ -44,6 +45,32 @@ RSpec.describe "Sandbox sessions", type: :request do
     expect(response).to redirect_to(sandbox_session_path(sandbox))
     expect(sandbox.reload.status).to eq("destroyed")
     expect(sandbox.finished_at).to be_present
+  ensure
+    FileUtils.rm_rf(sandbox_root) if defined?(sandbox_root)
+  end
+
+  it "keeps sandbox terminal commands on the sandbox detail page" do
+    user, workspace, team = create_workspace_owner("owner-sandbox-command-return@example.com")
+    project = workspace.projects.create!(team: team, title: "Sandbox Fixture", repository_url: "/tmp/fixture")
+    pipeline = workspace.pipeline_definitions.create!(key: "sandbox", name: "Sandbox Pipeline")
+    run = workspace.pipeline_runs.create!(pipeline_definition: pipeline, user: user, project: project, trigger: "sandbox", status: "completed")
+    sandbox_root = Rails.root.join("storage", "runs", run.id.to_s, "sandbox-return")
+    sandbox_root.mkpath
+    sandbox = workspace.sandbox_sessions.create!(
+      pipeline_run: run,
+      project: project,
+      kind: "docker_worktree",
+      status: "ready",
+      worktree_path: sandbox_root.to_s
+    )
+
+    post login_path, params: { email: user.email, password: "password123" }
+    post pipeline_run_sandbox_session_commands_path(run, sandbox),
+      params: { command: "printf cockpit" },
+      headers: { "HTTP_REFERER" => sandbox_session_url(sandbox) }
+
+    expect(response).to redirect_to(sandbox_session_path(sandbox))
+    expect(sandbox.sandbox_commands.last).to have_attributes(status: "completed", stdout: "cockpit")
   ensure
     FileUtils.rm_rf(sandbox_root) if defined?(sandbox_root)
   end
