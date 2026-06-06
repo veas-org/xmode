@@ -32,20 +32,27 @@ class CodexSessionMessageJob < ApplicationJob
     )
     broadcast_session(session)
   rescue CodexSdk::Runner::Error => e
+    fail_session!(message, session, e.message)
+  rescue StandardError => e
+    fail_session!(message, session, "#{e.class}: #{e.message}")
+    raise
+  end
+
+  private
+
+  def fail_session!(message, session, error_message)
     message&.update!(
       status: "failed",
-      response: e.message,
+      response: error_message,
       finished_at: Time.current
     )
     session&.update!(
       status: "failed",
-      last_error: e.message,
+      last_error: error_message,
       finished_at: Time.current
     )
     broadcast_session(session) if session
   end
-
-  private
 
   def broadcast_session(session)
     Turbo::StreamsChannel.broadcast_replace_to(

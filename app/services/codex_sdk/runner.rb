@@ -81,12 +81,12 @@ module CodexSdk
         "--skip-git-repo-check"
       ]
       command += [ "-C", @session.working_directory ] if @session.working_directory.present?
-      command << prompt
+      command << "-"
 
       stdout, stderr, status = if @progress
-        stream_command(command)
+        stream_command(command, stdin_data: prompt)
       else
-        capture_command(command)
+        capture_command(command, stdin_data: prompt)
       end
       raise Error, command_error("Codex CLI session failed", stderr, stdout) unless status.success?
 
@@ -115,18 +115,24 @@ module CodexSdk
       )
     end
 
-    def capture_command(command)
+    def capture_command(command, stdin_data: nil)
       timeout_seconds = ENV.fetch("CODEX_SDK_TIMEOUT_SECONDS", 900).to_i
       Timeout.timeout(timeout_seconds) do
-        Open3.capture3(*command, chdir: command_directory)
+        if stdin_data.present?
+          Open3.capture3(*command, stdin_data: stdin_data, chdir: command_directory)
+        else
+          Open3.capture3(*command, chdir: command_directory)
+        end
       end
     rescue Errno::ENOENT
       raise Error, "Codex CLI is not installed or is not available on PATH"
+    rescue SystemCallError => e
+      raise Error, "Codex command failed to start: #{e.message}"
     rescue Timeout::Error
       raise Error, "Codex command timed out after #{timeout_seconds} seconds"
     end
 
-    def stream_command(command)
+    def stream_command(command, stdin_data: nil)
       timeout_seconds = ENV.fetch("CODEX_SDK_TIMEOUT_SECONDS", 900).to_i
       stdout_buffer = +""
       stderr_buffer = +""
@@ -135,6 +141,7 @@ module CodexSdk
       Timeout.timeout(timeout_seconds) do
         Open3.popen3(*command, chdir: command_directory) do |stdin, stdout, stderr, thread|
           wait_thread = thread
+          stdin.write(stdin_data) if stdin_data.present?
           stdin.close
           drain_streams(stdout, stderr) do |stream, line|
             if stream == :stdout
@@ -151,6 +158,8 @@ module CodexSdk
       end
     rescue Errno::ENOENT
       raise Error, "Codex CLI is not installed or is not available on PATH"
+    rescue SystemCallError => e
+      raise Error, "Codex command failed to start: #{e.message}"
     rescue Timeout::Error
       Process.kill("TERM", wait_thread.pid) if wait_thread&.pid
       raise Error, "Codex command timed out after #{timeout_seconds} seconds"

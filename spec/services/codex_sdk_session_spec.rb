@@ -101,7 +101,8 @@ RSpec.describe "Codex SDK sessions" do
       "--skip-git-repo-check",
       "-C",
       working_directory,
-      include("Continue implementation."),
+      "-",
+      stdin_data: include("Continue implementation."),
       chdir: working_directory
     )
   end

@@ -52,6 +52,28 @@ RSpec.describe CodexSessionMessageJob, type: :job do
     ).at_least(:once)
   end
 
+  it "marks the message failed when the runner raises an unexpected error" do
+    workspace = Workspace.create!(name: "Spec")
+    codex_session = workspace.codex_sessions.create!(
+      status: "ready",
+      runtime: "mock",
+      model: "codex-mock",
+      title: "Unexpected failure",
+      objective: "Do not leave the chat running forever."
+    )
+    message = codex_session.codex_session_messages.create!(content: "Continue.")
+
+    allow(CodexSdk::Runner).to receive(:call).and_raise(Errno::E2BIG, "codex")
+    allow(Turbo::StreamsChannel).to receive(:broadcast_replace_to)
+
+    expect { described_class.perform_now(message.id) }.to raise_error(Errno::E2BIG)
+
+    expect(message.reload).to have_attributes(status: "failed")
+    expect(message.response).to include("Errno::E2BIG")
+    expect(codex_session.reload).to have_attributes(status: "failed")
+    expect(codex_session.last_error).to include("Errno::E2BIG")
+  end
+
   def progress_jsonl
     JSON.generate(
       type: "item.completed",
