@@ -221,6 +221,18 @@ module ApplicationHelper
     "Local worktree"
   end
 
+  def sandbox_session_title(sandbox)
+    sandbox.execution_environment&.name.presence || sandbox.project&.title.presence || "Workspace sandbox"
+  end
+
+  def sandbox_session_meta(sandbox)
+    [
+      sandbox.project&.title,
+      sandbox.kind.to_s.tr("_", " ").titleize,
+      sandbox.pipeline_run&.display_status
+    ].compact.join(" · ")
+  end
+
   def app_topbar_breadcrumbs(page_title)
     title = page_title.to_s.presence || "xmode"
     section = app_topbar_section
@@ -262,6 +274,8 @@ module ApplicationHelper
       { label: "Pipelines", href: pipelines_home_path }
     when "pipeline_runs"
       { label: "Pipeline Runs", href: pipeline_runs_path }
+    when "sandbox_sessions"
+      { label: "Sandboxes", href: sandbox_sessions_path }
     when "schedules"
       { label: "Schedules", href: schedules_path }
     when "change_requests"

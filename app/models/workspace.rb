@@ -25,6 +25,7 @@ class Workspace < ApplicationRecord
   has_many :codex_sessions, dependent: :destroy
   has_many :sso_providers, dependent: :destroy
   has_many :execution_environments, dependent: :destroy
+  has_many :sandbox_sessions, dependent: :destroy
   has_many :change_requests, dependent: :destroy
   has_many :billing_subscriptions, dependent: :destroy
   has_many :saved_views, dependent: :destroy

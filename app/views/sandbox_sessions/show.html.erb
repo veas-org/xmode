@@ -1,0 +1,141 @@
+<% content_for :page_title, sandbox_session_title(@sandbox_session) %>
+
+<div class="record-detail-layout sandbox-record-layout">
+  <main class="record-detail-main">
+    <header class="record-doc-hero">
+      <div class="record-doc-hero-top">
+        <div class="flex min-w-0 flex-wrap items-center gap-2">
+          <span class="linear-count">Sandbox</span>
+          <%= status_icon_pill(@sandbox_session.status, title: @sandbox_session.status.to_s.titleize) %>
+        </div>
+        <div class="record-detail-page-actions">
+          <%= link_to "All sandboxes", sandbox_sessions_path, class: "app-btn app-btn-muted" %>
+          <%= link_to "Pipeline run", pipeline_run_path(@sandbox_session.pipeline_run), class: "app-btn app-btn-muted" %>
+          <% if @sandbox_session.open? && permitted?("run_code_actions") %>
+            <%= button_to "Stop",
+                  stop_sandbox_session_path(@sandbox_session),
+                  method: :post,
+                  class: "app-btn app-btn-danger",
+                  form: { data: { turbo_confirm: "Stop this sandbox?" } } %>
+          <% end %>
+        </div>
+      </div>
+
+      <h2 class="record-detail-page-title"><%= sandbox_session_title(@sandbox_session) %></h2>
+      <p class="project-record-subtitle"><%= sandbox_session_meta(@sandbox_session) %></p>
+    </header>
+
+    <section class="record-detail-section project-workbench-section">
+      <div class="record-detail-section-head">
+        <div>
+          <p class="app-eyebrow">Map</p>
+          <h3>Sandbox lineage</h3>
+        </div>
+      </div>
+      <div class="project-contract-strip">
+        <div>
+          <span>Project</span>
+          <strong><%= @sandbox_session.project&.title || "Workspace" %></strong>
+        </div>
+        <div>
+          <span>Runtime</span>
+          <strong><%= sandbox_runtime_label(@sandbox_session.execution_environment) %></strong>
+        </div>
+        <div>
+          <span>Run</span>
+          <strong><%= @sandbox_session.pipeline_run&.pipeline_definition&.name || "Pipeline run" %></strong>
+        </div>
+      </div>
+    </section>
+
+    <section class="record-detail-section">
+      <div class="record-detail-section-head">
+        <div>
+          <p class="app-eyebrow">Files</p>
+          <h3>Workspace inventory</h3>
+        </div>
+        <span class="linear-count"><%= @sandbox_files.size %></span>
+      </div>
+      <div class="record-detail-list">
+        <% @sandbox_files.first(40).each do |file| %>
+          <article class="record-detail-row">
+            <%= lucide_icon(file.fetch(:type) == "directory" ? "folder" : "file", class_name: "app-icon text-muted-foreground") %>
+            <span class="record-point-main">
+              <span class="record-point-title"><%= file.fetch(:path) %></span>
+              <span class="record-point-meta">
+                <% if file.fetch(:type) == "file" && file[:byte_size].present? %>
+                  <span><%= number_to_human_size(file[:byte_size]) %></span>
+                <% else %>
+                  <span><%= file.fetch(:type).to_s.titleize %></span>
+                <% end %>
+              </span>
+            </span>
+          </article>
+        <% end %>
+        <% if @sandbox_files.empty? %>
+          <p class="linear-empty px-0 py-3 text-left">No sandbox files have been captured yet.</p>
+        <% end %>
+      </div>
+    </section>
+
+    <section class="record-detail-section">
+      <div class="record-detail-section-head">
+        <div>
+          <p class="app-eyebrow">Terminal</p>
+          <h3>Commands</h3>
+        </div>
+        <span class="linear-count"><%= @recent_commands.size %></span>
+      </div>
+      <div class="codex-inspector-raw-list">
+        <% @recent_commands.each do |command| %>
+          <article>
+            <%= status_icon_pill(command.status, title: command.status.to_s.titleize) %>
+            <span>
+              <strong>$ <%= command.command %></strong>
+              <small><%= command.stdout.presence || command.stderr.presence || command.status.to_s.titleize %></small>
+            </span>
+          </article>
+        <% end %>
+        <% if @recent_commands.empty? %>
+          <p class="linear-empty px-0 py-3 text-left">No interactive commands recorded.</p>
+        <% end %>
+      </div>
+    </section>
+  </main>
+
+  <aside class="record-detail-side">
+    <section class="record-detail-side-section">
+      <div class="record-detail-side-title">
+        <h3>Details</h3>
+      </div>
+      <dl class="catalog-contract-list">
+        <div><dt>Status</dt><dd><%= @sandbox_session.status.titleize %></dd></div>
+        <div><dt>Kind</dt><dd><%= @sandbox_session.kind.tr("_", " ").titleize %></dd></div>
+        <div><dt>Started</dt><dd><%= @sandbox_session.started_at&.strftime("%b %-d, %-I:%M %p") || @sandbox_session.created_at.strftime("%b %-d, %-I:%M %p") %></dd></div>
+        <div><dt>Finished</dt><dd><%= @sandbox_session.finished_at&.strftime("%b %-d, %-I:%M %p") || "-" %></dd></div>
+        <div><dt>Worktree</dt><dd class="break-all"><%= @sandbox_session.worktree_path.presence || "-" %></dd></div>
+      </dl>
+    </section>
+
+    <section class="record-detail-side-section">
+      <div class="record-detail-side-title">
+        <h3>Open sandboxes</h3>
+        <span class="linear-count"><%= @workspace_open_sandboxes.size %></span>
+      </div>
+      <div class="project-side-list">
+        <% @workspace_open_sandboxes.each do |sandbox| %>
+          <%= link_to sandbox_session_path(sandbox), class: "project-side-row" do %>
+            <span class="record-point-main">
+              <span class="record-point-title"><%= sandbox_session_title(sandbox) %></span>
+              <span class="record-point-meta"><span><%= sandbox.project&.title || "Workspace" %></span></span>
+            </span>
+            <%= status_icon_pill(sandbox.status, title: sandbox.status.to_s.titleize) %>
+          <% end %>
+        <% end %>
+        <% if @workspace_open_sandboxes.empty? %>
+          <p class="linear-empty px-0 py-3 text-left">No other open sandboxes.</p>
+        <% end %>
+      </div>
+    </section>
+  </aside>
+</div>

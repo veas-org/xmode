@@ -121,6 +121,7 @@
     <section class="record-detail-side-section">
       <div class="record-detail-side-title">
         <h3>Start sandbox</h3>
+        <span class="linear-count"><%= @sandbox_usage.fetch(:used_count) %>/<%= @sandbox_usage.fetch(:limit) %></span>
       </div>
       <p class="project-side-copy">Queue the configured cloud sandbox pipeline and inspect the resulting plan, terminal, files, artifacts, and Change Request package.</p>
       <% if @sandbox_pipeline && permitted?("run_code_actions") %>
@@ -128,16 +129,21 @@
               run_sandbox_project_path(@project),
               method: :post,
               class: "app-btn app-btn-primary w-full justify-center",
+              disabled: @sandbox_usage.fetch(:used_count) >= @sandbox_usage.fetch(:limit),
               form: { class: "mt-3" } %>
+        <% if @sandbox_usage.fetch(:used_count) >= @sandbox_usage.fetch(:limit) %>
+          <p class="linear-empty px-0 py-3 text-left">Open sandbox limit reached. Stop an open sandbox before starting another.</p>
+        <% end %>
       <% else %>
         <p class="linear-empty px-0 py-3 text-left">Sandbox pipeline is not available.</p>
       <% end %>
+      <%= link_to "View open sandboxes", sandbox_sessions_path, class: "app-link mt-3 inline-flex text-sm" %>
     </section>
 
     <section class="record-detail-side-section">
       <div class="record-detail-side-title">
         <h3>Recent sandboxes</h3>
-        <span class="linear-count"><%= @sandbox_runs.size %></span>
+        <%= link_to "All", sandbox_sessions_path, class: "app-link text-xs" %>
       </div>
       <div class="project-side-list">
         <% @sandbox_runs.each do |run| %>

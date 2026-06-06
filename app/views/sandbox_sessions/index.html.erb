@@ -1,0 +1,164 @@
+<% content_for :page_title, "Sandboxes" %>
+
+<div class="record-detail-layout sandbox-record-layout">
+  <main class="record-detail-main">
+    <header class="record-doc-hero">
+      <div class="record-doc-hero-top">
+        <div class="flex min-w-0 flex-wrap items-center gap-2">
+          <span class="linear-count">Isolation</span>
+          <span class="linear-count">Your usage <%= @sandbox_usage.fetch(:used_count) %>/<%= @sandbox_usage.fetch(:limit) %></span>
+        </div>
+      </div>
+
+      <h2 class="record-detail-page-title">Sandboxes</h2>
+      <p class="project-record-subtitle">Open worktrees and runtime sessions where agent work happens before it becomes pipeline evidence and a Change Request.</p>
+    </header>
+
+    <section class="record-detail-section project-workbench-section">
+      <div class="record-detail-section-head">
+        <div>
+          <p class="app-eyebrow">Model</p>
+          <h3>How sandboxes connect</h3>
+        </div>
+      </div>
+      <div class="project-contract-strip">
+        <div>
+          <span>Project</span>
+          <strong>Repository and intent</strong>
+        </div>
+        <div>
+          <span>Sandbox</span>
+          <strong>Isolated worktree</strong>
+        </div>
+        <div>
+          <span>Pipeline run</span>
+          <strong>Logs, files, review evidence</strong>
+        </div>
+      </div>
+    </section>
+
+    <section class="record-detail-section">
+      <div class="record-detail-section-head">
+        <div>
+          <p class="app-eyebrow">Open</p>
+          <h3>Active sandboxes</h3>
+        </div>
+        <span class="linear-count"><%= @open_sandbox_sessions.size %></span>
+      </div>
+
+      <div class="record-detail-list">
+        <% @open_sandbox_sessions.each do |sandbox| %>
+          <article class="record-detail-row">
+            <%= status_icon_pill(sandbox.status, title: sandbox.status.to_s.titleize) %>
+            <%= link_to sandbox_session_path(sandbox), class: "record-point-main min-w-0 flex-1" do %>
+              <span class="record-point-title"><%= sandbox_session_title(sandbox) %></span>
+              <span class="record-point-meta">
+                <span><%= sandbox_session_meta(sandbox) %></span>
+                <span><%= pluralize(sandbox.sandbox_commands.size, "command") %></span>
+              </span>
+            <% end %>
+            <% if permitted?("run_code_actions") %>
+              <%= button_to "Stop",
+                    stop_sandbox_session_path(sandbox),
+                    method: :post,
+                    class: "app-btn app-btn-muted",
+                    form: { data: { turbo_confirm: "Stop this sandbox?" } } %>
+            <% end %>
+          </article>
+        <% end %>
+
+        <% @pending_sandbox_runs.each do |run| %>
+          <%= link_to pipeline_run_path(run), class: "record-detail-row" do %>
+            <%= status_icon_pill(run.status, title: run.display_status) %>
+            <span class="record-point-main">
+              <span class="record-point-title"><%= run.pipeline_definition&.name || "Pending sandbox" %></span>
+              <span class="record-point-meta">
+                <span><%= run.project&.title || "Workspace" %></span>
+                <span>Starting</span>
+              </span>
+            </span>
+          <% end %>
+        <% end %>
+
+        <% if @open_sandbox_sessions.empty? && @pending_sandbox_runs.empty? %>
+          <p class="linear-empty px-0 py-3 text-left">No open sandboxes.</p>
+        <% end %>
+      </div>
+    </section>
+
+    <section class="record-detail-section">
+      <div class="record-detail-section-head">
+        <div>
+          <p class="app-eyebrow">History</p>
+          <h3>Recent sandboxes</h3>
+        </div>
+        <span class="linear-count"><%= @recent_sandbox_sessions.size %></span>
+      </div>
+
+      <div class="record-detail-list">
+        <% @recent_sandbox_sessions.each do |sandbox| %>
+          <%= link_to sandbox_session_path(sandbox), class: "record-detail-row" do %>
+            <%= status_icon_pill(sandbox.status, title: sandbox.status.to_s.titleize) %>
+            <span class="record-point-main">
+              <span class="record-point-title"><%= sandbox_session_title(sandbox) %></span>
+              <span class="record-point-meta">
+                <span><%= sandbox_session_meta(sandbox) %></span>
+                <span><%= sandbox.finished_at&.strftime("%b %-d, %-I:%M %p") || sandbox.created_at.strftime("%b %-d, %-I:%M %p") %></span>
+              </span>
+            </span>
+          <% end %>
+        <% end %>
+        <% if @recent_sandbox_sessions.empty? %>
+          <p class="linear-empty px-0 py-3 text-left">No completed sandbox sessions yet.</p>
+        <% end %>
+      </div>
+    </section>
+  </main>
+
+  <aside class="record-detail-side">
+    <section class="record-detail-side-section">
+      <div class="record-detail-side-title">
+        <h3>Start sandbox</h3>
+        <span class="linear-count"><%= @sandbox_usage.fetch(:available_count) %> left</span>
+      </div>
+      <p class="project-side-copy">Start from a project so the run inherits the repository, runtime image, and sandbox pipeline.</p>
+
+      <%= form_with url: sandbox_sessions_path, method: :post, class: "mt-3 space-y-3" do |form| %>
+        <div>
+          <%= form.label :project_id, "Project", class: "app-label" %>
+          <%= form.select :project_id,
+                options_from_collection_for_select(@projects, :id, :title, params[:project_id]),
+                {},
+                class: "app-input",
+                disabled: @projects.empty? || @sandbox_usage.fetch(:used_count) >= @sandbox_usage.fetch(:limit) || !permitted?("run_code_actions") %>
+        </div>
+        <div>
+          <%= form.label :objective, "Objective", class: "app-label" %>
+          <%= form.text_area :objective,
+                rows: 5,
+                class: "app-textarea",
+                placeholder: "Describe the sandbox work to run.",
+                disabled: @projects.empty? || @sandbox_usage.fetch(:used_count) >= @sandbox_usage.fetch(:limit) || !permitted?("run_code_actions") %>
+        </div>
+        <%= form.submit "Start sandbox",
+              class: "app-btn app-btn-primary w-full",
+              disabled: @projects.empty? || @sandbox_usage.fetch(:used_count) >= @sandbox_usage.fetch(:limit) || !permitted?("run_code_actions") %>
+      <% end %>
+
+      <% if @sandbox_usage.fetch(:used_count) >= @sandbox_usage.fetch(:limit) %>
+        <p class="linear-empty px-0 py-3 text-left">Open sandbox limit reached. Stop an open sandbox before starting another.</p>
+      <% end %>
+    </section>
+
+    <section class="record-detail-side-section">
+      <div class="record-detail-side-title">
+        <h3>Your usage</h3>
+      </div>
+      <dl class="catalog-contract-list">
+        <div><dt>Open</dt><dd><%= @sandbox_usage.fetch(:open_count) %></dd></div>
+        <div><dt>Starting</dt><dd><%= @sandbox_usage.fetch(:pending_count) %></dd></div>
+        <div><dt>Limit</dt><dd><%= @sandbox_usage.fetch(:limit) %></dd></div>
+      </dl>
+    </section>
+  </aside>
+</div>

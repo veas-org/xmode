@@ -86,6 +86,9 @@ Rails.application.routes.draw do
       post :cancel
     end
   end
+  resources :sandbox_sessions, path: "sandboxes", only: %i[index show create] do
+    member { post :stop }
+  end
   resources :schedules, except: :destroy
   resources :change_requests, only: %i[index show]
   resources :codex_sessions, only: %i[index show create] do

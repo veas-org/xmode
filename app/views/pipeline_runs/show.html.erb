@@ -468,7 +468,7 @@ end %>
             <article>
               <%= status_icon_pill(sandbox.status, title: sandbox.status.to_s.titleize) %>
               <span>
-                <strong><%= sandbox_name %></strong>
+                <strong><%= link_to sandbox_name, sandbox_session_path(sandbox), class: "app-link" %></strong>
                 <small>
                   <%= sandbox.kind.to_s.tr("_", " ").titleize %>
                   <% if sandbox_files.any? %>

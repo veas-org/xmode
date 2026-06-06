@@ -30,6 +30,7 @@ class ProjectsController < AuthenticatedController
     @operation_count = @schedules.size + @runs.size + @change_requests.size
     @sandbox_pipeline = sandbox_pipeline
     @execution_environment = project_execution_environment(@project)
+    @sandbox_usage = SandboxSession.open_usage_for(workspace: current_workspace, user: current_user)
     sandbox_run_ids = SandboxSession
       .where(workspace: current_workspace)
       .where(pipeline_run_id: current_workspace.pipeline_runs.where(project: @project).select(:id))
@@ -73,28 +74,21 @@ class ProjectsController < AuthenticatedController
   end
 
   def run_sandbox
-    pipeline = sandbox_pipeline
-    unless pipeline
-      redirect_to project_path(@project), alert: "Sandbox pipeline is not available in this workspace."
-      return
-    end
-
-    environment = project_execution_environment(@project)
-    run = current_workspace.pipeline_runs.create!(
-      pipeline_definition: pipeline,
+    result = Sandboxes::Starter.call(
+      workspace: current_workspace,
       user: current_user,
       project: @project,
-      trigger: "sandbox",
-      input_context: sandbox_input_context(environment)
+      objective: params[:objective]
     )
 
-    if current_workspace.demo? && !cloud_sandbox_pipeline?(pipeline)
-      Pipelines::Runner.call(run)
+    if result.success?
+      redirect_to pipeline_run_path(result.run), notice: "Sandbox run started."
+    elsif result.error == :open_limit_reached
+      usage = result.usage
+      redirect_to project_path(@project), alert: "Open sandbox limit reached (#{usage.fetch(:used_count)}/#{usage.fetch(:limit)}). Stop an open sandbox before starting another."
     else
-      PipelineRunnerJob.perform_later(run.id)
+      redirect_to project_path(@project), alert: "Sandbox pipeline is not available in this workspace."
     end
-
-    redirect_to pipeline_run_path(run), notice: "Sandbox run started."
   end
 
   private
@@ -158,22 +152,6 @@ class ProjectsController < AuthenticatedController
 
   def sandbox_pipeline_key(project)
     ExecutionEnvironment.language_for(project) == "ruby" ? "cloud-rails-implement-issue" : "verify-sandbox-fixture"
-  end
-
-  def sandbox_input_context(environment)
-    objective = params[:objective].to_s.strip.presence || "Run the #{@project.title} sandbox and present generated work."
-    {
-      "objective" => objective,
-      "plan" => "Use Qwen to draft and revise the plan, wait for approval, code only inside the cloud sandbox, then present the result and Change Request evidence.",
-      "project" => @project.title,
-      "repository" => @project.repository_url,
-      "runner_mode" => environment.runner_mode,
-      "docker_image" => environment.docker_image
-    }.compact
-  end
-
-  def cloud_sandbox_pipeline?(pipeline)
-    pipeline&.required_context.to_h["cloud_sandbox"].present?
   end
 
   def project_params
