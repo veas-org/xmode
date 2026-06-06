@@ -178,6 +178,7 @@ RSpec.describe "Codex SDK sessions" do
       expect(Open3).to have_received(:capture3).with(
         "docker",
         "run",
+        "--interactive",
         "--rm",
         "--name",
         "xmode-codex-#{message.id}",
@@ -196,7 +197,7 @@ RSpec.describe "Codex SDK sessions" do
         "--volume",
         "xmode_codex:/codex-auth:ro",
         "--env",
-        "CODEX_HOME=/tmp/codex-home",
+        "CODEX_HOME=/home/rails/.codex",
         "ghcr.io/veas-org/xmode:latest",
         "bash",
         "/rails/bin/codex-docker-runner",

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-export CODEX_HOME="${CODEX_HOME:-/tmp/codex-home}"
+export CODEX_HOME="${CODEX_HOME:-/home/rails/.codex}"
 mkdir -p "${CODEX_HOME}"
 
 if [ -d /codex-auth ]; then

@@ -127,6 +127,7 @@ module CodexSdk
       [
         "docker",
         "run",
+        "--interactive",
         "--rm",
         "--name",
         container_name,
@@ -145,7 +146,7 @@ module CodexSdk
         "--volume",
         "#{ENV.fetch("CODEX_DOCKER_AUTH_VOLUME", "xmode_codex")}:/codex-auth:ro",
         "--env",
-        "CODEX_HOME=/tmp/codex-home",
+        "CODEX_HOME=/home/rails/.codex",
         docker_runtime_image,
         "bash",
         "/rails/bin/codex-docker-runner",
