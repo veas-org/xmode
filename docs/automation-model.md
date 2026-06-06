@@ -221,15 +221,15 @@ Each run stores a frozen snapshot of the exact action and pipeline definitions i
 
 ## Runs
 
-`PipelineRun` is the current execution ledger. It already stores statuses, objective input context, step records, logs, artifacts, approvals, run messages, Codex sessions, sandbox sessions, and Change Requests.
+`AutomationRun` is the canonical run envelope. It stores the run kind, status, trigger, title, target, objective, timestamps, and a polymorphic execution link.
 
-The next extraction should introduce a generic run envelope that can cover:
+The envelope can cover:
 
 - Pipeline runs
 - Swarm runs
 - Single-action runs
 
-That envelope should keep the current ledger behavior but add an explicit run subject, for example `subject_type` and `subject_id`, instead of making every future execution pretend to be a pipeline.
+`PipelineRun` remains the current execution engine behind pipeline work. It stores the frozen pipeline snapshot, step records, logs, artifacts, approvals, run messages, Codex sessions, sandbox sessions, and Change Requests. Every pipeline run creates and syncs an `AutomationRun`, so queue surfaces can show one run ledger without making future swarm execution pretend to be a pipeline.
 
 ## Goals, Objectives, and Issues
 

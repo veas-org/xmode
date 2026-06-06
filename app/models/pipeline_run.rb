@@ -17,8 +17,11 @@ class PipelineRun < ApplicationRecord
   has_many :sandbox_sessions, dependent: :destroy
   has_many :sandbox_commands, dependent: :destroy
   has_one :change_request, dependent: :nullify
+  has_one :automation_run, as: :execution, dependent: :destroy
 
   before_validation :capture_pipeline_snapshot, on: :create
+  after_create :ensure_automation_run!
+  after_update :sync_automation_run!
 
   validates :status, inclusion: { in: STATUSES }
   validates :trigger, presence: true
@@ -42,6 +45,30 @@ class PipelineRun < ApplicationRecord
 
   def pending_run_message
     run_messages.pending.order(:created_at).last
+  end
+
+  def automation_run_attributes
+    {
+      workspace: workspace,
+      kind: "pipeline",
+      status: status,
+      trigger: trigger,
+      title: pipeline_definition&.name || "Pipeline run ##{id}",
+      target_label: issue&.identifier || project&.title || event&.title,
+      objective: input_context.to_h["objective"],
+      started_at: started_at,
+      finished_at: finished_at
+    }
+  end
+
+  def ensure_automation_run!
+    AutomationRun.from_pipeline_run!(self)
+  end
+
+  def sync_automation_run!
+    return unless automation_run
+
+    automation_run.update!(automation_run_attributes)
   end
 
   private

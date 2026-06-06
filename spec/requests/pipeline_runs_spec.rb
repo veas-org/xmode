@@ -8,10 +8,12 @@ RSpec.describe "Pipeline run detail", type: :request do
     user = User.find_by!(email: Demo::PlanetExpressSeeder::BENDER_EMAIL)
 
     post login_path, params: { email: user.email, password: Demo::PlanetExpressSeeder::PASSWORD }
-    get pipeline_runs_path
+    get runs_path
 
     expect(response).to have_http_status(:ok)
+    expect(response.body).to include("<h1>Runs</h1>")
     expect(response.body).to include("Run ledger")
+    expect(response.body).to include("Pipeline")
     expect(response.body).to include("Queue health")
     expect(response.body).to include("Evidence chain")
     expect(response.body).to include("Run weekly dependency maintenance")

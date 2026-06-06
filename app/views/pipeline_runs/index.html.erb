@@ -1,12 +1,12 @@
-<% content_for :page_title, "Pipeline Runs" %>
+<% content_for :page_title, "Runs" %>
 
 <div class="ops-page">
   <header class="ops-hero">
     <div class="min-w-0">
       <p class="app-eyebrow">Automation queue</p>
-      <h1>Pipeline Runs</h1>
-      <p>Every run is a frozen pipeline snapshot with objective context, approvals, logs, artifacts, and Change Request evidence.</p>
-      <div class="ops-summary" aria-label="Pipeline run summary">
+      <h1>Runs</h1>
+      <p>Unified automation ledger for pipeline execution now, with the same envelope ready for swarm and single-action runs.</p>
+      <div class="ops-summary" aria-label="Automation run summary">
         <span><strong><%= @runs.size %></strong> runs</span>
         <span><strong><%= @run_counts.fetch(:waiting) %></strong> waiting approval</span>
         <span><strong><%= @run_counts.fetch(:active) %></strong> active</span>
@@ -28,21 +28,22 @@
 
       <div class="ops-list">
         <% @runs.each do |run| %>
-          <% run_target = run.issue&.identifier || run.project&.title || run.event&.title || "Workspace" %>
-          <%= link_to pipeline_run_path(run), class: "ops-row" do %>
+          <% pipeline_run = run.pipeline_run %>
+          <%= link_to pipeline_run ? pipeline_run_path(pipeline_run) : runs_path, class: "ops-row" do %>
             <%= status_icon_pill(run.status, title: run.display_status) %>
             <span class="record-point-main">
-              <span class="record-point-title"><%= run.pipeline_definition&.name || "Run ##{run.id}" %></span>
+              <span class="record-point-title"><%= run.display_title %></span>
               <span class="record-point-meta">
+                <span><%= run.display_kind %></span>
                 <span><%= run.display_trigger %></span>
-                <span><%= run_target %></span>
+                <span><%= run.display_target %></span>
                 <% if run.change_request&.branch_name.present? %><span class="break-all"><%= run.change_request.branch_name %></span><% end %>
                 <span><%= run.started_at ? "#{time_ago_in_words(run.started_at)} ago" : "#{time_ago_in_words(run.created_at)} ago" %></span>
-                <span><%= pluralize(run.run_artifacts.size, "artifact") %></span>
-                <% if run.approvals.any? %><span><%= pluralize(run.approvals.size, "approval") %></span><% end %>
+                <span><%= pluralize(run.artifact_count, "artifact") %></span>
+                <% if run.approval_count.positive? %><span><%= pluralize(run.approval_count, "approval") %></span><% end %>
               </span>
-              <% if run.input_context["objective"].present? %>
-                <span class="mt-2 line-clamp-2 block text-xs leading-5 text-muted-foreground"><%= run.input_context["objective"] %></span>
+              <% if run.display_objective.present? %>
+                <span class="mt-2 line-clamp-2 block text-xs leading-5 text-muted-foreground"><%= run.display_objective %></span>
               <% end %>
             </span>
             <% if run.change_request %>
@@ -54,7 +55,7 @@
           <% end %>
         <% end %>
         <% if @runs.empty? %>
-          <p class="linear-empty px-0 py-6 text-left">No runs yet. Runs appear here after a pipeline is started from a project, issue, schedule, event, or manual trigger.</p>
+          <p class="linear-empty px-0 py-6 text-left">No runs yet. Runs appear here after automation starts from a project, issue, schedule, event, or manual trigger.</p>
         <% end %>
       </div>
     </section>

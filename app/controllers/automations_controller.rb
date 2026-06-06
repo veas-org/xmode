@@ -13,8 +13,7 @@ class AutomationsController < AuthenticatedController
   private
 
   def load_queue
-    @runs = current_workspace.pipeline_runs
-      .includes(:pipeline_definition, :issue, :project, :event, :change_request, :approvals, :run_artifacts)
+    @runs = current_workspace.automation_runs
       .order(created_at: :desc)
       .limit(30)
       .to_a
@@ -25,7 +24,7 @@ class AutomationsController < AuthenticatedController
       .includes(:issue, :pipeline_run, :repository_connection)
       .order(updated_at: :desc)
       .limit(8)
-    run_scope = current_workspace.pipeline_runs
+    run_scope = current_workspace.automation_runs
     @run_counts = {
       waiting: run_scope.where(status: "waiting_for_approval").count,
       active: run_scope.where(status: %w[queued running waiting_for_input]).count,

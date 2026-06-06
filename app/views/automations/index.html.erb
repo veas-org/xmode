@@ -445,18 +445,19 @@
           </div>
           <div class="ops-list">
             <% @attention_runs.each do |run| %>
-              <% run_target = run.issue&.identifier || run.project&.title || run.event&.title || "Workspace" %>
-              <%= link_to pipeline_run_path(run), class: "ops-row" do %>
+              <% pipeline_run = run.pipeline_run %>
+              <%= link_to pipeline_run ? pipeline_run_path(pipeline_run) : runs_path, class: "ops-row" do %>
                 <%= status_icon_pill(run.status, title: run.display_status) %>
                 <span class="record-point-main">
-                  <span class="record-point-title"><%= run.pipeline_definition&.name || "Run ##{run.id}" %></span>
+                  <span class="record-point-title"><%= run.display_title %></span>
                   <span class="record-point-meta">
+                    <span><%= run.display_kind %></span>
                     <span><%= run.display_status %></span>
-                    <span><%= run_target %></span>
+                    <span><%= run.display_target %></span>
                     <span><%= time_ago_in_words(run.created_at) %> ago</span>
                   </span>
-                  <% if run.input_context["objective"].present? %>
-                    <span class="mt-1 line-clamp-2 block text-xs leading-5 text-muted-foreground"><%= run.input_context["objective"] %></span>
+                  <% if run.display_objective.present? %>
+                    <span class="mt-1 line-clamp-2 block text-xs leading-5 text-muted-foreground"><%= run.display_objective %></span>
                   <% end %>
                 </span>
               <% end %>
@@ -473,19 +474,20 @@
               <p class="app-eyebrow">Run queue</p>
               <h2>Recent runs</h2>
             </div>
-            <%= link_to "Full ledger", pipeline_runs_path, class: "app-link text-xs" %>
+            <%= link_to "Full ledger", runs_path, class: "app-link text-xs" %>
           </div>
           <div class="ops-list">
             <% @recent_runs.each do |run| %>
-              <% run_target = run.issue&.identifier || run.project&.title || run.event&.title || "Workspace" %>
-              <%= link_to pipeline_run_path(run), class: "ops-row" do %>
+              <% pipeline_run = run.pipeline_run %>
+              <%= link_to pipeline_run ? pipeline_run_path(pipeline_run) : runs_path, class: "ops-row" do %>
                 <%= status_icon_pill(run.status, title: run.display_status) %>
                 <span class="record-point-main">
-                  <span class="record-point-title"><%= run.pipeline_definition&.name || "Run ##{run.id}" %></span>
+                  <span class="record-point-title"><%= run.display_title %></span>
                   <span class="record-point-meta">
+                    <span><%= run.display_kind %></span>
                     <span><%= run.display_trigger %></span>
-                    <span><%= run_target %></span>
-                    <span><%= pluralize(run.run_artifacts.size, "artifact") %></span>
+                    <span><%= run.display_target %></span>
+                    <span><%= pluralize(run.artifact_count, "artifact") %></span>
                   </span>
                 </span>
                 <% if run.change_request %>

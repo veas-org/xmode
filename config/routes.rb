@@ -63,6 +63,7 @@ Rails.application.routes.draw do
     end
   end
   get "pipelines/home", to: "pipeline_definitions#home", as: :pipelines_home
+  get "runs", to: "pipeline_runs#index", as: :runs
   resources :pipelines, controller: :pipeline_definitions, except: :destroy do
     collection do
       get :import, action: :new_import

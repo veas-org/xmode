@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_06_06_010000) do
+ActiveRecord::Schema[8.0].define(version: 2026_06_06_020000) do
   create_table "action_definitions", force: :cascade do |t|
     t.integer "workspace_id"
     t.string "key", null: false
@@ -177,6 +177,27 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_06_010000) do
     t.index ["workspace_id", "action"], name: "index_audit_events_on_workspace_id_and_action"
     t.index ["workspace_id", "created_at"], name: "index_audit_events_on_workspace_id_and_created_at"
     t.index ["workspace_id"], name: "index_audit_events_on_workspace_id"
+  end
+
+  create_table "automation_runs", force: :cascade do |t|
+    t.integer "workspace_id", null: false
+    t.string "execution_type", null: false
+    t.integer "execution_id", null: false
+    t.string "kind", default: "pipeline", null: false
+    t.string "status", default: "queued", null: false
+    t.string "trigger", default: "manual", null: false
+    t.string "title", null: false
+    t.string "target_label"
+    t.text "objective"
+    t.json "metadata", default: {}, null: false
+    t.datetime "started_at"
+    t.datetime "finished_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["execution_type", "execution_id"], name: "index_automation_runs_on_execution_type_and_execution_id", unique: true
+    t.index ["workspace_id", "kind", "created_at"], name: "index_automation_runs_on_workspace_id_and_kind_and_created_at"
+    t.index ["workspace_id", "status", "created_at"], name: "idx_on_workspace_id_status_created_at_a75f129314"
+    t.index ["workspace_id"], name: "index_automation_runs_on_workspace_id"
   end
 
   create_table "billing_subscriptions", force: :cascade do |t|
@@ -820,6 +841,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_06_010000) do
   add_foreign_key "approvals", "users"
   add_foreign_key "audit_events", "users"
   add_foreign_key "audit_events", "workspaces"
+  add_foreign_key "automation_runs", "workspaces"
   add_foreign_key "billing_subscriptions", "workspaces"
   add_foreign_key "change_requests", "issues"
   add_foreign_key "change_requests", "pipeline_runs"
