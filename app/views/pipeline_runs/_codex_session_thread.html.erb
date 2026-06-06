@@ -15,7 +15,7 @@
           <span><%= codex_session.runtime_label %> · <%= message.display_status %></span>
         </div>
         <div class="rich-markdown codex-chat-markdown">
-          <%= simple_format(message.response) %>
+          <%= render "codex_sessions/response", response: message.response %>
         </div>
         <% if message.duration_ms.present? || message.metadata["command"].present? %>
           <div class="codex-chat-chips">

@@ -1,5 +1,10 @@
 module ApplicationHelper
   SIDE_PANEL_FRAME = "side_panel".freeze
+  CODEX_TOKEN_INPUT_KEYS = %w[input_tokens prompt_tokens prompt_eval_count input_token_count].freeze
+  CODEX_TOKEN_OUTPUT_KEYS = %w[output_tokens completion_tokens eval_count output_token_count].freeze
+  CODEX_TOKEN_TOTAL_KEYS = %w[total_tokens total_token_count].freeze
+  CODEX_TOKEN_CACHED_KEYS = %w[cached_tokens cached_input_tokens input_cached_tokens].freeze
+  CODEX_TOKEN_REASONING_KEYS = %w[reasoning_output_tokens reasoning_tokens].freeze
   MARKDOWN_TAGS = %w[
     a blockquote br code del em h1 h2 h3 h4 h5 h6 hr li ol p pre strong table tbody td th thead tr ul
   ].freeze
@@ -42,6 +47,95 @@ module ApplicationHelper
       tags: MARKDOWN_TAGS,
       attributes: MARKDOWN_ATTRIBUTES
     )
+  end
+
+  def codex_response_events(response)
+    lines = response.to_s.lines.map(&:strip).reject(&:blank?)
+    return [] if lines.blank?
+
+    events = lines.map { |line| JSON.parse(line) }
+    return [] unless events.all? { |event| event.is_a?(Hash) && event["type"].present? }
+
+    events
+  rescue JSON::ParserError
+    []
+  end
+
+  def codex_visible_response_events(events)
+    completed_item_ids = events.filter_map do |event|
+      event.dig("item", "id") if event["type"] == "item.completed"
+    end
+
+    visible_events = events.select { |event| event["item"].is_a?(Hash) }.reject do |event|
+      event["type"] == "item.started" && completed_item_ids.include?(event.dig("item", "id"))
+    end
+
+    visible_events.presence || events.reject { |event| event["type"].to_s == "turn.started" }
+  end
+
+  def codex_response_thread_id(events)
+    events.filter_map { |event| event["thread_id"] }.first
+  end
+
+  def codex_response_turn_completed?(events)
+    events.any? { |event| event["type"] == "turn.completed" }
+  end
+
+  def codex_response_usage_items(events)
+    usage = events.reverse.filter_map { |event| event["usage"] }.first
+    codex_usage_items(usage)
+  end
+
+  def codex_usage_items(usage)
+    usage = usage.to_h.deep_stringify_keys
+    return [] if usage.blank?
+
+    input = first_codex_numeric_value(usage, CODEX_TOKEN_INPUT_KEYS)
+    output = first_codex_numeric_value(usage, CODEX_TOKEN_OUTPUT_KEYS)
+    total = first_codex_numeric_value(usage, CODEX_TOKEN_TOTAL_KEYS)
+    cached = first_codex_numeric_value(usage, CODEX_TOKEN_CACHED_KEYS)
+    reasoning = first_codex_numeric_value(usage, CODEX_TOKEN_REASONING_KEYS)
+    total ||= input.to_i + output.to_i if input.present? || output.present?
+
+    [
+      [ "input", input ],
+      [ "output", output ],
+      [ "cached", cached ],
+      [ "reasoning", reasoning ],
+      [ "total", total ]
+    ].filter_map do |label, value|
+      next if value.blank?
+
+      [ label, value.is_a?(Numeric) ? number_with_delimiter(value) : value ]
+    end
+  end
+
+  def codex_event_item(event)
+    event.to_h["item"].to_h
+  end
+
+  def codex_event_label(event)
+    item = codex_event_item(event)
+
+    case item["type"]
+    when "agent_message"
+      "Assistant message"
+    when "command_execution"
+      codex_command_failed?(item) ? "Command failed" : "Command execution"
+    else
+      (item["type"].presence || event["type"]).to_s.tr("_", " ").tr(".", " ").titleize
+    end
+  end
+
+  def codex_command_status_label(item)
+    parts = []
+    parts << item["status"].to_s.tr("_", " ").titleize if item["status"].present?
+    parts << "exit #{item["exit_code"]}" unless item["exit_code"].nil?
+    parts.compact_blank.join(" · ")
+  end
+
+  def codex_command_failed?(item)
+    item["status"] == "failed" || (!item["exit_code"].nil? && item["exit_code"].to_i.nonzero?)
   end
 
   def artifact_text_preview(artifact, max_bytes: 16_000)
@@ -537,5 +631,14 @@ module ApplicationHelper
         tag.circle(cx: 12, cy: 12, r: 10)
       ]
     end
+  end
+
+  def first_codex_numeric_value(hash, keys)
+    value = keys.filter_map { |key| hash[key] }.first
+    return if value.blank?
+
+    Integer(value)
+  rescue ArgumentError, TypeError
+    value
   end
 end

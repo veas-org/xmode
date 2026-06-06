@@ -26,8 +26,8 @@
             </span>
             <span class="mt-3 block whitespace-pre-wrap text-sm leading-6 text-foreground"><%= message.content %></span>
             <% if message.response.present? %>
-              <div class="mt-4 rounded-md bg-muted/45 p-4 text-sm leading-6 text-foreground/90">
-                <%= simple_format(message.response) %>
+              <div class="rich-markdown codex-chat-markdown mt-4 rounded-md bg-muted/45 p-4 text-sm leading-6 text-foreground/90">
+                <%= render "codex_sessions/response", response: message.response %>
               </div>
             <% end %>
             <% if message.metadata.present? && message.metadata["command"].present? %>

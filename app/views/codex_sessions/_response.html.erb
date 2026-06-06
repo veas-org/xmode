@@ -1,0 +1,55 @@
+<% events = codex_response_events(response) %>
+
+<% if events.any? %>
+  <% visible_events = codex_visible_response_events(events) %>
+  <% usage_items = codex_response_usage_items(events) %>
+
+  <div class="codex-chat-chips">
+    <% if (thread_id = codex_response_thread_id(events)).present? %>
+      <span title="<%= thread_id %>">Thread <%= thread_id %></span>
+    <% end %>
+    <% if codex_response_turn_completed?(events) %>
+      <span>Turn completed</span>
+    <% end %>
+    <% usage_items.each do |label, value| %>
+      <span><strong><%= value %></strong> <%= label %></span>
+    <% end %>
+  </div>
+
+  <div class="codex-agent-events">
+    <% visible_events.each do |event| %>
+      <% item = codex_event_item(event) %>
+      <% case item["type"] %>
+      <% when "agent_message" %>
+        <div>
+          <span><%= codex_event_label(event) %></span>
+          <div class="rich-markdown codex-agent-markdown">
+            <%= render_markdown(item["text"]) %>
+          </div>
+        </div>
+      <% when "command_execution" %>
+        <div>
+          <span><%= codex_event_label(event) %></span>
+          <div class="sandbox-command-row">
+            <div class="sandbox-command-line">
+              <code><%= item["command"] %></code>
+            </div>
+            <% if codex_command_status_label(item).present? %>
+              <small><%= codex_command_status_label(item) %></small>
+            <% end %>
+            <% if item["aggregated_output"].present? %>
+              <pre class="<%= "is-error" if codex_command_failed?(item) %>"><%= item["aggregated_output"] %></pre>
+            <% end %>
+          </div>
+        </div>
+      <% else %>
+        <div>
+          <span><%= codex_event_label(event) %></span>
+          <p><%= item["text"].presence || item["status"].presence || event["type"].to_s.tr("_", " ").tr(".", " ").titleize %></p>
+        </div>
+      <% end %>
+    <% end %>
+  </div>
+<% else %>
+  <%= simple_format(response) %>
+<% end %>

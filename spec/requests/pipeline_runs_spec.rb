@@ -59,6 +59,46 @@ RSpec.describe "Pipeline run detail", type: :request do
     expect(response.body).not_to include(">Resume</span>")
   end
 
+  it "renders Codex CLI JSONL responses as readable pipeline chat events" do
+    user = User.create!(name: "Owner", email: "owner-pipeline-codex-jsonl@example.com", password: "password123")
+    workspace = Workspace.create!(name: "Spec")
+    workspace.memberships.create!(user: user, role: "owner")
+    pipeline = workspace.pipeline_definitions.create!(key: "codex-jsonl", name: "Codex JSONL")
+    run = workspace.pipeline_runs.create!(pipeline_definition: pipeline, trigger: "manual", status: "running")
+    codex_session = workspace.codex_sessions.create!(
+      pipeline_run: run,
+      user: user,
+      status: "ready",
+      runtime: "local_cli",
+      model: "gpt-5.5",
+      title: "Pipeline run chat",
+      objective: "Render the Codex CLI response.",
+      working_directory: Rails.root.join("tmp", "codex-spec").to_s
+    )
+    codex_session.codex_session_messages.create!(
+      user: user,
+      status: "failed",
+      content: "dep",
+      response: codex_cli_jsonl_response,
+      duration_ms: 1_250
+    )
+
+    post login_path, params: { email: user.email, password: "password123" }
+    get pipeline_run_path(run)
+
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include("Thread 019e9a4b-4687-7172-86b1-8bb3e22c1760")
+    expect(response.body).to include("Assistant message")
+    expect(response.body).to include("first identify the project layout")
+    expect(response.body).to include("Command failed")
+    expect(response.body).to include("/bin/bash -c pwd")
+    expect(response.body).to include("No permissions to create a new namespace")
+    expect(response.body).to include("ready to work as the cloud coding agent")
+    expect(response.body).to include("69,716")
+    expect(response.body).to include("29,824")
+    expect(response.body).not_to include("{&quot;type&quot;:&quot;thread.started&quot;")
+  end
+
   it "renders text artifacts with invalid byte sequences" do
     user = User.create!(name: "Owner", email: "owner-artifact-preview@example.com", password: "password123")
     workspace = Workspace.create!(name: "Spec")
@@ -418,5 +458,59 @@ RSpec.describe "Pipeline run detail", type: :request do
 
     expect(response).to redirect_to(app_path)
     expect(run.codex_sessions).to be_empty
+  end
+
+  def codex_cli_jsonl_response
+    [
+      { type: "thread.started", thread_id: "019e9a4b-4687-7172-86b1-8bb3e22c1760" },
+      { type: "turn.started" },
+      {
+        type: "item.completed",
+        item: {
+          id: "item_0",
+          type: "agent_message",
+          text: "I'll first identify the project layout and existing pipeline artifacts."
+        }
+      },
+      {
+        type: "item.started",
+        item: {
+          id: "item_1",
+          type: "command_execution",
+          command: "/bin/bash -c pwd",
+          aggregated_output: "",
+          exit_code: nil,
+          status: "in_progress"
+        }
+      },
+      {
+        type: "item.completed",
+        item: {
+          id: "item_1",
+          type: "command_execution",
+          command: "/bin/bash -c pwd",
+          aggregated_output: "bwrap: No permissions to create a new namespace\n",
+          exit_code: 1,
+          status: "failed"
+        }
+      },
+      {
+        type: "item.completed",
+        item: {
+          id: "item_2",
+          type: "agent_message",
+          text: "Hello. I'm ready to work as the cloud coding agent."
+        }
+      },
+      {
+        type: "turn.completed",
+        usage: {
+          input_tokens: 69_716,
+          cached_input_tokens: 29_824,
+          output_tokens: 471,
+          reasoning_output_tokens: 147
+        }
+      }
+    ].map { |event| JSON.generate(event) }.join("\n")
   end
 end
