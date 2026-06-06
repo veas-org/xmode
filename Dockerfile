@@ -16,7 +16,7 @@ WORKDIR /rails
 
 # Install base packages
 RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y curl docker.io git libjemalloc2 libvips sqlite3 && \
+    apt-get install --no-install-recommends -y curl docker-cli git libjemalloc2 libvips sqlite3 && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
 # Install the standalone Codex CLI for subscription-backed Codex Cloud sessions.
