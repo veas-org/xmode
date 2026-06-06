@@ -4855,6 +4855,48 @@
     @apply flex shrink-0 flex-wrap items-center justify-end gap-2;
   }
 
+  .codex-run-focus {
+    @apply grid shrink-0 items-center gap-3 px-5 py-3;
+    grid-template-columns: minmax(0, 1fr) auto;
+    background: rgba(125, 211, 252, 0.055);
+    box-shadow: inset 0 -1px 0 var(--app-divider-soft);
+  }
+
+  .codex-run-focus-main {
+    @apply min-w-0;
+  }
+
+  .codex-run-focus-main h2 {
+    @apply mt-1 truncate text-lg font-semibold text-foreground;
+  }
+
+  .codex-run-focus-main p:not(.app-eyebrow) {
+    @apply mt-1 line-clamp-2 text-sm leading-6 text-muted-foreground;
+  }
+
+  .codex-run-focus-grid {
+    @apply grid min-w-0 grid-cols-3 gap-2;
+    grid-column: 1 / -1;
+  }
+
+  .codex-run-focus-grid div {
+    @apply min-w-0 rounded-md px-2.5 py-2;
+    background: rgba(255, 255, 255, 0.04);
+  }
+
+  .codex-run-focus-grid span,
+  .codex-run-focus-grid small {
+    @apply block truncate text-xs text-muted-foreground;
+  }
+
+  .codex-run-focus-grid strong {
+    @apply mt-0.5 block truncate text-sm font-semibold text-foreground;
+  }
+
+  .codex-run-focus-actions {
+    @apply flex shrink-0 justify-end;
+  }
+
   .codex-chat-stream {
     @apply min-h-0 flex-1 overflow-y-auto px-5 py-5;
     scrollbar-width: thin;
@@ -5250,11 +5292,24 @@
   }
 
   .codex-agent-trace {
-    @apply mt-4 space-y-4 border-t border-border/60 pt-4;
+    @apply mt-4 border-t border-border/60 pt-3;
   }
 
   .codex-agent-trace-head {
-    @apply flex min-w-0 items-start justify-between gap-3;
+    @apply flex min-w-0 cursor-pointer list-none items-start justify-between gap-3 rounded-md px-2.5 py-2;
+    background: rgba(255, 255, 255, 0.032);
+  }
+
+  .codex-agent-trace-head::-webkit-details-marker {
+    display: none;
+  }
+
+  .codex-agent-trace[open] .codex-agent-trace-head {
+    background: rgba(125, 211, 252, 0.06);
+  }
+
+  .codex-agent-trace-body {
+    @apply mt-4 space-y-4;
   }
 
   .codex-agent-trace-head > div:first-child {
@@ -5381,9 +5436,22 @@
     }
 
     .codex-chat-header,
+    .codex-run-focus,
     .codex-chat-stream,
     .codex-chat-composer {
       @apply px-3;
+    }
+
+    .codex-run-focus {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .codex-run-focus-grid {
+      @apply grid-cols-1;
+    }
+
+    .codex-run-focus-actions {
+      @apply justify-start;
     }
   }
 

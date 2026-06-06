@@ -93,10 +93,19 @@ module Demo
       {
         "summary" => "Planned #{issue_name} with risks, checks, and approval points.",
         "status" => "planned",
-        "plan" => [
-          "Inspect #{project_name} project context, repository policy, and linked issue state.",
-          "Implement the smallest branch-isolated change that satisfies the objective.",
-          "Run targeted verification and package a Change Request with review evidence."
+        "plan" => <<~MARKDOWN.strip,
+          1. Inspect #{project_name} project context, repository policy, and linked issue state.
+          2. Implement the smallest branch-isolated change that satisfies the objective.
+          3. Run targeted verification and package a Change Request with review evidence.
+        MARKDOWN
+        "next_steps" => [
+          "Review the plan",
+          "Approve or revise it before coding starts"
+        ],
+        "acceptance_checks" => [
+          "Sandbox diff is attached",
+          "Verification evidence is recorded",
+          "Change Request package is ready for review"
         ],
         "changed_files_count" => 0
       }
@@ -208,7 +217,10 @@ module Demo
 
     def evidence_markdown(output)
       if output["plan"].present?
-        output.fetch("plan").map { |item| "- #{item}" }.join("\n")
+        plan = output.fetch("plan")
+        return plan.lines.map { |line| "- #{line.strip}" }.reject { |line| line == "- " }.join("\n") if plan.is_a?(String)
+
+        plan.map { |item| "- #{item}" }.join("\n")
       elsif output["changed_files"].present?
         output.fetch("changed_files").map { |file| "- `#{file}`" }.join("\n")
       elsif output["checks"].present?

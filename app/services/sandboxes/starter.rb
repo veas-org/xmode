@@ -67,7 +67,7 @@ module Sandboxes
     def sandbox_input_context(environment)
       {
         "objective" => objective.to_s.strip.presence || "Run the #{project.title} sandbox and present generated work.",
-        "plan" => "Use Qwen to draft and revise the plan, wait for approval, code only inside the cloud sandbox, then present the result and Change Request evidence.",
+        "plan" => "Use Codex to draft and revise the plan, wait for approval, code only inside the cloud sandbox, then present the result and Change Request evidence.",
         "project" => project.title,
         "repository" => project.repository_url,
         "runner_mode" => environment.runner_mode,

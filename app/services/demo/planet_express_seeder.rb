@@ -158,11 +158,11 @@ module Demo
         <<~MARKDOWN,
           ## Objective
 
-          Use the `hello-world-rails` repository to verify that xmode can plan with Qwen, pause for plan revision or approval, run coding in a hosted cloud worker sandbox, capture the README/service/test diff, and package the result into a Change Request.
+          Use the `hello-world-rails` repository to verify that xmode can plan with Codex, pause for plan revision or approval, run coding in a hosted cloud worker sandbox, capture the README/service/test diff, and package the result into a Change Request.
 
           ## Done when
 
-          - Qwen drafts a plan and the operator can approve or revise it.
+          - Codex drafts a plan and the operator can approve or revise it.
           - The cloud worker sandbox clones the Rails fixture repository.
           - The run executes `ruby scripts/xmode_hello_world.rb`.
           - Evidence shows the Hello World README flow plus Ruby implementation files.
@@ -569,7 +569,7 @@ module Demo
           key: "rails-sandbox-verification",
           title: "Rails Sandbox Verification",
           description: <<~MARKDOWN,
-            **Mission:** provide a deterministic Rails repository for validating xmode cloud worker sandbox execution, Qwen-guided planning, generated README/service/test diffs, terminal output, and Change Request packaging.
+            **Mission:** provide a deterministic Rails repository for validating xmode cloud worker sandbox execution, Codex-guided planning, generated README/service/test diffs, terminal output, and Change Request packaging.
 
             **Fixture:** `hello-world-rails` is a small Rails project with a Ruby script that implements a Hello World feature flow inside the sandbox.
           MARKDOWN

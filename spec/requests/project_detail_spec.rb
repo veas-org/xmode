@@ -168,7 +168,7 @@ RSpec.describe "Project detail", type: :request do
     expect(run.pipeline_definition).to eq(pipeline)
     expect(run.input_context).to include(
       "objective" => "Verify the Rails sandbox fixture",
-      "plan" => "Use Qwen to draft and revise the plan, wait for approval, code only inside the cloud sandbox, then present the result and Change Request evidence.",
+      "plan" => "Use Codex to draft and revise the plan, wait for approval, code only inside the cloud sandbox, then present the result and Change Request evidence.",
       "runner_mode" => "cloud_worker",
       "docker_image" => ExecutionEnvironment::DEFAULT_RUBY_DOCKER_IMAGE
     )

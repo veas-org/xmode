@@ -70,6 +70,38 @@ RSpec.describe "Codex SDK sessions" do
     )
   end
 
+  it "bounds cloud subscription prompts before passing them as CLI arguments" do
+    workspace = Workspace.create!(name: "Spec")
+    codex_session = workspace.codex_sessions.create!(
+      runtime: "cloud_subscription",
+      model: "codex-cloud",
+      title: "Cloud task",
+      objective: "Implement a reviewable cloud task.",
+      cloud_environment_id: "env_spec_123"
+    )
+    previous = codex_session.codex_session_messages.create!(
+      content: "Previous instruction.",
+      response: "A" * 10_000
+    )
+    message = codex_session.codex_session_messages.create!(content: "Continue implementation.")
+    status = instance_double(Process::Status, success?: true)
+
+    allow(Open3).to receive(:capture3).and_return([ "Submitted task task_spec_123", "", status ])
+
+    without_env("CODEX_CLOUD_PROMPT_MAX_BYTES") do
+      stub_const("CodexSdk::Runner::DEFAULT_CLOUD_PROMPT_MAX_BYTES", 5_000)
+      CodexSdk::Runner.call(message)
+    end
+
+    expect(previous.response.bytesize).to be > 5_000
+    expect(Open3).to have_received(:capture3) do |*args|
+      prompt = args.find { |arg| arg.is_a?(String) && arg.include?("# xmode Codex Session") }
+      expect(prompt.bytesize).to be < previous.response.bytesize
+      expect(prompt).to include("Earlier transcript omitted")
+      expect(prompt).to include("Continue implementation.")
+    end
+  end
+
   it "runs local CLI sessions through codex exec in the configured workspace" do
     workspace = Workspace.create!(name: "Spec")
     working_directory = Rails.root.join("tmp", "codex-cli-spec").to_s

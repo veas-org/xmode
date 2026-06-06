@@ -26,6 +26,7 @@ end %>
 <% failed_steps = @steps.count { |step| step.status.in?(%w[failed canceled]) } %>
 <% command_count = @sandbox_sessions.sum { |sandbox| sandbox.sandbox_commands.size } %>
 <% evidence_total = @artifacts.size + @logs.size + @sandbox_sessions.size + @approvals.size + @run_messages.size %>
+<% progress_percent = @steps.any? ? ((completed_steps.to_f / @steps.size) * 100).round : 0 %>
 <% next_label = if @pending_run_message
   "Answer required"
 elsif @pending_approval
@@ -49,6 +50,20 @@ end %>
 <% active_codex_session = @codex_sessions.first %>
 <% codex_chat_runtime = active_codex_session&.runtime || CodexSession.default_runtime %>
 <% codex_chat_model = active_codex_session&.model || CodexSession.default_model(codex_chat_runtime) %>
+<% focus_anchor = if @pending_run_message
+  "run-message-#{@pending_run_message.id}"
+elsif current_step
+  step_anchor(current_step)
+end %>
+<% focus_action_label = if @pending_run_message
+  "Reply"
+elsif @pending_approval
+  "Decide"
+elsif current_step
+  "Open"
+end %>
+<% focus_agent_label = [ "Codex", CodexSession.runtime_label(codex_chat_runtime), codex_chat_model ].compact.join(" · ") %>
+<% focus_agent_short_label = [ "Codex", CodexSession.runtime_label(codex_chat_runtime) ].compact.join(" · ") %>
 <% @codex_sessions.map(&:stream_key).uniq.each do |stream_key| %>
   <%= turbo_stream_from stream_key %>
 <% end %>
@@ -93,13 +108,14 @@ end %>
           <span><%= @run.display_trigger %></span>
         </div>
         <h1><%= run_name %></h1>
-        <p><%= run_summary %></p>
+        <p><%= objective_text %></p>
       </div>
       <div class="codex-chat-header-actions">
         <%= status_icon_pill(@run.status, title: @run.display_status) %>
         <% if current_step %>
           <%= link_to "##{step_anchor(current_step)}", class: "app-btn app-btn-muted", data: { action: "run-chat#jumpToStep" } do %>
-            <span>Current step</span>
+            <%= lucide_icon("target", class_name: "app-icon") %>
+            <span>Jump to now</span>
           <% end %>
         <% end %>
         <% if @run.issue %>
@@ -116,6 +132,39 @@ end %>
         <% end %>
       </div>
     </header>
+
+    <section class="codex-run-focus" aria-label="Run focus">
+      <div class="codex-run-focus-main">
+        <p class="app-eyebrow">Now</p>
+        <h2><%= next_label %></h2>
+        <p><%= run_summary %></p>
+      </div>
+      <div class="codex-run-focus-grid">
+        <div>
+          <span>Progress</span>
+          <strong><%= completed_steps %>/<%= @steps.size %></strong>
+          <small><%= progress_percent %>%</small>
+        </div>
+        <div>
+          <span>Evidence</span>
+          <strong><%= evidence_total %></strong>
+          <small><%= pluralize(@sandbox_sessions.size, "sandbox") %></small>
+        </div>
+        <div>
+          <span>Agent</span>
+          <strong>Codex</strong>
+          <small title="<%= focus_agent_label %>"><%= focus_agent_short_label %></small>
+        </div>
+      </div>
+      <% if focus_anchor.present? && focus_action_label.present? %>
+        <div class="codex-run-focus-actions">
+          <%= link_to "##{focus_anchor}", class: "app-btn app-btn-primary", data: { action: "run-chat#jumpToStep" } do %>
+            <%= lucide_icon("arrow-down", class_name: "app-icon") %>
+            <span><%= focus_action_label %></span>
+          <% end %>
+        </div>
+      <% end %>
+    </section>
 
     <section class="codex-chat-stream" aria-label="Run chat" data-run-chat-target="stream">
       <div class="codex-chat-thread">
@@ -217,7 +266,7 @@ end %>
       <% end %>
 
       <% @run_messages.each do |message| %>
-        <article class="codex-chat-bubble is-<%= message.role %> <%= "is-pending" if message.pending? %>">
+        <article id="run-message-<%= message.id %>" class="codex-chat-bubble is-<%= message.role %> <%= "is-pending" if message.pending? %>">
           <div class="codex-chat-bubble-head">
             <span><%= message.role == "user" ? (message.user&.display_name || "You") : "xmode" %></span>
             <span><%= message.pending? ? next_label : message.kind.to_s.tr("_", " ") %></span>
@@ -384,7 +433,7 @@ end %>
         <span class="linear-count"><%= completed_steps %>/<%= @steps.size %></span>
       </div>
       <div class="codex-run-progress" aria-label="Run progress">
-        <span style="width: <%= @steps.any? ? ((completed_steps.to_f / @steps.size) * 100).round : 0 %>%"></span>
+        <span style="width: <%= progress_percent %>%"></span>
       </div>
       <ol class="codex-step-outline">
         <% @steps.each do |step| %>

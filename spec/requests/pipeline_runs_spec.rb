@@ -162,7 +162,7 @@ RSpec.describe "Pipeline run detail", type: :request do
       status: "completed",
       input_json: { "objective" => run.input_context.fetch("objective") },
       output_json: {
-        "summary" => "Qwen prepared the cloud implementation plan.",
+        "summary" => "Codex prepared the cloud implementation plan.",
         "status" => "planned",
         "provider" => "ollama",
         "provider_mode" => "live",
@@ -178,7 +178,7 @@ RSpec.describe "Pipeline run detail", type: :request do
       role: "assistant",
       kind: "choice_question",
       status: "pending",
-      content: "Review Qwen's implementation plan.",
+      content: "Review Codex's implementation plan.",
       payload: {
         "choices" => [
           { "key" => "approve", "label" => "Approve plan" },
@@ -192,6 +192,8 @@ RSpec.describe "Pipeline run detail", type: :request do
 
     expect(response).to have_http_status(:ok)
     expect(response.body).to include("Generated plan")
+    expect(response.body).to include("Now")
+    expect(response.body).to include("Evidence")
     expect(response.body).to include("Run chat")
     expect(response.body).to include("Codex")
     expect(response.body).to include("Approve plan")

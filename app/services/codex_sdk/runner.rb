@@ -7,6 +7,7 @@ module CodexSdk
   class Runner
     Response = Struct.new(:content, :cloud_task_id, :metadata, :duration_ms, keyword_init: true)
     DEFAULT_DOCKER_IMAGE = "ghcr.io/veas-org/xmode:latest"
+    DEFAULT_CLOUD_PROMPT_MAX_BYTES = 120_000
 
     class Error < StandardError; end
 
@@ -47,7 +48,7 @@ module CodexSdk
         @session.cloud_environment_id
       ]
       command += [ "--branch", @session.branch ] if @session.branch.present?
-      command << prompt
+      command << cloud_prompt
 
       stdout, stderr, status = capture_command(command)
       raise Error, command_error("Codex Cloud task submission failed", stderr, stdout) unless status.success?
@@ -308,11 +309,44 @@ module CodexSdk
       PROMPT
     end
 
+    def cloud_prompt
+      prompt_text = prompt
+      max_bytes = ENV.fetch("CODEX_CLOUD_PROMPT_MAX_BYTES", DEFAULT_CLOUD_PROMPT_MAX_BYTES).to_i
+      return prompt_text if prompt_text.bytesize <= max_bytes
+
+      transcript_budget = [ max_bytes - 2_400, 0 ].max
+      <<~PROMPT
+        # xmode Codex Session
+
+        Session: #{@session.id}
+        Runtime: #{@session.runtime_label}
+        Model: #{@session.model}
+        Objective:
+        #{@session.objective}
+
+        ## Transcript
+        #{trim_to_last_bytes(transcript, transcript_budget)}
+
+        ## New Instruction
+        #{@message.content}
+
+        Work as a cloud coding agent. Keep code-changing work isolated, explain what changed, and make results reviewable through a Change Request.
+      PROMPT
+    end
+
     def transcript
       transcript_messages.map do |message|
         response = message.response.present? ? "\nassistant: #{message.response}" : nil
         "#{message.role}: #{message.content}#{response}"
       end.join("\n\n").presence || "No previous messages."
+    end
+
+    def trim_to_last_bytes(text, max_bytes)
+      source = text.to_s
+      return source if source.bytesize <= max_bytes
+
+      tail = source.byteslice(-max_bytes, max_bytes).to_s.encode("UTF-8", invalid: :replace, undef: :replace)
+      "[Earlier transcript omitted to fit the Codex Cloud CLI prompt limit.]\n\n#{tail}"
     end
 
     def transcript_messages

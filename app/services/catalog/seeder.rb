@@ -307,12 +307,12 @@ module Catalog
       end
 
       nodes = [
-        action_node.call("draft-plan", "local-model-plan", 120),
+        action_node.call("draft-plan", "plan-story", 120),
         {
           id: "review-plan",
           type: "decision",
           label: "Review Plan",
-          question: "Review Qwen's implementation plan before cloud sandbox coding starts.",
+          question: "Review Codex's implementation plan before cloud sandbox coding starts.",
           choices: [
             { key: "approve", label: "Approve plan", next: "cloud-rails-code", action: "approve" },
             { key: "revise", label: "Revise plan", next: "revise-plan", action: "follow_up" },
@@ -325,7 +325,7 @@ module Catalog
           id: "revise-plan",
           type: "follow_up",
           label: "Revise Plan",
-          prompt: "Tell Qwen what to change in the plan. The next step will regenerate the plan before coding.",
+          prompt: "Tell Codex what to change in the plan. The next step will regenerate the plan before coding.",
           x: 560,
           y: 260
         },
@@ -386,7 +386,7 @@ module Catalog
     end
 
     def output_schema_for(key)
-      return PLAN_OUTPUT_SCHEMA if key == "local-model-plan"
+      return PLAN_OUTPUT_SCHEMA if key.in?(%w[local-model-plan plan-story])
       return PRESENT_RESULT_OUTPUT_SCHEMA if key == "present-sandbox-result"
 
       DEFAULT_OUTPUT_SCHEMA
