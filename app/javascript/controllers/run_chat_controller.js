@@ -4,12 +4,21 @@ export default class extends Controller {
   static targets = ["stream", "input"]
 
   connect() {
+    this.followStream = true
     if (window.location.hash) {
       this.scrollToHash(window.location.hash)
     } else {
       this.scrollToBottom()
     }
     this.inputTargets.forEach((input) => this.resizeInput(input))
+    this.observeStream()
+  }
+
+  disconnect() {
+    this.streamObserver?.disconnect()
+    if (this.hasStreamTarget && this.trackFollowState) {
+      this.streamTarget.removeEventListener("scroll", this.trackFollowState)
+    }
   }
 
   inputTargetConnected(input) {
@@ -28,6 +37,27 @@ export default class extends Controller {
     if (!form) return
 
     form.requestSubmit()
+  }
+
+  composerSubmitStart(event) {
+    this.followStream = true
+    const form = event.currentTarget
+    form.querySelectorAll("textarea").forEach((input) => {
+      input.readOnly = true
+    })
+    form.querySelectorAll("button[type='submit'], input[type='submit']").forEach((button) => {
+      button.disabled = true
+    })
+  }
+
+  composerSubmitEnd(event) {
+    const form = event.currentTarget
+    form.querySelectorAll("textarea").forEach((input) => {
+      input.readOnly = false
+    })
+    form.querySelectorAll("button[type='submit'], input[type='submit']").forEach((button) => {
+      button.disabled = false
+    })
   }
 
   jumpToStep(event) {
@@ -49,6 +79,26 @@ export default class extends Controller {
     requestAnimationFrame(() => {
       this.streamTarget.scrollTop = this.streamTarget.scrollHeight
     })
+  }
+
+  observeStream() {
+    if (!this.hasStreamTarget) return
+
+    this.trackFollowState = () => {
+      this.followStream = this.isNearBottom()
+    }
+    this.streamTarget.addEventListener("scroll", this.trackFollowState)
+    this.streamObserver = new MutationObserver(() => {
+      if (this.followStream) this.scrollToBottom()
+    })
+    this.streamObserver.observe(this.streamTarget, { childList: true, subtree: true })
+  }
+
+  isNearBottom() {
+    if (!this.hasStreamTarget) return true
+
+    const distance = this.streamTarget.scrollHeight - this.streamTarget.scrollTop - this.streamTarget.clientHeight
+    return distance < 180
   }
 
   scrollToHash(hash) {

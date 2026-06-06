@@ -9,13 +9,15 @@ module CodexSdk
 
     class Error < StandardError; end
 
-    def self.call(message)
-      new(message).call
+    def self.call(message, &progress)
+      new(message, progress: progress).call
     end
 
-    def initialize(message)
+    def initialize(message, progress: nil)
       @message = message
       @session = message.codex_session
+      @progress = progress
+      @last_progress_at = nil
     end
 
     def call
@@ -81,11 +83,15 @@ module CodexSdk
       command += [ "-C", @session.working_directory ] if @session.working_directory.present?
       command << prompt
 
-      stdout, stderr, status = capture_command(command)
+      stdout, stderr, status = if @progress
+        stream_command(command)
+      else
+        capture_command(command)
+      end
       raise Error, command_error("Codex CLI session failed", stderr, stdout) unless status.success?
 
       Response.new(
-        content: extract_last_message(stdout).presence || stdout.presence || stderr.to_s,
+        content: local_cli_content(stdout, stderr),
         metadata: {
           "runtime" => "local_cli",
           "command" => command_without_prompt(command),
@@ -118,6 +124,78 @@ module CodexSdk
       raise Error, "Codex CLI is not installed or is not available on PATH"
     rescue Timeout::Error
       raise Error, "Codex command timed out after #{timeout_seconds} seconds"
+    end
+
+    def stream_command(command)
+      timeout_seconds = ENV.fetch("CODEX_SDK_TIMEOUT_SECONDS", 900).to_i
+      stdout_buffer = +""
+      stderr_buffer = +""
+      wait_thread = nil
+
+      Timeout.timeout(timeout_seconds) do
+        Open3.popen3(*command, chdir: command_directory) do |stdin, stdout, stderr, thread|
+          wait_thread = thread
+          stdin.close
+          drain_streams(stdout, stderr) do |stream, line|
+            if stream == :stdout
+              stdout_buffer << line
+              publish_progress(stdout_buffer, stderr_buffer, command: command)
+            else
+              stderr_buffer << line
+            end
+          end
+          status = wait_thread.value
+          publish_progress(stdout_buffer, stderr_buffer, command: command, force: true)
+          return [ stdout_buffer, stderr_buffer, status ]
+        end
+      end
+    rescue Errno::ENOENT
+      raise Error, "Codex CLI is not installed or is not available on PATH"
+    rescue Timeout::Error
+      Process.kill("TERM", wait_thread.pid) if wait_thread&.pid
+      raise Error, "Codex command timed out after #{timeout_seconds} seconds"
+    rescue Errno::ESRCH
+      raise Error, "Codex command timed out after #{timeout_seconds} seconds"
+    end
+
+    def drain_streams(stdout, stderr)
+      queue = Queue.new
+      readers = {
+        stdout: Thread.new { stdout.each_line { |line| queue << [ :stdout, line ] }; queue << [ :done, :stdout ] },
+        stderr: Thread.new { stderr.each_line { |line| queue << [ :stderr, line ] }; queue << [ :done, :stderr ] }
+      }
+      completed = 0
+
+      until completed == readers.size
+        stream, line = queue.pop
+        if stream == :done
+          completed += 1
+        else
+          yield stream, line
+        end
+      end
+    ensure
+      readers&.values&.each(&:join)
+    end
+
+    def publish_progress(stdout, stderr, command:, force: false)
+      return if @progress.blank? || stdout.blank?
+
+      now = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      return if !force && @last_progress_at.present? && (now - @last_progress_at) < 0.75
+
+      @last_progress_at = now
+      @progress.call(
+        Response.new(
+          content: stdout.dup,
+          metadata: {
+            "runtime" => "local_cli",
+            "command" => command_without_prompt(command),
+            "stdout" => stdout.dup,
+            "stderr" => stderr.presence
+          }.compact
+        )
+      )
     end
 
     def command_directory
@@ -183,10 +261,28 @@ module CodexSdk
     def extract_last_message(stdout)
       stdout.to_s.lines.filter_map do |line|
         parsed = JSON.parse(line)
-        parsed["message"] || parsed["content"] || parsed.dig("item", "content")
+        parsed["message"] || parsed["content"] || parsed.dig("item", "text") || parsed.dig("item", "content")
       rescue JSON::ParserError
         nil
       end.last
+    end
+
+    def local_cli_content(stdout, stderr)
+      return stdout if json_event_stream?(stdout)
+
+      extract_last_message(stdout).presence || stdout.presence || stderr.to_s
+    end
+
+    def json_event_stream?(text)
+      lines = text.to_s.lines.map(&:strip).reject(&:blank?)
+      return false if lines.blank?
+
+      lines.all? do |line|
+        parsed = JSON.parse(line)
+        parsed.is_a?(Hash) && parsed["type"].present?
+      rescue JSON::ParserError
+        false
+      end
     end
 
     def json_object?(text)

@@ -87,6 +87,8 @@ RSpec.describe "Pipeline run detail", type: :request do
     get pipeline_run_path(run)
 
     expect(response).to have_http_status(:ok)
+    expect(response.body).to include("turbo-cable-stream-source")
+    expect(response.body).to include(%(id="pipeline_thread_codex_session_#{codex_session.id}"))
     expect(response.body).to include("Thread 019e9a4b-4687-7172-86b1-8bb3e22c1760")
     expect(response.body).to include("Assistant message")
     expect(response.body).to include("first identify the project layout")

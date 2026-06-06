@@ -46,6 +46,9 @@ elsif current_step
 else
   "Run is waiting for its first step."
 end %>
+<% @codex_sessions.map(&:stream_key).uniq.each do |stream_key| %>
+  <%= turbo_stream_from stream_key %>
+<% end %>
 
 <div class="codex-run-shell" data-controller="run-chat">
   <aside class="codex-session-sidebar">
@@ -323,7 +326,9 @@ end %>
 
     <footer class="codex-chat-composer">
       <% if permitted?(:manage_workspace) %>
-        <%= form_with url: pipeline_run_codex_messages_path(@run), class: "codex-chat-composer-form" do |form| %>
+        <%= form_with url: pipeline_run_codex_messages_path(@run),
+              class: "codex-chat-composer-form",
+              data: { action: "turbo:submit-start->run-chat#composerSubmitStart turbo:submit-end->run-chat#composerSubmitEnd" } do |form| %>
           <div class="codex-chat-composer-box">
             <%= form.text_area :content,
                   rows: 1,

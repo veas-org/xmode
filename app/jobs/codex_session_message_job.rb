@@ -9,7 +9,13 @@ class CodexSessionMessageJob < ApplicationJob
     message.update!(status: "running", started_at: Time.current)
     broadcast_session(session)
 
-    response = CodexSdk::Runner.call(message)
+    response = CodexSdk::Runner.call(message) do |progress|
+      message.update!(
+        response: progress.content,
+        metadata: message.metadata.merge(progress.metadata || {})
+      )
+      broadcast_session(session)
+    end
 
     message.update!(
       status: "completed",
@@ -46,6 +52,14 @@ class CodexSessionMessageJob < ApplicationJob
       session.stream_key,
       target: ActionView::RecordIdentifier.dom_id(session, :thread),
       partial: "codex_sessions/thread",
+      locals: { codex_session: session }
+    )
+    return if session.pipeline_run_id.blank?
+
+    Turbo::StreamsChannel.broadcast_replace_to(
+      session.stream_key,
+      target: ActionView::RecordIdentifier.dom_id(session, :pipeline_thread),
+      partial: "pipeline_runs/codex_session_thread_item",
       locals: { codex_session: session }
     )
   end

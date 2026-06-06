@@ -105,4 +105,30 @@ RSpec.describe "Codex SDK sessions" do
       chdir: working_directory
     )
   end
+
+  it "preserves local CLI JSON event streams for interactive rendering" do
+    workspace = Workspace.create!(name: "Spec")
+    working_directory = Rails.root.join("tmp", "codex-cli-jsonl-spec").to_s
+    codex_session = workspace.codex_sessions.create!(
+      runtime: "local_cli",
+      model: "gpt-5.5",
+      title: "Local CLI events",
+      objective: "Render event streams.",
+      working_directory: working_directory,
+      sandbox_mode: "workspace-write",
+      approval_policy: "never"
+    )
+    message = codex_session.codex_session_messages.create!(content: "Continue implementation.")
+    status = instance_double(Process::Status, success?: true)
+    jsonl = [
+      JSON.generate(type: "thread.started", thread_id: "thread_spec"),
+      JSON.generate(type: "item.completed", item: { id: "item_0", type: "agent_message", text: "Done." })
+    ].join("\n")
+
+    allow(Open3).to receive(:capture3).and_return([ jsonl, "", status ])
+
+    response = CodexSdk::Runner.call(message)
+
+    expect(response.content).to eq(jsonl)
+  end
 end
