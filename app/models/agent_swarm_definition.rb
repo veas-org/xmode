@@ -8,6 +8,7 @@ class AgentSwarmDefinition < ApplicationRecord
   belongs_to :coordinator_agent_definition, class_name: "AgentDefinition", optional: true
   has_many :agent_swarm_memberships, -> { order(:position, :id) }, dependent: :destroy
   has_many :agent_definitions, through: :agent_swarm_memberships
+  has_many :agent_swarm_runs, dependent: :nullify
 
   validates :key, :name, :version, :category, :strategy, presence: true
   validates :key, uniqueness: { scope: %i[workspace_id version] }

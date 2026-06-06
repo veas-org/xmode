@@ -30,10 +30,12 @@ RSpec.describe "Automation workspace", type: :request do
     expect(response.body).to include(pipelines_home_path)
     expect(response.body).to include(actions_home_path)
     expect(response.body).to include(skills_home_path)
+    expect(response.body).to include(agent_swarm_runs_path)
 
     library_doc = Nokogiri::HTML(response.body)
     expect(library_doc.at_css(%(a[href="#{new_pipeline_path}"][data-turbo-frame="side_panel"]))).to be_present
     expect(library_doc.at_css(%(a[href="#{import_pipelines_path}"][data-turbo-frame="side_panel"]))).to be_present
+    expect(library_doc.at_css(%(form[action="#{agent_swarm_runs_path}"] button[type="submit"]))).to be_present
 
     get automations_path(tab: "triggers")
     expect(response).to have_http_status(:ok)

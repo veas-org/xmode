@@ -69,14 +69,15 @@
       </div>
       <div class="issue-point-list">
         <% @runs.each do |run| %>
-          <%= link_to pipeline_run_path(run), class: "issue-point" do %>
+          <%= link_to automation_execution_path(run), class: "issue-point" do %>
             <%= status_icon_pill(run.status, title: run.display_status) %>
             <span class="record-point-main">
-              <span class="record-point-title"><%= run.pipeline_definition&.name || "Pipeline run" %></span>
+              <span class="record-point-title"><%= run.display_title %></span>
               <span class="record-point-meta">
+                <span><%= run.display_kind %></span>
                 <span><%= run.display_trigger %></span>
-                <span><%= pluralize(run.approvals.size, "approval") %></span>
-                <span><%= pluralize(run.run_artifacts.size, "artifact") %></span>
+                <span><%= pluralize(run.approval_count, "approval") %></span>
+                <span><%= pluralize(run.artifact_count, "artifact") %></span>
                 <% if run.change_request %>
                   <span class="break-all"><%= run.change_request.branch_name %></span>
                 <% end %>

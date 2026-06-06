@@ -190,8 +190,18 @@
                     <span><%= swarm.category.to_s.titleize %></span>
                     <span><%= pluralize(swarm.agent_swarm_memberships.size, "agent") %></span>
                     <span><%= swarm.coordinator_agent_definition&.name || "No coordinator" %></span>
+                    <span><%= @swarm_usage_counts.fetch(swarm.id, 0) %> runs</span>
                   </span>
                 </span>
+                <% if permitted?("run_code_actions") %>
+                  <%= button_to agent_swarm_runs_path,
+                        method: :post,
+                        params: { agent_swarm_definition_id: swarm.id },
+                        class: "app-btn app-btn-muted" do %>
+                    <%= lucide_icon("play", class_name: "app-icon") %>
+                    <span>Run</span>
+                  <% end %>
+                <% end %>
               </div>
             <% end %>
             <% if @favorite_swarms.empty? %>
@@ -445,8 +455,7 @@
           </div>
           <div class="ops-list">
             <% @attention_runs.each do |run| %>
-              <% pipeline_run = run.pipeline_run %>
-              <%= link_to pipeline_run ? pipeline_run_path(pipeline_run) : runs_path, class: "ops-row" do %>
+              <%= link_to automation_execution_path(run), class: "ops-row" do %>
                 <%= status_icon_pill(run.status, title: run.display_status) %>
                 <span class="record-point-main">
                   <span class="record-point-title"><%= run.display_title %></span>
@@ -478,8 +487,7 @@
           </div>
           <div class="ops-list">
             <% @recent_runs.each do |run| %>
-              <% pipeline_run = run.pipeline_run %>
-              <%= link_to pipeline_run ? pipeline_run_path(pipeline_run) : runs_path, class: "ops-row" do %>
+              <%= link_to automation_execution_path(run), class: "ops-row" do %>
                 <%= status_icon_pill(run.status, title: run.display_status) %>
                 <span class="record-point-main">
                   <span class="record-point-title"><%= run.display_title %></span>

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_06_06_020000) do
+ActiveRecord::Schema[8.0].define(version: 2026_06_06_030000) do
   create_table "action_definitions", force: :cascade do |t|
     t.integer "workspace_id"
     t.string "key", null: false
@@ -143,6 +143,32 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_06_020000) do
     t.index ["agent_definition_id"], name: "index_agent_swarm_memberships_on_agent_definition_id"
     t.index ["agent_swarm_definition_id", "agent_definition_id", "role"], name: "index_agent_swarm_memberships_on_swarm_agent_role", unique: true
     t.index ["agent_swarm_definition_id"], name: "index_agent_swarm_memberships_on_agent_swarm_definition_id"
+  end
+
+  create_table "agent_swarm_runs", force: :cascade do |t|
+    t.integer "workspace_id", null: false
+    t.integer "agent_swarm_definition_id"
+    t.integer "user_id"
+    t.integer "project_id"
+    t.integer "issue_id"
+    t.string "status", default: "queued", null: false
+    t.string "trigger", default: "manual", null: false
+    t.text "objective"
+    t.json "swarm_snapshot", default: {}, null: false
+    t.json "member_results", default: [], null: false
+    t.text "result_summary"
+    t.text "error_message"
+    t.datetime "started_at"
+    t.datetime "finished_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["agent_swarm_definition_id"], name: "index_agent_swarm_runs_on_agent_swarm_definition_id"
+    t.index ["issue_id"], name: "index_agent_swarm_runs_on_issue_id"
+    t.index ["project_id"], name: "index_agent_swarm_runs_on_project_id"
+    t.index ["user_id"], name: "index_agent_swarm_runs_on_user_id"
+    t.index ["workspace_id", "agent_swarm_definition_id", "created_at"], name: "index_swarm_runs_on_workspace_definition_created_at"
+    t.index ["workspace_id", "status", "created_at"], name: "idx_on_workspace_id_status_created_at_16a2a9ef44"
+    t.index ["workspace_id"], name: "index_agent_swarm_runs_on_workspace_id"
   end
 
   create_table "approvals", force: :cascade do |t|
@@ -836,6 +862,11 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_06_020000) do
   add_foreign_key "agent_swarm_definitions", "workspaces"
   add_foreign_key "agent_swarm_memberships", "agent_definitions"
   add_foreign_key "agent_swarm_memberships", "agent_swarm_definitions"
+  add_foreign_key "agent_swarm_runs", "agent_swarm_definitions"
+  add_foreign_key "agent_swarm_runs", "issues"
+  add_foreign_key "agent_swarm_runs", "projects"
+  add_foreign_key "agent_swarm_runs", "users"
+  add_foreign_key "agent_swarm_runs", "workspaces"
   add_foreign_key "approvals", "action_run_steps"
   add_foreign_key "approvals", "pipeline_runs"
   add_foreign_key "approvals", "users"

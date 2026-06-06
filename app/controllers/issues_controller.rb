@@ -25,9 +25,10 @@ class IssuesController < AuthenticatedController
   end
 
   def show
-    @runs = @issue.pipeline_runs
-      .includes(:pipeline_definition, :change_request, :approvals, :run_artifacts)
-      .order(created_at: :desc)
+    @runs = automation_runs_for(
+      pipeline_runs: @issue.pipeline_runs,
+      swarm_runs: @issue.agent_swarm_runs
+    )
     @change_requests = @issue.change_requests
       .includes(:repository_connection, :pipeline_run)
       .order(updated_at: :desc)
@@ -216,6 +217,13 @@ class IssuesController < AuthenticatedController
     records = @issue.public_send(association_name).order(updated_at: :desc).to_a
     records.concat(@issue.project.public_send(association_name).order(updated_at: :desc).to_a) if @issue.project
     records.uniq { |record| "#{record.class.name}-#{record.id}" }.first(4)
+  end
+
+  def automation_runs_for(pipeline_runs:, swarm_runs:)
+    current_workspace.automation_runs
+      .for_execution_scopes(pipeline_runs: pipeline_runs, swarm_runs: swarm_runs)
+      .preload(:execution)
+      .order(created_at: :desc)
   end
 
   def prioritized_issue_pipelines(pipelines)

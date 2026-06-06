@@ -16,6 +16,7 @@ class Issue < ApplicationRecord
   has_many :target_relations, class_name: "IssueRelation", foreign_key: :target_issue_id, dependent: :destroy
   has_many :events, dependent: :nullify
   has_many :pipeline_runs, dependent: :nullify
+  has_many :agent_swarm_runs, dependent: :nullify
   has_many :change_requests, dependent: :nullify
   has_many :objectives, as: :objectiveable, dependent: :destroy
   has_many :plan_records, as: :plannable, dependent: :destroy

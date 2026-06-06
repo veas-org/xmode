@@ -75,7 +75,7 @@ An inherited agent composes its parent's effective system prompt with its own ap
 
 ## Agent Swarms
 
-Agent swarms describe how multiple agents coordinate. They are catalog definitions first; execution can later bind a swarm definition to a unified run.
+Agent swarms describe how multiple agents coordinate. They are catalog definitions first; execution binds a swarm definition to an `AgentSwarmRun`, which snapshots the coordinator, members, roles, and coordination prompt at run start.
 
 Swarm definitions should include:
 
@@ -229,7 +229,11 @@ The envelope can cover:
 - Swarm runs
 - Single-action runs
 
-`PipelineRun` remains the current execution engine behind pipeline work. It stores the frozen pipeline snapshot, step records, logs, artifacts, approvals, run messages, Codex sessions, sandbox sessions, and Change Requests. Every pipeline run creates and syncs an `AutomationRun`, so queue surfaces can show one run ledger without making future swarm execution pretend to be a pipeline.
+`PipelineRun` remains the execution engine behind pipeline work. It stores the frozen pipeline snapshot, step records, logs, artifacts, approvals, run messages, Codex sessions, sandbox sessions, and Change Requests. Every pipeline run creates and syncs an `AutomationRun`, so queue surfaces can show one run ledger.
+
+`AgentSwarmRun` is the execution record for swarm work. It stores the frozen swarm snapshot, objective, member assignments, member results, summary, error state, and timestamps. Every swarm run creates and syncs an `AutomationRun`, so swarm execution appears in the same queue and run ledger without pretending to be a pipeline.
+
+Both pipeline runs and swarm runs can attach existing Objectives and Goals directly when the run needs more structure than a single objective string. Issue and project history should read from `AutomationRun` so those context pages show pipeline and swarm execution together.
 
 ## Goals, Objectives, and Issues
 
@@ -239,7 +243,7 @@ The app already has these concepts:
 - Goal: the measurable target or success condition.
 - Issue: the delivery container for owned work.
 
-Do not add another Goal model for automation. Pipelines and future swarm runs should link to the existing objective, goal, and issue records when they need intent, measurable success, or delivery ownership.
+Do not add another Goal model for automation. Pipelines and swarm runs should link to the existing Objective, Goal, and Issue records when they need intent, measurable success, or delivery ownership.
 
 ## Structured Run Chat
 

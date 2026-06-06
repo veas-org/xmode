@@ -64,6 +64,9 @@ Rails.application.routes.draw do
   end
   get "pipelines/home", to: "pipeline_definitions#home", as: :pipelines_home
   get "runs", to: "pipeline_runs#index", as: :runs
+  resources :agent_swarm_runs, only: %i[show create] do
+    member { post :cancel }
+  end
   resources :pipelines, controller: :pipeline_definitions, except: :destroy do
     collection do
       get :import, action: :new_import

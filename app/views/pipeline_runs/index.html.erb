@@ -5,7 +5,7 @@
     <div class="min-w-0">
       <p class="app-eyebrow">Automation queue</p>
       <h1>Runs</h1>
-      <p>Unified automation ledger for pipeline execution now, with the same envelope ready for swarm and single-action runs.</p>
+      <p>Unified automation ledger across pipeline and swarm execution.</p>
       <div class="ops-summary" aria-label="Automation run summary">
         <span><strong><%= @runs.size %></strong> runs</span>
         <span><strong><%= @run_counts.fetch(:waiting) %></strong> waiting approval</span>
@@ -28,8 +28,7 @@
 
       <div class="ops-list">
         <% @runs.each do |run| %>
-          <% pipeline_run = run.pipeline_run %>
-          <%= link_to pipeline_run ? pipeline_run_path(pipeline_run) : runs_path, class: "ops-row" do %>
+          <%= link_to automation_execution_path(run), class: "ops-row" do %>
             <%= status_icon_pill(run.status, title: run.display_status) %>
             <span class="record-point-main">
               <span class="record-point-title"><%= run.display_title %></span>

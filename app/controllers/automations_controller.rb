@@ -43,6 +43,10 @@ class AutomationsController < AuthenticatedController
       .where(pipeline_definition_id: @pipelines.map(&:id))
       .group(:pipeline_definition_id)
       .count
+    @swarm_usage_counts = current_workspace.agent_swarm_runs
+      .where(agent_swarm_definition_id: @swarms.map(&:id))
+      .group(:agent_swarm_definition_id)
+      .count
     @favorite_pipelines = preferred_records(@pipelines, %w[cloud-rails-implement-issue implement-issue guided-implement-issue update-dependencies])
     @favorite_actions = preferred_records(@actions, %w[plan-story verify-plan code run-tests update-dependencies])
     @favorite_skills = preferred_records(@skills, %w[story-planning software-implementation cloud-sandbox-implementation incident-response])

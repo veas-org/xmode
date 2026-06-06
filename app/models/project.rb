@@ -7,6 +7,7 @@ class Project < ApplicationRecord
   has_many :issues, dependent: :nullify
   has_many :events, dependent: :nullify
   has_many :pipeline_runs, dependent: :nullify
+  has_many :agent_swarm_runs, dependent: :nullify
   has_many :execution_environments, dependent: :destroy
   has_many :objectives, as: :objectiveable, dependent: :destroy
   has_many :plan_records, as: :plannable, dependent: :destroy

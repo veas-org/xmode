@@ -16,6 +16,8 @@ class PipelineRun < ApplicationRecord
   has_many :codex_sessions, dependent: :destroy
   has_many :sandbox_sessions, dependent: :destroy
   has_many :sandbox_commands, dependent: :destroy
+  has_many :objectives, as: :objectiveable, dependent: :destroy
+  has_many :goals, as: :goalable, dependent: :destroy
   has_one :change_request, dependent: :nullify
   has_one :automation_run, as: :execution, dependent: :destroy
 

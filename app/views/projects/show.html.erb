@@ -196,10 +196,11 @@
       </div>
       <div class="project-side-list">
         <% @runs.each do |run| %>
-          <%= link_to pipeline_run_path(run), class: "project-side-row" do %>
+          <%= link_to automation_execution_path(run), class: "project-side-row" do %>
             <span class="record-point-main">
-              <span class="record-point-title"><%= run.pipeline_definition&.name || "Pipeline run" %></span>
+              <span class="record-point-title"><%= run.display_title %></span>
               <span class="record-point-meta">
+                <span><%= run.display_kind %></span>
                 <span><%= run.display_trigger %></span>
                 <span><%= time_ago_in_words(run.created_at) %> ago</span>
               </span>

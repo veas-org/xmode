@@ -1,0 +1,119 @@
+<% content_for :page_title, @run.display_title %>
+
+<div class="record-detail-layout">
+  <main class="record-detail-main">
+    <section class="record-detail-section">
+      <div class="record-detail-section-head">
+        <div>
+          <p class="app-eyebrow">Swarm run</p>
+          <h1><%= @run.display_title %></h1>
+        </div>
+        <%= status_icon_pill(@run.status, title: @run.display_status) %>
+      </div>
+
+      <dl class="ops-kv-list">
+        <div><dt>Status</dt><dd><%= @run.display_status %></dd></div>
+        <div><dt>Trigger</dt><dd><%= @run.display_trigger %></dd></div>
+        <div><dt>Target</dt><dd><%= @run.display_target %></dd></div>
+        <div><dt>Strategy</dt><dd><%= @run.swarm_snapshot["strategy"].to_s.tr("_", " ").titleize.presence || "Coordinated" %></dd></div>
+        <div><dt>Started</dt><dd><%= @run.started_at&.strftime("%b %-d, %-I:%M %p") || "Not started" %></dd></div>
+        <div><dt>Finished</dt><dd><%= @run.finished_at&.strftime("%b %-d, %-I:%M %p") || "Open" %></dd></div>
+      </dl>
+
+      <% if @run.objective.present? %>
+        <div class="mt-4">
+          <p class="app-eyebrow">Objective</p>
+          <p class="mt-2 text-sm leading-6 text-muted-foreground"><%= @run.objective %></p>
+        </div>
+      <% end %>
+
+      <% if @run.result_summary.present? %>
+        <div class="mt-4">
+          <p class="app-eyebrow">Result</p>
+          <p class="mt-2 text-sm leading-6 text-muted-foreground"><%= @run.result_summary %></p>
+        </div>
+      <% elsif @run.error_message.present? %>
+        <div class="mt-4">
+          <p class="app-eyebrow">Error</p>
+          <p class="mt-2 text-sm leading-6 text-destructive"><%= @run.error_message %></p>
+        </div>
+      <% end %>
+    </section>
+
+    <section class="record-detail-section">
+      <div class="record-detail-section-head">
+        <div>
+          <p class="app-eyebrow">Agents</p>
+          <h2>Member assignments</h2>
+        </div>
+        <span class="linear-count"><%= @member_snapshots.size %></span>
+      </div>
+
+      <div class="record-detail-list">
+        <% @member_snapshots.each do |member| %>
+          <% agent = member["agent"].to_h %>
+          <% result = @member_results.find { |item| item["agent_reference"] == agent["reference"] && item["role"] == member["role"] }.to_h %>
+          <article class="record-detail-row">
+            <%= status_icon_pill(result["status"].presence || @run.status, title: result["status"].presence&.titleize || @run.display_status) %>
+            <span class="record-point-main">
+              <span class="record-point-title"><%= agent["name"] || agent["reference"] || "Agent" %></span>
+              <span class="record-point-meta">
+                <span><%= member["role"].to_s.tr("_", " ").titleize.presence || "Member" %></span>
+                <span><%= agent["runtime"].to_s.tr("_", " ").titleize.presence || "Runtime" %></span>
+                <% if agent["parent_reference"].present? %><span>inherits <%= agent["parent_reference"] %></span><% end %>
+              </span>
+              <% if result["summary"].present? %>
+                <span class="mt-1 block text-xs leading-5 text-muted-foreground"><%= result["summary"] %></span>
+              <% end %>
+            </span>
+          </article>
+        <% end %>
+        <% if @member_snapshots.empty? %>
+          <p class="linear-empty px-0 py-4 text-left">No member agents were captured for this swarm run.</p>
+        <% end %>
+      </div>
+    </section>
+  </main>
+
+  <aside class="record-detail-side">
+    <section class="record-detail-side-section">
+      <div class="record-detail-side-title">
+        <h3>Run controls</h3>
+      </div>
+      <div class="mt-3 space-y-3">
+        <%= link_to runs_path, class: "app-btn app-btn-muted w-full" do %>
+          <%= lucide_icon("workflow", class_name: "app-icon") %>
+          <span>All runs</span>
+        <% end %>
+        <% if @run.status.in?(%w[queued running]) && permitted?("run_code_actions") %>
+          <%= button_to cancel_agent_swarm_run_path(@run), method: :post, class: "app-btn app-btn-danger w-full" do %>
+            <%= lucide_icon("ban", class_name: "app-icon") %>
+            <span>Cancel</span>
+          <% end %>
+        <% end %>
+      </div>
+    </section>
+
+    <section class="record-detail-side-section">
+      <div class="record-detail-side-title">
+        <h3>Coordinator</h3>
+      </div>
+      <% if @coordinator.present? %>
+        <dl class="ops-kv-list mt-3">
+          <div><dt>Agent</dt><dd><%= @coordinator["name"] || @coordinator["reference"] %></dd></div>
+          <div><dt>Runtime</dt><dd><%= @coordinator["runtime"].to_s.tr("_", " ").titleize %></dd></div>
+          <div><dt>Model</dt><dd><%= @coordinator["model"].presence || "Default" %></dd></div>
+        </dl>
+      <% else %>
+        <p class="linear-empty px-0 py-3 text-left">No coordinator captured.</p>
+      <% end %>
+    </section>
+
+    <section class="record-detail-side-section">
+      <div class="record-detail-side-title">
+        <h3>Coordination prompt</h3>
+      </div>
+      <p class="mt-3 whitespace-pre-wrap text-sm leading-6 text-muted-foreground"><%= @run.swarm_snapshot["coordination_prompt"].presence || "No coordination prompt captured." %></p>
+    </section>
+  </aside>
+</div>

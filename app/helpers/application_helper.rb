@@ -233,6 +233,17 @@ module ApplicationHelper
     ].compact.join(" · ")
   end
 
+  def automation_execution_path(run)
+    case run.execution_type
+    when "PipelineRun"
+      pipeline_run_path(run.execution)
+    when "AgentSwarmRun"
+      agent_swarm_run_path(run.execution)
+    else
+      runs_path
+    end
+  end
+
   def app_topbar_breadcrumbs(page_title)
     title = page_title.to_s.presence || "xmode"
     section = app_topbar_section
@@ -266,7 +277,7 @@ module ApplicationHelper
       { label: "Cycles", href: cycles_path }
     when "saved_views"
       { label: "Views", href: views_path }
-    when "events", "event_rules", "skill_definitions", "action_definitions", "pipeline_definitions", "pipeline_runs", "sandbox_sessions", "schedules"
+    when "events", "event_rules", "skill_definitions", "action_definitions", "pipeline_definitions", "pipeline_runs", "agent_swarm_runs", "sandbox_sessions", "schedules"
       { label: "Automation", href: automations_path }
     when "change_requests"
       { label: "Change Requests", href: change_requests_path }
