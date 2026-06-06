@@ -1,5 +1,5 @@
 class PipelineCodexMessagesController < AuthenticatedController
-  before_action -> { require_permission!("manage_workspace") }
+  before_action -> { require_permission!("run_code_actions") }
   before_action :set_run
 
   def create
@@ -13,7 +13,7 @@ class PipelineCodexMessagesController < AuthenticatedController
     CodexSdk::Session.interact!(codex_session, content: content, user: current_user)
     audit_message!(codex_session)
 
-    redirect_to pipeline_run_path(@run), notice: "Message sent to Codex CLI."
+    redirect_to pipeline_run_path(@run), notice: "Message sent to Codex."
   rescue ActiveRecord::RecordInvalid => e
     redirect_to pipeline_run_path(@run), alert: e.record.errors.full_messages.to_sentence
   end
@@ -30,7 +30,7 @@ class PipelineCodexMessagesController < AuthenticatedController
       workspace: current_workspace,
       user: current_user,
       project: @run.project,
-      title: "Run ##{@run.id} CLI agent",
+      title: "Run ##{@run.id} Codex chat",
       objective: session_objective,
       runtime: runtime,
       model: CodexSession.default_model(runtime),
@@ -40,8 +40,9 @@ class PipelineCodexMessagesController < AuthenticatedController
       sandbox_mode: "workspace-write",
       approval_policy: "never",
       metadata: {
-        "source" => "pipeline_run",
+        "source" => "pipeline_run_chat",
         "pipeline_run_id" => @run.id,
+        "interactive_chat" => true,
         "codex_cli" => runtime.in?(%w[local_cli docker_cli]),
         "docker_cli" => runtime == "docker_cli",
         "cloud_cli" => runtime == "cloud_subscription"
@@ -51,7 +52,8 @@ class PipelineCodexMessagesController < AuthenticatedController
 
   def session_objective
     [
-      "Communicate with the CLI agent for pipeline run ##{@run.id}.",
+      "You are Codex attached to pipeline run ##{@run.id}.",
+      "Work as the development agent for this run: answer conversationally, inspect the real project context when needed, and make code changes through the configured Codex runtime when asked.",
       "Pipeline: #{@run.pipeline_definition&.name || "Pipeline run"}",
       "Status: #{@run.display_status}",
       ("Project: #{@run.project.title}" if @run.project),

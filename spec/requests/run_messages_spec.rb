@@ -108,6 +108,10 @@ RSpec.describe "Run messages", type: :request do
 
     post pipeline_run_run_message_path(run, run.run_messages.pending.last), params: { content: "Require a reviewed Change Request." }
     expect(run.reload.input_context.dig("_runner", "resume_node_id")).to eq("goal-check")
+    expect(run.input_context.fetch("run_notes").last).to include(
+      "content" => "Require a reviewed Change Request.",
+      "source" => "run_message_response"
+    )
     Pipelines::Runner.call(run)
     expect(run.reload.status).to eq("waiting_for_input")
     expect(run.run_messages.pending.last).to have_attributes(kind: "goal_check", content: "Is the goal clear enough?")
@@ -191,6 +195,10 @@ RSpec.describe "Run messages", type: :request do
     expect(step.input_json.dig("provider_follow_up", "content")).to eq("Preserve build, test, and Change Request evidence.")
     expect(step.output_json).to include("status" => "completed", "provider" => "openai")
     expect(step.output_json.dig("follow_up", "content")).to eq("Preserve build, test, and Change Request evidence.")
+    expect(run.input_context.fetch("run_notes").last).to include(
+      "content" => "Preserve build, test, and Change Request evidence.",
+      "source" => "provider_follow_up"
+    )
     expect(run.input_context.dig("_runner", "resume_node_id")).to be_nil
     expect(run.run_messages.where(role: "tool", kind: "result", status: "resolved").last.content).to include("OpenAI prepared Codex Clarify")
   end

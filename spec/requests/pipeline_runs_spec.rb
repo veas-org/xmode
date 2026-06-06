@@ -398,7 +398,7 @@ RSpec.describe "Pipeline run detail", type: :request do
     expect(run.sandbox_commands.last).to have_attributes(status: "completed", stdout: "terminal")
   end
 
-  it "lets workspace admins communicate with the Codex CLI from a pipeline run" do
+  it "lets code-action users communicate with Codex from a pipeline run" do
     original_adapter = ActiveJob::Base.queue_adapter
     ActiveJob::Base.queue_adapter = :test
     clear_enqueued_jobs
@@ -407,10 +407,10 @@ RSpec.describe "Pipeline run detail", type: :request do
     allow(CodexSession).to receive(:default_runtime).and_return("mock")
     allow(CodexSession).to receive(:default_model).with("mock").and_return("codex-mock")
 
-    user = User.create!(name: "Owner", email: "owner-run-codex@example.com", password: "password123")
+    user = User.create!(name: "Developer", email: "developer-run-codex@example.com", password: "password123")
     workspace = Workspace.create!(name: "Spec")
     team = workspace.teams.create!(name: "Engineering", key: "eng")
-    workspace.memberships.create!(user: user, team: team, role: "owner")
+    workspace.memberships.create!(user: user, team: team, role: "member")
     pipeline = workspace.pipeline_definitions.create!(key: "cli-agent", name: "CLI Agent Run")
     run = workspace.pipeline_runs.create!(
       pipeline_definition: pipeline,
@@ -429,6 +429,8 @@ RSpec.describe "Pipeline run detail", type: :request do
     codex_session = run.codex_sessions.last
     expect(codex_session).to have_attributes(runtime: "mock", model: "codex-mock", status: "ready")
     expect(codex_session.objective).to include("pipeline run ##{run.id}")
+    expect(codex_session.objective).to include("development agent")
+    expect(codex_session.metadata).to include("source" => "pipeline_run_chat", "interactive_chat" => true)
     expect(codex_session.codex_session_messages.last).to have_attributes(
       content: "Summarize the next implementation step.",
       status: "completed"
@@ -438,8 +440,9 @@ RSpec.describe "Pipeline run detail", type: :request do
     get pipeline_run_path(run)
 
     expect(response).to have_http_status(:ok)
-    expect(response.body).to include("Message the CLI agent")
-    expect(response.body).to include("Send to CLI")
+    expect(response.body).to include("Ask Codex to inspect, develop, explain, or continue this run")
+    expect(response.body).to include("Ask Codex")
+    expect(response.body).to include("Run chat")
     expect(response.body).to include("Summarize the next implementation step.")
     expect(response.body).to include("Codex mock session accepted")
   ensure
@@ -448,14 +451,18 @@ RSpec.describe "Pipeline run detail", type: :request do
     ActiveJob::Base.queue_adapter = original_adapter
   end
 
-  it "blocks regular members from sending run-scoped Codex CLI messages" do
-    user = User.create!(name: "Member", email: "member-run-codex@example.com", password: "password123")
+  it "blocks viewers from sending run-scoped Codex messages" do
+    user = User.create!(name: "Viewer", email: "viewer-run-codex@example.com", password: "password123")
     workspace = Workspace.create!(name: "Spec")
     team = workspace.teams.create!(name: "Engineering", key: "eng")
-    workspace.memberships.create!(user: user, team: team, role: "member")
+    workspace.memberships.create!(user: user, team: team, role: "viewer")
     run = workspace.pipeline_runs.create!(trigger: "manual")
 
     post login_path, params: { email: user.email, password: "password123" }
+    get pipeline_run_path(run)
+
+    expect(response.body).to include("Codex chat requires code action access.")
+
     post pipeline_run_codex_messages_path(run), params: { content: "Try to run Codex." }
 
     expect(response).to redirect_to(app_path)

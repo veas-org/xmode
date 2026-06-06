@@ -95,7 +95,65 @@ RSpec.describe "Local model provider adapter" do
     expect(captured_payload).to include("model" => "qwen2.5:0.5b", "stream" => false, "format" => "json")
     expect(captured_payload.dig("options", "num_ctx")).to eq(4096)
     expect(captured_payload.dig("messages", 0, "content")).to include("all repository mutations happen inside the cloud sandbox")
+    user_prompt = JSON.parse(captured_payload.dig("messages", 1, "content"))
+    expect(user_prompt).to include("latest_user_request" => "Draft a safe sandbox implementation plan.")
     expect(run.run_artifacts.pluck(:name)).to include("agent-output.json", "agent-transcript.md", "local-model-response.json")
+  end
+
+  it "passes follow-up notes to Qwen as the latest user request" do
+    ENV["LOCAL_MODEL_ENABLED"] = "1"
+    ENV["LOCAL_MODEL_BASE_URL"] = "http://xmode-ollama:11434"
+    ENV["LOCAL_MODEL_NAME"] = "qwen2.5-coder:1.5b"
+    captured_payload = nil
+
+    stub_request(:post, "http://xmode-ollama:11434/api/chat")
+      .with(headers: { "Content-Type" => "application/json" }) do |request|
+        captured_payload = JSON.parse(request.body)
+        true
+      end
+      .to_return(
+        status: 200,
+        headers: { "Content-Type" => "application/json" },
+        body: {
+          model: "qwen2.5-coder:1.5b",
+          created_at: "2026-06-03T10:00:00Z",
+          message: {
+            role: "assistant",
+            content: {
+              summary: "Qwen revised the plan.",
+              status: "planned",
+              plan: "1. Keep the dependency work in a Change Request.",
+              next_steps: [ "Review the revised plan." ],
+              acceptance_checks: [ "Change Request evidence is present." ],
+              risks: [ "Review sandbox output before merge." ],
+              changed_files_count: 0
+            }.to_json
+          },
+          done: true
+        }.to_json
+      )
+
+    workspace = Workspace.create!(name: "Spec")
+    action = local_model_action(workspace, provider: "ollama", runtime_config: { "mode" => "live" })
+    run = local_model_run(workspace, action)
+    run.update!(
+      input_context: run.input_context.merge(
+        "interaction" => { "kind" => "text", "content" => "Use Codex for development and keep Qwen only for planning." },
+        "run_notes" => [
+          {
+            "content" => "Use Codex for development and keep Qwen only for planning.",
+            "source" => "run_message_response"
+          }
+        ]
+      )
+    )
+
+    Pipelines::Runner.call(run)
+
+    user_prompt = JSON.parse(captured_payload.dig("messages", 1, "content"))
+    expect(user_prompt).to include("latest_user_request" => "Use Codex for development and keep Qwen only for planning.")
+    expect(user_prompt.dig("conversation", "revision_notes")).to include("Use Codex for development and keep Qwen only for planning.")
+    expect(user_prompt.dig("conversation", "transcript")).to include("Latest user request: Use Codex for development")
   end
 
   it "uses readable fallback text when a small local model returns malformed planning fields" do

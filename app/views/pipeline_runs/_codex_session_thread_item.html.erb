@@ -2,8 +2,8 @@
   <% codex_session.codex_session_messages.chronological.each do |message| %>
     <article class="codex-chat-bubble is-user">
       <div class="codex-chat-bubble-head">
-        <span><%= message.user&.display_name || "Operator" %></span>
-        <span>Codex CLI request</span>
+        <span><%= message.user&.display_name || "You" %></span>
+        <span>Run chat</span>
       </div>
       <p><%= message.content %></p>
     </article>
@@ -11,7 +11,7 @@
     <% if message.response.present? %>
       <article class="codex-chat-bubble is-assistant <%= "is-danger" if message.failed? %>">
         <div class="codex-chat-bubble-head">
-          <span>Codex CLI</span>
+          <span>Codex</span>
           <span><%= codex_session.runtime_label %> · <%= message.display_status %></span>
         </div>
         <div class="rich-markdown codex-chat-markdown">
@@ -31,10 +31,10 @@
     <% elsif message.pending? %>
       <article class="codex-chat-bubble is-assistant is-pending">
         <div class="codex-chat-bubble-head">
-          <span>Codex CLI</span>
+          <span>Codex</span>
           <span><%= codex_session.runtime_label %> · <%= message.display_status %></span>
         </div>
-        <p>Working on the request.</p>
+        <p>Codex is working.</p>
       </article>
     <% end %>
   <% end %>
@@ -42,7 +42,7 @@
   <% if codex_session.last_error.present? %>
     <article class="codex-chat-bubble is-assistant is-danger">
       <div class="codex-chat-bubble-head">
-        <span>Codex CLI</span>
+        <span>Codex</span>
         <span><%= codex_session.display_status %></span>
       </div>
       <p><%= codex_session.last_error %></p>

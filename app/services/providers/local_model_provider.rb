@@ -206,6 +206,7 @@ module Providers
       return result_system_prompt if result_presentation_action?
 
       "You are xmode's local open-source model adapter. Return only JSON that fits the expected schema. " \
+        "Treat latest_user_request and revision_notes as the operator's newest instructions. " \
         "Never claim to have changed code unless a sandbox action actually produced files."
     end
 
@@ -224,11 +225,10 @@ module Providers
           id: @run.id,
           trigger: @run.trigger,
           issue: @run.issue&.identifier,
-          project: @run.project&.title,
-          notes: @run.input_context["run_notes"],
-          latest_interaction: @run.input_context["interaction"],
-          provider_follow_up: @run.input_context["provider_follow_up"]
+          project: @run.project&.title
         },
+        conversation: conversation_context,
+        latest_user_request: latest_user_request,
         previous_steps: previous_step_context,
         sandbox_evidence: sandbox_evidence_context,
         objective: objective,
@@ -243,6 +243,7 @@ module Providers
         Return exactly one JSON object with string summary, string status, string plan,
         array next_steps, array acceptance_checks, array risks, and integer changed_files_count.
         The plan must be concise, numbered, and must explicitly say that all repository mutations happen inside the cloud sandbox.
+        Treat latest_user_request as the operator's current instruction. If revision_notes conflict with an earlier plan, revise the plan to follow the latest note.
         Do not echo the input object. Do not include Markdown fences. Do not claim code was changed.
       PROMPT
     end
@@ -252,8 +253,8 @@ module Providers
         objective: objective,
         issue: issue_label,
         project: @run.project&.title,
-        revision_notes: @run.input_context["run_notes"],
-        latest_interaction: @run.input_context["interaction"],
+        conversation: conversation_context,
+        latest_user_request: latest_user_request,
         required_boundaries: [
           "Use the Oracle cloud sandbox for every code-changing command.",
           "Do not mutate the user's local checkout.",
@@ -277,6 +278,8 @@ module Providers
         objective: objective,
         issue: issue_label,
         project: @run.project&.title,
+        conversation: conversation_context,
+        latest_user_request: latest_user_request,
         previous_steps: previous_step_context,
         sandbox_evidence: sandbox_evidence_context,
         artifacts: @run.run_artifacts.order(:created_at).pluck(:name),
@@ -329,6 +332,52 @@ module Providers
             diff_artifact: step.output_json.to_h["diff_artifact"]
           }.compact
         end
+    end
+
+    def conversation_context
+      {
+        revision_notes: revision_notes,
+        latest_interaction: @run.input_context["interaction"],
+        provider_follow_up: @run.input_context["provider_follow_up"],
+        transcript: conversation_transcript
+      }.compact
+    end
+
+    def latest_user_request
+      provider_follow_up_content.presence ||
+        interaction_content.presence ||
+        revision_notes.last.presence ||
+        objective
+    end
+
+    def conversation_transcript
+      notes = revision_notes
+      lines = notes.map.with_index(1) { |note, index| "#{index}. #{note}" }
+      latest = latest_user_request
+      lines << "Latest user request: #{latest}" if latest.present? && !lines.include?(latest)
+      lines.presence&.join("\n")
+    end
+
+    def revision_notes
+      Array(@run.input_context["run_notes"]).filter_map do |note|
+        next note.to_s.strip.presence if note.is_a?(String)
+
+        note["content"].presence || note[:content].presence if note.respond_to?(:[])
+      end
+    end
+
+    def interaction_content
+      interaction = @run.input_context["interaction"]
+      return unless interaction.respond_to?(:[])
+
+      interaction["content"].presence || interaction[:content].presence
+    end
+
+    def provider_follow_up_content
+      follow_up = @run.input_context["provider_follow_up"]
+      return unless follow_up.respond_to?(:[])
+
+      follow_up["content"].presence || follow_up[:content].presence
     end
 
     def sandbox_evidence_context
@@ -512,6 +561,10 @@ module Providers
         ## Plan
 
         #{plan}
+
+        ## Latest user request
+
+        #{latest_user_request}
 
         ## Output
 

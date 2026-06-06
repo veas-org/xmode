@@ -46,6 +46,9 @@ elsif current_step
 else
   "Run is waiting for its first step."
 end %>
+<% active_codex_session = @codex_sessions.first %>
+<% codex_chat_runtime = active_codex_session&.runtime || CodexSession.default_runtime %>
+<% codex_chat_model = active_codex_session&.model || CodexSession.default_model(codex_chat_runtime) %>
 <% @codex_sessions.map(&:stream_key).uniq.each do |stream_key| %>
   <%= turbo_stream_from stream_key %>
 <% end %>
@@ -138,7 +141,7 @@ end %>
         else
           "not started"
         end %>
-        <% step_summary = output["summary"].presence || step.error_message.presence || input["objective"].presence || step.action_definition&.description.presence || "Step recorded." %>
+        <% step_summary = output["summary"].presence || step.error_message.presence || input["objective"].presence || step.action_definition&.execution_guidance.presence || step.action_definition&.name.presence || "Step recorded." %>
 
         <% if step == generated_plan_step && generated_plan_text.present? %>
           <article id="<%= step_anchor(step) %>" class="codex-chat-bubble is-assistant is-plan">
@@ -325,7 +328,7 @@ end %>
     </section>
 
     <footer class="codex-chat-composer">
-      <% if permitted?(:manage_workspace) %>
+      <% if permitted?("run_code_actions") %>
         <%= form_with url: pipeline_run_codex_messages_path(@run),
               class: "codex-chat-composer-form",
               data: { action: "turbo:submit-start->run-chat#composerSubmitStart turbo:submit-end->run-chat#composerSubmitEnd" } do |form| %>
@@ -333,16 +336,16 @@ end %>
             <%= form.text_area :content,
                   rows: 1,
                   class: "app-textarea codex-chat-input",
-                  placeholder: "Message the CLI agent...",
+                  placeholder: "Ask Codex to inspect, develop, explain, or continue this run...",
                   data: {
                     run_chat_target: "input",
                     action: "input->run-chat#autosize keydown->run-chat#submitOnEnter"
                   } %>
             <div class="codex-chat-composer-tools">
-              <span>Shift + Enter for newline</span>
-              <%= form.button class: "app-btn app-btn-primary", title: "Send to CLI agent", aria: { label: "Send to CLI agent" } do %>
-                <%= lucide_icon("terminal", class_name: "app-icon") %>
-                <span>Send to CLI</span>
+              <span>Codex · <%= CodexSession.runtime_label(codex_chat_runtime) %> · <%= codex_chat_model %></span>
+              <%= form.button class: "app-btn app-btn-primary", title: "Ask Codex", aria: { label: "Ask Codex" } do %>
+                <%= lucide_icon("message-square", class_name: "app-icon") %>
+                <span>Ask Codex</span>
               <% end %>
             </div>
           </div>
@@ -350,7 +353,7 @@ end %>
       <% else %>
         <div class="codex-chat-composer-form">
           <div class="codex-chat-composer-box">
-            <p class="text-sm text-muted-foreground">Codex CLI messaging requires workspace admin access.</p>
+            <p class="text-sm text-muted-foreground">Codex chat requires code action access.</p>
           </div>
         </div>
       <% end %>

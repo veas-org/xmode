@@ -148,6 +148,7 @@ class RunMessagesController < AuthenticatedController
     )
     resume_node_id = next_node_id_for(response)
     context = @run.input_context.deep_merge("interaction" => response)
+    context = append_run_note(context, response, source: "run_message_response")
     if resume_node_id.present?
       context["_runner"] ||= {}
       context["_runner"]["resume_node_id"] = resume_node_id
@@ -200,10 +201,27 @@ class RunMessagesController < AuthenticatedController
       "provider_follow_up" => response,
       "_runner" => { "resume_node_id" => node_id_for_step(step) }
     )
+    context = append_run_note(context, response, source: "provider_follow_up")
     context["_runner"].compact!
     context.delete("_runner") if context["_runner"].blank?
     @run.update!(status: "queued", input_context: context)
     true
+  end
+
+  def append_run_note(context, response, source:)
+    content = response["content"].to_s.strip
+    return context if content.blank?
+
+    notes = Array(context["run_notes"]) + [
+      {
+        "user_id" => current_user.id,
+        "content" => content,
+        "source" => source,
+        "source_message_id" => @message.id,
+        "created_at" => Time.current.iso8601
+      }
+    ]
+    context.merge("run_notes" => notes)
   end
 
   def node_id_for_step(step)
