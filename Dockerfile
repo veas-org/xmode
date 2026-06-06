@@ -14,9 +14,9 @@ FROM docker.io/library/ruby:$RUBY_VERSION-slim AS base
 # Rails app lives here
 WORKDIR /rails
 
-# Install base packages
+# Install base packages and small CLI helpers that coding agents commonly use.
 RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y curl docker-cli git libjemalloc2 libvips sqlite3 && \
+    apt-get install --no-install-recommends -y curl docker-cli file git jq less libjemalloc2 libvips patch procps ripgrep sqlite3 unzip && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
 # Install the standalone Codex CLI for subscription-backed Codex Cloud sessions.
