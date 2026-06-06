@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_06_04_030000) do
+ActiveRecord::Schema[8.0].define(version: 2026_06_06_010000) do
   create_table "action_definitions", force: :cascade do |t|
     t.integer "workspace_id"
     t.string "key", null: false
@@ -36,6 +36,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_04_030000) do
     t.text "execution_guidance"
     t.json "best_practices", default: [], null: false
     t.string "version", default: "1.0.0", null: false
+    t.integer "agent_definition_id"
+    t.index ["agent_definition_id"], name: "index_action_definitions_on_agent_definition_id"
     t.index ["skill_definition_id"], name: "index_action_definitions_on_skill_definition_id"
     t.index ["workspace_id", "key", "version"], name: "index_action_definitions_on_workspace_key_version", unique: true
     t.index ["workspace_id"], name: "index_action_definitions_on_workspace_id"
@@ -85,6 +87,62 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_04_030000) do
     t.index ["user_id"], name: "index_admin_model_requests_on_user_id"
     t.index ["workspace_id", "user_id", "created_at"], name: "idx_on_workspace_id_user_id_created_at_6d04e7b74a"
     t.index ["workspace_id"], name: "index_admin_model_requests_on_workspace_id"
+  end
+
+  create_table "agent_definitions", force: :cascade do |t|
+    t.integer "workspace_id"
+    t.integer "parent_agent_definition_id"
+    t.string "key", null: false
+    t.string "name", null: false
+    t.string "version", default: "1.0.0", null: false
+    t.string "category", null: false
+    t.string "runtime", default: "model", null: false
+    t.string "model"
+    t.text "description"
+    t.text "system_prompt"
+    t.text "system_prompt_append"
+    t.json "tools", default: [], null: false
+    t.json "settings", default: {}, null: false
+    t.json "metadata", default: {}, null: false
+    t.boolean "builtin", default: false, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["parent_agent_definition_id"], name: "index_agent_definitions_on_parent_agent_definition_id"
+    t.index ["workspace_id", "key", "version"], name: "index_agent_definitions_on_workspace_key_version", unique: true
+    t.index ["workspace_id"], name: "index_agent_definitions_on_workspace_id"
+  end
+
+  create_table "agent_swarm_definitions", force: :cascade do |t|
+    t.integer "workspace_id"
+    t.integer "coordinator_agent_definition_id"
+    t.string "key", null: false
+    t.string "name", null: false
+    t.string "version", default: "1.0.0", null: false
+    t.string "category", null: false
+    t.string "strategy", default: "coordinated", null: false
+    t.text "description"
+    t.text "coordination_prompt"
+    t.json "metadata", default: {}, null: false
+    t.boolean "builtin", default: false, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["coordinator_agent_definition_id"], name: "idx_on_coordinator_agent_definition_id_8d2d16830d"
+    t.index ["workspace_id", "key", "version"], name: "index_agent_swarms_on_workspace_key_version", unique: true
+    t.index ["workspace_id"], name: "index_agent_swarm_definitions_on_workspace_id"
+  end
+
+  create_table "agent_swarm_memberships", force: :cascade do |t|
+    t.integer "agent_swarm_definition_id", null: false
+    t.integer "agent_definition_id", null: false
+    t.string "role", default: "member", null: false
+    t.integer "position", default: 0, null: false
+    t.text "instructions_append"
+    t.json "settings", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["agent_definition_id"], name: "index_agent_swarm_memberships_on_agent_definition_id"
+    t.index ["agent_swarm_definition_id", "agent_definition_id", "role"], name: "index_agent_swarm_memberships_on_swarm_agent_role", unique: true
+    t.index ["agent_swarm_definition_id"], name: "index_agent_swarm_memberships_on_agent_swarm_definition_id"
   end
 
   create_table "approvals", force: :cascade do |t|
@@ -745,11 +803,18 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_04_030000) do
     t.index ["webhook_secret"], name: "index_workspaces_on_webhook_secret", unique: true
   end
 
+  add_foreign_key "action_definitions", "agent_definitions"
   add_foreign_key "action_definitions", "skill_definitions"
   add_foreign_key "action_definitions", "workspaces"
   add_foreign_key "action_run_steps", "action_definitions"
   add_foreign_key "action_run_steps", "pipeline_runs"
   add_foreign_key "admin_model_requests", "code_model_profiles"
+  add_foreign_key "agent_definitions", "agent_definitions", column: "parent_agent_definition_id"
+  add_foreign_key "agent_definitions", "workspaces"
+  add_foreign_key "agent_swarm_definitions", "agent_definitions", column: "coordinator_agent_definition_id"
+  add_foreign_key "agent_swarm_definitions", "workspaces"
+  add_foreign_key "agent_swarm_memberships", "agent_definitions"
+  add_foreign_key "agent_swarm_memberships", "agent_swarm_definitions"
   add_foreign_key "approvals", "action_run_steps"
   add_foreign_key "approvals", "pipeline_runs"
   add_foreign_key "approvals", "users"

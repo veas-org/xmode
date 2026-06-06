@@ -7,7 +7,7 @@
         <h2 class="linear-title">Executable actions</h2>
         <span class="linear-count"><%= @pagination.total_count %></span>
       </div>
-      <p class="mt-1 max-w-3xl truncate text-xs text-muted-foreground">Executable steps with skill binding, provider, permissions, objective handling, inputs, outputs, and evidence rules.</p>
+      <p class="mt-1 max-w-3xl truncate text-xs text-muted-foreground">Executable steps with skill, agent, provider, permissions, objective handling, inputs, outputs, and evidence rules.</p>
     </div>
     <% if permitted?(:manage_pipelines) %>
       <div class="flex items-center gap-1.5">
@@ -67,6 +67,7 @@
           <col class="catalog-col-trigger">
           <col class="catalog-col-wide">
           <col class="catalog-col-wide">
+          <col class="catalog-col-wide">
           <col class="catalog-col-actions">
         </colgroup>
         <thead>
@@ -74,6 +75,7 @@
             <th>Action</th>
             <th>Category</th>
             <th>Skill</th>
+            <th>Agent</th>
             <th>Provider</th>
             <th>Contract</th>
             <th>Runtime</th>
@@ -100,6 +102,7 @@
                   <span class="catalog-table-muted">No skill</span>
                 <% end %>
               </td>
+              <td><span class="catalog-table-muted"><%= action.agent_definition&.display_name || "No agent" %></span></td>
               <td><span class="catalog-table-muted"><%= action.provider.to_s.tr("_", " ").titleize %></span></td>
               <td>
                 <span class="catalog-table-muted">

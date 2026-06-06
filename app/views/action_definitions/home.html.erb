@@ -5,12 +5,13 @@
     <div class="min-w-0">
       <p class="app-eyebrow">Actions home</p>
       <h1>Actions</h1>
-      <p>Executable, typed steps that bind skills to providers, objective handling, plan fallbacks, permissions, and evidence contracts.</p>
+      <p>Executable, typed steps that bind skills and agents to providers, objective handling, plan fallbacks, permissions, and evidence contracts.</p>
       <div class="skill-home-summary" aria-label="Action library summary">
         <span><strong><%= @stats.fetch(:actions) %></strong> actions</span>
         <span><strong><%= @stats.fetch(:categories) %></strong> categories</span>
         <span><strong><%= @stats.fetch(:providers) %></strong> providers</span>
         <span><strong><%= @stats.fetch(:skill_bound) %></strong> skill-bound</span>
+        <span><strong><%= @stats.fetch(:agent_bound) %></strong> agent-bound</span>
       </div>
     </div>
     <div class="skill-home-actions">
@@ -44,6 +45,7 @@
                 <span><%= action.versioned_key %></span>
                 <span><%= action.category %></span>
                 <span><%= action.skill_definition&.versioned_key || "no skill" %></span>
+                <span><%= action.agent_definition&.versioned_key || "no agent" %></span>
               </span>
             </span>
             <span class="linear-count"><%= action.provider.to_s.tr("_", " ").titleize %></span>
@@ -71,6 +73,7 @@
                 <span><%= action.versioned_key %></span>
                 <span><%= action.provider.to_s.tr("_", " ").titleize %></span>
                 <span><%= action.skill_definition&.name || "No skill" %></span>
+                <span><%= action.agent_definition&.name || "No agent" %></span>
               </span>
             </span>
             <span class="linear-count"><%= action_home_usage(action) %></span>
@@ -130,12 +133,14 @@
             <col class="catalog-col-wide">
             <col class="catalog-col-trigger">
             <col class="catalog-col-wide">
+            <col class="catalog-col-wide">
           </colgroup>
           <thead>
             <tr>
               <th>Action</th>
               <th>Category</th>
               <th>Skill</th>
+              <th>Agent</th>
               <th>Provider</th>
               <th>Contract</th>
             </tr>
@@ -159,6 +164,7 @@
                     <span class="catalog-table-muted">No skill</span>
                   <% end %>
                 </td>
+                <td><span class="catalog-table-muted"><%= action.agent_definition&.display_name || "No agent" %></span></td>
                 <td><span class="catalog-table-muted"><%= action.provider.to_s.tr("_", " ").titleize %></span></td>
                 <td>
                   <span class="catalog-table-muted">

@@ -4,7 +4,7 @@ class ActionDefinitionsController < AuthenticatedController
 
   def home
     base_scope = current_workspace.action_definitions
-    @actions = base_scope.includes(:skill_definition).order(:category, :name, :version).to_a
+    @actions = base_scope.includes(:skill_definition, :agent_definition).order(:category, :name, :version).to_a
     @pipeline_usage_counts = action_pipeline_usage_counts(@actions)
     @run_usage_counts = ActionRunStep.where(action_definition_id: @actions.map(&:id)).group(:action_definition_id).count
 
@@ -16,13 +16,13 @@ class ActionDefinitionsController < AuthenticatedController
     @provider = params[:provider].to_s
     @provider = "" unless @provider_options.include?(@provider)
 
-    filtered_actions = base_scope.left_joins(:skill_definition).includes(:skill_definition)
+    filtered_actions = base_scope.left_joins(:skill_definition, :agent_definition).includes(:skill_definition, :agent_definition)
     filtered_actions = filtered_actions.where(category: @category) if @category.present?
     filtered_actions = filtered_actions.where(provider: @provider) if @provider.present?
     if @query.present?
       query = catalog_like_query(@query)
       filtered_actions = filtered_actions.where(
-        "action_definitions.name LIKE :query OR action_definitions.key LIKE :query OR action_definitions.category LIKE :query OR action_definitions.provider LIKE :query OR skill_definitions.name LIKE :query OR skill_definitions.key LIKE :query",
+        "action_definitions.name LIKE :query OR action_definitions.key LIKE :query OR action_definitions.category LIKE :query OR action_definitions.provider LIKE :query OR skill_definitions.name LIKE :query OR skill_definitions.key LIKE :query OR agent_definitions.name LIKE :query OR agent_definitions.key LIKE :query",
         query: query
       )
     end
@@ -45,13 +45,13 @@ class ActionDefinitionsController < AuthenticatedController
     @provider = params[:provider].to_s
     @provider = "" unless @provider_options.include?(@provider)
 
-    actions = base_scope.left_joins(:skill_definition).includes(:skill_definition)
+    actions = base_scope.left_joins(:skill_definition, :agent_definition).includes(:skill_definition, :agent_definition)
     actions = actions.where(category: @category) if @category.present?
     actions = actions.where(provider: @provider) if @provider.present?
     if @query.present?
       query = catalog_like_query(@query)
       actions = actions.where(
-        "action_definitions.name LIKE :query OR action_definitions.key LIKE :query OR action_definitions.category LIKE :query OR action_definitions.provider LIKE :query OR skill_definitions.name LIKE :query OR skill_definitions.key LIKE :query",
+        "action_definitions.name LIKE :query OR action_definitions.key LIKE :query OR action_definitions.category LIKE :query OR action_definitions.provider LIKE :query OR skill_definitions.name LIKE :query OR skill_definitions.key LIKE :query OR agent_definitions.name LIKE :query OR agent_definitions.key LIKE :query",
         query: query
       )
     end
@@ -64,7 +64,7 @@ class ActionDefinitionsController < AuthenticatedController
   end
 
   def new
-    load_skills
+    load_catalog_choices
     @action_definition = current_workspace.action_definitions.new(provider: "manual", category: "manual", version: "1.0.0")
   end
 
@@ -77,13 +77,13 @@ class ActionDefinitionsController < AuthenticatedController
     if @action_definition.save
       redirect_to action_path(@action_definition), notice: "Action created."
     else
-      load_skills
+      load_catalog_choices
       render :new, status: :unprocessable_entity
     end
   end
 
   def edit
-    load_skills
+    load_catalog_choices
     @action_definition = @action
   end
 
@@ -95,7 +95,7 @@ class ActionDefinitionsController < AuthenticatedController
     if @action.update(action_params)
       redirect_to action_path(@action), notice: "Action updated."
     else
-      load_skills
+      load_catalog_choices
       @action_definition = @action
       render :edit, status: :unprocessable_entity
     end
@@ -146,7 +146,8 @@ class ActionDefinitionsController < AuthenticatedController
       actions: actions.size,
       categories: actions.map(&:category).uniq.size,
       providers: actions.map(&:provider).uniq.size,
-      skill_bound: actions.count(&:skill_definition)
+      skill_bound: actions.count(&:skill_definition),
+      agent_bound: actions.count(&:agent_definition)
     }
   end
 
@@ -199,6 +200,7 @@ class ActionDefinitionsController < AuthenticatedController
       :category,
       :provider,
       :skill_definition_id,
+      :agent_definition_id,
       :timeout_seconds,
       :requires_objective,
       :plan_required_when_objective_unclear,
@@ -222,8 +224,9 @@ class ActionDefinitionsController < AuthenticatedController
     attrs
   end
 
-  def load_skills
+  def load_catalog_choices
     @skills = current_workspace.skill_definitions.order(:category, :name, :version)
+    @agents = current_workspace.agent_definitions.order(:category, :name, :version)
   end
 
   def action_reference_for(node)

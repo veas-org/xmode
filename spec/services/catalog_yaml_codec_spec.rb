@@ -31,6 +31,14 @@ RSpec.describe Catalog::YamlCodec do
       input_schema: { type: "object" },
       output_schema: { type: "object" }
     )
+    agent = workspace.agent_definitions.create!(
+      key: "approval-agent",
+      version: "1.0.0",
+      name: "Approval Agent",
+      category: "manual",
+      runtime: "model",
+      system_prompt: "Make approval choices explicit."
+    )
     action = workspace.action_definitions.create!(
       key: "manual-approval",
       version: "1.2.0",
@@ -38,6 +46,7 @@ RSpec.describe Catalog::YamlCodec do
       category: "manual",
       provider: "manual",
       skill_definition: skill,
+      agent_definition: agent,
       input_schema: { type: "object" },
       output_schema: { type: "object" }
     )
@@ -45,11 +54,13 @@ RSpec.describe Catalog::YamlCodec do
     yaml = described_class.dump(action)
     expect(yaml).to include("version: 1.2.0")
     expect(yaml).to include("skill_key: manual-decision@1.0.0")
+    expect(yaml).to include("agent_key: approval-agent@1.0.0")
     imported = described_class.load_action!(workspace, yaml)
 
     expect(imported.reload.name).to eq("Manual Approval")
     expect(imported.version).to eq("1.2.0")
     expect(imported.skill_definition).to eq(skill)
+    expect(imported.agent_definition).to eq(agent)
   end
 
   it "round trips pipeline definitions with versions" do

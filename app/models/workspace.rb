@@ -14,6 +14,8 @@ class Workspace < ApplicationRecord
   has_many :goals, dependent: :destroy
   has_many :events, dependent: :destroy
   has_many :event_rules, dependent: :destroy
+  has_many :agent_definitions, dependent: :destroy
+  has_many :agent_swarm_definitions, dependent: :destroy
   has_many :skill_definitions, dependent: :destroy
   has_many :action_definitions, dependent: :destroy
   has_many :pipeline_definitions, dependent: :destroy

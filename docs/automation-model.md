@@ -20,7 +20,7 @@ Skill definitions should include:
 
 ## Actions
 
-Skills are versioned playbooks, for example `software-implementation@1.0.0`. Actions are reusable primitives that bind to a specific skill version and should be cataloged, importable, exportable, and editable.
+Skills are versioned playbooks, for example `software-implementation@1.0.0`. Agents are reusable operating contracts for AI work. Actions are reusable primitives that bind a skill, an optional agent, a provider, schemas, permissions, and runtime policy into something a pipeline can execute.
 
 Action categories:
 
@@ -38,6 +38,7 @@ Action definitions should include:
 - Description
 - Category
 - Linked skill
+- Linked agent
 - Provider
 - Input JSON Schema
 - Output JSON Schema
@@ -51,6 +52,49 @@ Action definitions should include:
 Most actions should ship with useful default schemas and defaults so users do not need to hand-design common cases.
 
 Actions should usually require an objective. If the objective is missing or unclear, the action should use the linked skill's plan fallback or pause the run for structured input.
+
+## Agents
+
+Agents describe how AI should work. They are not the work item and they are not the workflow. They are the reusable system prompt, inherited prompt append, model/runtime preference, tool list, and operating constraints used by actions.
+
+Agent definitions should include:
+
+- Name
+- Description
+- Category
+- Parent agent
+- Runtime
+- Model preference
+- System prompt
+- System prompt append
+- Tools
+- Settings
+- Version/export metadata
+
+An inherited agent composes its parent's effective system prompt with its own append text. This keeps shared operating rules in one base agent while allowing planning, implementation, verification, review, maintenance, and incident agents to specialize without repeating the full prompt.
+
+## Agent Swarms
+
+Agent swarms describe how multiple agents coordinate. They are catalog definitions first; execution can later bind a swarm definition to a unified run.
+
+Swarm definitions should include:
+
+- Name
+- Description
+- Category
+- Strategy
+- Coordinator agent
+- Coordination prompt
+- Member agents
+- Member roles
+- Version/export metadata
+
+Initial strategies:
+
+- Coordinated
+- Parallel
+- Review board
+- Handoff
 
 ## Providers
 
@@ -174,6 +218,28 @@ Code-changing runs should:
 - Run a built-in review pipeline before becoming ready.
 
 Each run stores a frozen snapshot of the exact action and pipeline definitions it executed, even if the catalog remains editable later.
+
+## Runs
+
+`PipelineRun` is the current execution ledger. It already stores statuses, objective input context, step records, logs, artifacts, approvals, run messages, Codex sessions, sandbox sessions, and Change Requests.
+
+The next extraction should introduce a generic run envelope that can cover:
+
+- Pipeline runs
+- Swarm runs
+- Single-action runs
+
+That envelope should keep the current ledger behavior but add an explicit run subject, for example `subject_type` and `subject_id`, instead of making every future execution pretend to be a pipeline.
+
+## Goals, Objectives, and Issues
+
+The app already has these concepts:
+
+- Objective: the outcome statement and context.
+- Goal: the measurable target or success condition.
+- Issue: the delivery container for owned work.
+
+Do not add another Goal model for automation. Pipelines and future swarm runs should link to the existing objective, goal, and issue records when they need intent, measurable success, or delivery ownership.
 
 ## Structured Run Chat
 

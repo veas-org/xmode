@@ -7,6 +7,7 @@ class ActionDefinition < ApplicationRecord
 
   belongs_to :workspace, optional: true
   belongs_to :skill_definition, optional: true
+  belongs_to :agent_definition, optional: true
   has_many :action_run_steps, dependent: :nullify
 
   before_validation :assign_default_objective_template
@@ -19,6 +20,7 @@ class ActionDefinition < ApplicationRecord
   validate :schemas_are_valid
   validate :best_practices_are_strings
   validate :skill_belongs_to_workspace
+  validate :agent_belongs_to_workspace
 
   def snapshot
     attributes.except("created_at", "updated_at").as_json
@@ -35,14 +37,16 @@ class ActionDefinition < ApplicationRecord
     end
 
     context["skill"] = skill_context if skill_definition
+    context["agent"] = agent_definition.execution_context if agent_definition
     context["action"] = {
       "key" => key,
       "name" => name,
       "version" => version,
       "reference" => versioned_key,
+      "agent_reference" => agent_definition&.versioned_key,
       "guidance" => execution_guidance,
       "best_practices" => best_practices
-    }
+    }.compact
     context
   end
 
@@ -66,6 +70,12 @@ class ActionDefinition < ApplicationRecord
     return if skill_definition.blank? || skill_definition.workspace_id.blank? || skill_definition.workspace_id == workspace_id
 
     errors.add(:skill_definition, "must belong to the same workspace")
+  end
+
+  def agent_belongs_to_workspace
+    return if agent_definition.blank? || agent_definition.workspace_id.blank? || agent_definition.workspace_id == workspace_id
+
+    errors.add(:agent_definition, "must belong to the same workspace")
   end
 
   def assign_default_objective_template

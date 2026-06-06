@@ -78,12 +78,15 @@ module Catalog
         attrs, sections = parsed_attributes(document, Catalog::YamlCodec::ACTION_ATTRIBUTES)
         skill_key = attrs.delete("skill_key")
         skill_version = attrs.delete("skill_version")
+        agent_key = attrs.delete("agent_key")
+        agent_version = attrs.delete("agent_version")
         attrs["objective_template"] = section_value(sections, "objective_template", attrs["objective_template"])
         attrs["plan_template"] = section_value(sections, "plan_template", attrs["plan_template"])
         attrs["execution_guidance"] = section_value(sections, "execution_guidance", attrs["execution_guidance"])
         attrs["best_practices"] = section_list(sections, "best_practices", attrs["best_practices"])
         record.assign_attributes(attrs.except("type"))
         record.skill_definition = Catalog::YamlCodec.find_skill(workspace, skill_key, skill_version) if skill_key.present?
+        record.agent_definition = Catalog::YamlCodec.find_agent(workspace, agent_key, agent_version) if agent_key.present?
         record
       end
 
@@ -121,7 +124,8 @@ module Catalog
           "builtin"
         ).merge(
           "type" => "action",
-          "skill_key" => record.skill_definition&.versioned_key
+          "skill_key" => record.skill_definition&.versioned_key,
+          "agent_key" => record.agent_definition&.versioned_key
         ).compact.sort.to_h
       end
 

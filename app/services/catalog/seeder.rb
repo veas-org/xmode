@@ -12,6 +12,105 @@ module Catalog
       [ "cloud-sandbox-implementation", "Cloud Sandbox Implementation", "coding", "Run agent coding work inside hosted sandbox workers with logs, diffs, artifacts, and Change Requests." ]
     ].freeze
 
+    AGENTS = [
+      [
+        "xmode-operator",
+        "xmode Operator",
+        "coordination",
+        "model",
+        nil,
+        nil,
+        "Base operating contract for automation runs.",
+        "Work from the accepted objective, keep scope narrow, make assumptions explicit, and leave reviewable evidence.",
+        nil,
+        []
+      ],
+      [
+        "planning-agent",
+        "Planning Agent",
+        "planning",
+        "local_model",
+        nil,
+        "xmode-operator",
+        "Turns loose requests into clear objectives, plans, risks, and acceptance checks.",
+        nil,
+        "Before execution, restate the objective, identify missing context, propose a bounded plan, and name the evidence needed for done.",
+        []
+      ],
+      [
+        "implementation-agent",
+        "Implementation Agent",
+        "coding",
+        "codex",
+        nil,
+        "xmode-operator",
+        "Changes code through isolated, branch-backed workflows.",
+        nil,
+        "Prefer existing repository patterns, preserve unrelated work, run focused checks, and prepare code-changing output for a Change Request.",
+        %w[repository shell tests]
+      ],
+      [
+        "cloud-sandbox-agent",
+        "Cloud Sandbox Agent",
+        "coding",
+        "codex_cloud",
+        nil,
+        "implementation-agent",
+        "Runs code-changing work inside a hosted sandbox worker.",
+        nil,
+        "Never mutate the user's local checkout. Use the cloud sandbox worktree, capture terminal output, changed files, diff evidence, and a review summary.",
+        %w[cloud_sandbox repository shell tests]
+      ],
+      [
+        "verification-agent",
+        "Verification Agent",
+        "verification",
+        "local_shell",
+        nil,
+        "xmode-operator",
+        "Runs checks and turns failures into useful next-step evidence.",
+        nil,
+        "Choose the narrowest meaningful validation first, preserve command output, and report failures as structured evidence.",
+        %w[shell tests artifacts]
+      ],
+      [
+        "review-agent",
+        "Review Agent",
+        "review",
+        "model",
+        nil,
+        "xmode-operator",
+        "Connects diffs, artifacts, and Change Requests back to the objective.",
+        nil,
+        "Review only the evidence that exists, summarize risk plainly, and call out unresolved questions before approval.",
+        %w[diff artifacts change_request]
+      ],
+      [
+        "maintenance-agent",
+        "Maintenance Agent",
+        "maintenance",
+        "codex",
+        nil,
+        "implementation-agent",
+        "Keeps dependency and hygiene changes small, reversible, and scheduled.",
+        nil,
+        "Keep maintenance changes patch-sized where possible, name rollback considerations, and avoid unrelated modernization.",
+        %w[repository shell tests]
+      ],
+      [
+        "incident-agent",
+        "Incident Agent",
+        "incident",
+        "model",
+        nil,
+        "xmode-operator",
+        "Normalizes operational signals into prioritized work.",
+        nil,
+        "Classify severity, preserve raw context, connect events to issues, and escalate when the automated path is unsafe.",
+        %w[events issues]
+      ]
+    ].freeze
+
     ACTIONS = [
       [ "plan-story", "Plan Story", "planning", "codex", [ "view_project" ], "story-planning" ],
       [ "local-model-plan", "Local Model Plan", "planning", "local_model", [ "view_project" ], "story-planning" ],
@@ -32,6 +131,72 @@ module Catalog
       [ "update-dependencies", "Update Dependencies", "maintenance", "local_shell", [ "run_code_actions" ], "maintenance" ],
       [ "handle-event", "Handle Event", "incident", "manual", [ "edit_issues" ], "incident-response" ],
       [ "release", "Release", "release", "manual", [ "approve_change_requests" ], "release-operations" ]
+    ].freeze
+
+    ACTION_AGENTS = {
+      "plan-story" => "planning-agent",
+      "local-model-plan" => "planning-agent",
+      "revise-plan" => "planning-agent",
+      "code" => "implementation-agent",
+      "run-tests" => "verification-agent",
+      "security-scan" => "verification-agent",
+      "verify-typescript-sandbox" => "verification-agent",
+      "verify-ruby-rails-sandbox" => "verification-agent",
+      "cloud-rails-code" => "cloud-sandbox-agent",
+      "codex-plan-dependencies" => "maintenance-agent",
+      "codex-update-dependencies" => "maintenance-agent",
+      "present-sandbox-result" => "review-agent",
+      "open-change-request" => "review-agent",
+      "update-dependencies" => "maintenance-agent",
+      "handle-event" => "incident-agent",
+      "release" => "review-agent"
+    }.freeze
+
+    SWARMS = [
+      {
+        key: "implementation-swarm",
+        name: "Implementation Swarm",
+        category: "coding",
+        strategy: "coordinated",
+        coordinator: "planning-agent",
+        description: "Planning, implementation, verification, and review agents for code-changing issue work.",
+        coordination_prompt: "Plan first, code only after approval, verify with focused checks, then prepare review evidence.",
+        members: [
+          [ "planning-agent", "planner" ],
+          [ "implementation-agent", "implementer" ],
+          [ "verification-agent", "verifier" ],
+          [ "review-agent", "reviewer" ]
+        ]
+      },
+      {
+        key: "cloud-sandbox-swarm",
+        name: "Cloud Sandbox Swarm",
+        category: "coding",
+        strategy: "handoff",
+        coordinator: "cloud-sandbox-agent",
+        description: "Hosted-sandbox planning, coding, result presentation, and Change Request packaging.",
+        coordination_prompt: "Keep repository mutation inside the cloud worker and hand reviewers only evidence-backed summaries.",
+        members: [
+          [ "planning-agent", "planner" ],
+          [ "cloud-sandbox-agent", "implementer" ],
+          [ "verification-agent", "verifier" ],
+          [ "review-agent", "reviewer" ]
+        ]
+      },
+      {
+        key: "maintenance-swarm",
+        name: "Maintenance Swarm",
+        category: "maintenance",
+        strategy: "coordinated",
+        coordinator: "maintenance-agent",
+        description: "Dependency planning, maintenance implementation, verification, and review packaging.",
+        coordination_prompt: "Keep maintenance work small, reversible, scheduled, and backed by test evidence.",
+        members: [
+          [ "maintenance-agent", "coordinator" ],
+          [ "verification-agent", "verifier" ],
+          [ "review-agent", "reviewer" ]
+        ]
+      }
     ].freeze
 
     PIPELINES = [
@@ -131,7 +296,9 @@ module Catalog
 
     def seed!
       skill_index = seed_skills
-      action_index = seed_actions(skill_index)
+      agent_index = seed_agents
+      seed_agent_swarms(agent_index)
+      action_index = seed_actions(skill_index, agent_index)
       seed_pipelines(action_index)
       seed_interactive_pipelines(action_index)
       seed_cloud_sandbox_pipelines(action_index)
@@ -160,7 +327,58 @@ module Catalog
       end
     end
 
-    def seed_actions(skill_index)
+    def seed_agents
+      AGENTS.each_with_object({}) do |(key, name, category, runtime, model, parent_key, description, system_prompt, system_prompt_append, tools), index|
+        agent = @workspace.agent_definitions.find_or_initialize_by(key: key, version: "1.0.0")
+        agent.assign_attributes(
+          name: name,
+          version: "1.0.0",
+          category: category,
+          runtime: runtime,
+          model: model,
+          parent_agent_definition: parent_key.present? ? index.fetch(parent_key) : nil,
+          description: description,
+          system_prompt: system_prompt,
+          system_prompt_append: system_prompt_append,
+          tools: tools,
+          settings: {},
+          metadata: { "built_in_role" => key },
+          builtin: true
+        )
+        agent.save!
+        index[key] = agent
+      end
+    end
+
+    def seed_agent_swarms(agent_index)
+      SWARMS.each do |definition|
+        swarm = @workspace.agent_swarm_definitions.find_or_initialize_by(key: definition.fetch(:key), version: "1.0.0")
+        swarm.assign_attributes(
+          name: definition.fetch(:name),
+          version: "1.0.0",
+          category: definition.fetch(:category),
+          strategy: definition.fetch(:strategy),
+          coordinator_agent_definition: agent_index.fetch(definition.fetch(:coordinator)),
+          description: definition.fetch(:description),
+          coordination_prompt: definition.fetch(:coordination_prompt),
+          metadata: { "built_in_role" => definition.fetch(:key) },
+          builtin: true
+        )
+        swarm.save!
+
+        definition.fetch(:members).each_with_index do |(agent_key, role), position|
+          membership = swarm.agent_swarm_memberships.find_or_initialize_by(
+            agent_definition: agent_index.fetch(agent_key),
+            role: role
+          )
+          membership.position = position
+          membership.settings = {}
+          membership.save!
+        end
+      end
+    end
+
+    def seed_actions(skill_index, agent_index)
       ACTIONS.each_with_object({}) do |(key, name, category, provider, permissions, skill_key), index|
         action = @workspace.action_definitions.find_or_initialize_by(key: key, version: "1.0.0")
         action.assign_attributes(
@@ -169,6 +387,7 @@ module Catalog
           provider: provider,
           permissions: permissions,
           skill_definition: skill_index[skill_key],
+          agent_definition: agent_index[ACTION_AGENTS[key]],
           input_schema: DEFAULT_INPUT_SCHEMA,
           output_schema: output_schema_for(key),
           defaults: default_for(key),

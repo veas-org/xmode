@@ -98,6 +98,7 @@
                     <span><%= action.provider.to_s.tr("_", " ").titleize %></span>
                     <span><%= action.category.to_s.titleize %></span>
                     <span><%= action.skill_definition&.name || "No skill" %></span>
+                    <span><%= action.agent_definition&.name || "No agent" %></span>
                   </span>
                 </span>
               <% end %>
@@ -137,6 +138,64 @@
             <%= link_to "Browse skills", skills_home_path, class: "app-link text-sm" %>
             <% if permitted?(:manage_pipelines) %>
               <%= link_to "Import", import_skills_path, class: "app-link text-sm", data: side_panel_data %>
+            <% end %>
+          </div>
+        </section>
+
+        <section class="automation-library-column">
+          <div class="skill-section-title">
+            <div>
+              <p class="app-eyebrow">Agents</p>
+              <h2>Who performs work</h2>
+            </div>
+            <span class="linear-count"><%= @library_counts.fetch(:agents) %></span>
+          </div>
+          <div class="skill-home-list">
+            <% @favorite_agents.each do |agent| %>
+              <div class="skill-home-row">
+                <span class="record-point-main">
+                  <span class="record-point-title"><%= agent.name %></span>
+                  <span class="record-point-meta">
+                    <span><%= agent.runtime.to_s.tr("_", " ").titleize %></span>
+                    <span><%= agent.category.to_s.titleize %></span>
+                    <span><%= pluralize(agent.action_definitions.size, "action") %></span>
+                    <% if agent.parent_agent_definition %>
+                      <span>inherits <%= agent.parent_agent_definition.name %></span>
+                    <% end %>
+                  </span>
+                </span>
+              </div>
+            <% end %>
+            <% if @favorite_agents.empty? %>
+              <p class="linear-empty px-0 py-4 text-left">No agents are defined yet.</p>
+            <% end %>
+          </div>
+        </section>
+
+        <section class="automation-library-column">
+          <div class="skill-section-title">
+            <div>
+              <p class="app-eyebrow">Swarms</p>
+              <h2>How agents coordinate</h2>
+            </div>
+            <span class="linear-count"><%= @library_counts.fetch(:swarms) %></span>
+          </div>
+          <div class="skill-home-list">
+            <% @favorite_swarms.each do |swarm| %>
+              <div class="skill-home-row">
+                <span class="record-point-main">
+                  <span class="record-point-title"><%= swarm.name %></span>
+                  <span class="record-point-meta">
+                    <span><%= swarm.strategy.to_s.tr("_", " ").titleize %></span>
+                    <span><%= swarm.category.to_s.titleize %></span>
+                    <span><%= pluralize(swarm.agent_swarm_memberships.size, "agent") %></span>
+                    <span><%= swarm.coordinator_agent_definition&.name || "No coordinator" %></span>
+                  </span>
+                </span>
+              </div>
+            <% end %>
+            <% if @favorite_swarms.empty? %>
+              <p class="linear-empty px-0 py-4 text-left">No swarms are defined yet.</p>
             <% end %>
           </div>
         </section>

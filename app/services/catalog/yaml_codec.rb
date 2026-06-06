@@ -1,7 +1,7 @@
 module Catalog
   class YamlCodec
     SKILL_ATTRIBUTES = %w[key name version category description instructions objective_template plan_template input_schema output_schema best_practices metadata builtin].freeze
-    ACTION_ATTRIBUTES = %w[key name version category provider skill_key skill_version permissions input_schema output_schema defaults runtime_config timeout_seconds retry_policy artifact_policy requires_objective plan_required_when_objective_unclear objective_template plan_template execution_guidance best_practices builtin].freeze
+    ACTION_ATTRIBUTES = %w[key name version category provider skill_key skill_version agent_key agent_version permissions input_schema output_schema defaults runtime_config timeout_seconds retry_policy artifact_policy requires_objective plan_required_when_objective_unclear objective_template plan_template execution_guidance best_practices builtin].freeze
     PIPELINE_ATTRIBUTES = %w[key name version required_context graph triggers permissions builtin].freeze
 
     def self.dump(record)
@@ -32,6 +32,8 @@ module Catalog
       attrs = safe_load(yaml).slice(*ACTION_ATTRIBUTES)
       skill_key = attrs.delete("skill_key")
       skill_version = attrs.delete("skill_version")
+      agent_key = attrs.delete("agent_key")
+      agent_version = attrs.delete("agent_version")
       record = workspace.action_definitions.find_or_initialize_by(
         key: attrs.fetch("key"),
         version: attrs["version"].presence || "1.0.0"
@@ -40,6 +42,7 @@ module Catalog
       record.catalog_version_user = user
       record.assign_attributes(attrs)
       record.skill_definition = find_skill(workspace, skill_key, skill_version) if skill_key.present?
+      record.agent_definition = find_agent(workspace, agent_key, agent_version) if agent_key.present?
       record.save!
       record
     end
@@ -63,8 +66,9 @@ module Catalog
     end
 
     def self.dump_action(record)
-      attrs = record.attributes.slice(*(ACTION_ATTRIBUTES - [ "skill_key", "skill_version" ]))
+      attrs = record.attributes.slice(*(ACTION_ATTRIBUTES - [ "skill_key", "skill_version", "agent_key", "agent_version" ]))
       attrs["skill_key"] = record.skill_definition&.versioned_key
+      attrs["agent_key"] = record.agent_definition&.versioned_key
       attrs.to_yaml
     end
 
@@ -78,6 +82,20 @@ module Catalog
 
     def self.parse_skill_reference(skill_reference)
       reference = skill_reference.to_s.strip
+      key, version = reference.split("@", 2)
+      [ key, version.presence ]
+    end
+
+    def self.find_agent(workspace, agent_reference, version = nil)
+      key, parsed_version = parse_agent_reference(agent_reference)
+      selected_version = version.presence || parsed_version
+      scope = workspace.agent_definitions.where(key: key)
+      scope = scope.where(version: selected_version) if selected_version.present?
+      selected_version.present? ? scope.order(id: :desc).first : Catalog::Versions.latest(scope.to_a)
+    end
+
+    def self.parse_agent_reference(agent_reference)
+      reference = agent_reference.to_s.strip
       key, version = reference.split("@", 2)
       [ key, version.presence ]
     end

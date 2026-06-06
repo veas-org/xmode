@@ -25,6 +25,8 @@ RSpec.describe "Automation workspace", type: :request do
     expect(response.body).to include("What can run")
     expect(response.body).to include("How steps execute")
     expect(response.body).to include("Guidance behind actions")
+    expect(response.body).to include("Who performs work")
+    expect(response.body).to include("How agents coordinate")
     expect(response.body).to include(pipelines_home_path)
     expect(response.body).to include(actions_home_path)
     expect(response.body).to include(skills_home_path)

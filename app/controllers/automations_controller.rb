@@ -36,8 +36,10 @@ class AutomationsController < AuthenticatedController
 
   def load_library
     @pipelines = current_workspace.pipeline_definitions.order(:name, :version).to_a
-    @actions = current_workspace.action_definitions.includes(:skill_definition).order(:category, :name, :version).to_a
+    @actions = current_workspace.action_definitions.includes(:skill_definition, :agent_definition).order(:category, :name, :version).to_a
     @skills = current_workspace.skill_definitions.includes(:action_definitions).order(:category, :name, :version).to_a
+    @agents = current_workspace.agent_definitions.includes(:action_definitions, :parent_agent_definition).order(:category, :name, :version).to_a
+    @swarms = current_workspace.agent_swarm_definitions.includes(:coordinator_agent_definition, :agent_swarm_memberships).order(:category, :name, :version).to_a
     @pipeline_usage_counts = current_workspace.pipeline_runs
       .where(pipeline_definition_id: @pipelines.map(&:id))
       .group(:pipeline_definition_id)
@@ -45,10 +47,14 @@ class AutomationsController < AuthenticatedController
     @favorite_pipelines = preferred_records(@pipelines, %w[cloud-rails-implement-issue implement-issue guided-implement-issue update-dependencies])
     @favorite_actions = preferred_records(@actions, %w[plan-story verify-plan code run-tests update-dependencies])
     @favorite_skills = preferred_records(@skills, %w[story-planning software-implementation cloud-sandbox-implementation incident-response])
+    @favorite_agents = preferred_records(@agents, %w[planning-agent implementation-agent cloud-sandbox-agent verification-agent])
+    @favorite_swarms = preferred_records(@swarms, %w[implementation-swarm cloud-sandbox-swarm maintenance-swarm])
     @library_counts = {
       pipelines: @pipelines.size,
       actions: @actions.size,
-      skills: @skills.size
+      skills: @skills.size,
+      agents: @agents.size,
+      swarms: @swarms.size
     }
   end
 

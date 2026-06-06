@@ -10,11 +10,17 @@
     <div><%= form.label :provider, class: "app-label" %><%= form.select :provider, ActionDefinition::PROVIDERS, {}, class: "app-input" %></div>
     <div><%= form.label :timeout_seconds, class: "app-label" %><%= form.number_field :timeout_seconds, class: "app-input" %></div>
   </div>
-  <div class="grid gap-4 sm:grid-cols-3">
-    <div class="sm:col-span-2">
+  <div class="grid gap-4 sm:grid-cols-2">
+    <div>
       <%= form.label :skill_definition_id, "Skill", class: "app-label" %>
       <%= form.collection_select :skill_definition_id, @skills || current_workspace.skill_definitions.order(:category, :name, :version), :id, :display_name, { include_blank: "No skill" }, class: "app-input" %>
     </div>
+    <div>
+      <%= form.label :agent_definition_id, "Agent", class: "app-label" %>
+      <%= form.collection_select :agent_definition_id, @agents || current_workspace.agent_definitions.order(:category, :name, :version), :id, :display_name, { include_blank: "No agent" }, class: "app-input" %>
+    </div>
+  </div>
+  <div class="grid gap-4 sm:grid-cols-3">
     <div class="space-y-3 pt-6 text-sm text-muted-foreground">
       <label class="flex items-center gap-2"><%= form.check_box :requires_objective %> Requires objective</label>
       <label class="flex items-center gap-2"><%= form.check_box :plan_required_when_objective_unclear %> Plan when unclear</label>
