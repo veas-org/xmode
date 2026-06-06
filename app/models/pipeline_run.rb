@@ -13,6 +13,7 @@ class PipelineRun < ApplicationRecord
   has_many :run_artifacts, dependent: :destroy
   has_many :approvals, dependent: :destroy
   has_many :run_messages, dependent: :destroy
+  has_many :codex_sessions, dependent: :destroy
   has_many :sandbox_sessions, dependent: :destroy
   has_many :sandbox_commands, dependent: :destroy
   has_one :change_request, dependent: :nullify

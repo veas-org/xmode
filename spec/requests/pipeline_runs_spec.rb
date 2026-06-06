@@ -1,6 +1,8 @@
 require "rails_helper"
 
 RSpec.describe "Pipeline run detail", type: :request do
+  include ActiveJob::TestHelper
+
   it "shows the automation queue as an operating ledger" do
     Demo::PlanetExpressSeeder.call
     user = User.find_by!(email: Demo::PlanetExpressSeeder::BENDER_EMAIL)
@@ -352,5 +354,69 @@ RSpec.describe "Pipeline run detail", type: :request do
     expect(response.body).to include("$ printf terminal")
     expect(response.body).to include("terminal")
     expect(run.sandbox_commands.last).to have_attributes(status: "completed", stdout: "terminal")
+  end
+
+  it "lets workspace admins communicate with the Codex CLI from a pipeline run" do
+    original_adapter = ActiveJob::Base.queue_adapter
+    ActiveJob::Base.queue_adapter = :test
+    clear_enqueued_jobs
+    clear_performed_jobs
+
+    allow(CodexSession).to receive(:default_runtime).and_return("mock")
+    allow(CodexSession).to receive(:default_model).with("mock").and_return("codex-mock")
+
+    user = User.create!(name: "Owner", email: "owner-run-codex@example.com", password: "password123")
+    workspace = Workspace.create!(name: "Spec")
+    team = workspace.teams.create!(name: "Engineering", key: "eng")
+    workspace.memberships.create!(user: user, team: team, role: "owner")
+    pipeline = workspace.pipeline_definitions.create!(key: "cli-agent", name: "CLI Agent Run")
+    run = workspace.pipeline_runs.create!(
+      pipeline_definition: pipeline,
+      trigger: "manual",
+      status: "completed",
+      input_context: { "objective" => "Review the run evidence." }
+    )
+
+    post login_path, params: { email: user.email, password: "password123" }
+
+    perform_enqueued_jobs do
+      post pipeline_run_codex_messages_path(run), params: { content: "Summarize the next implementation step." }
+    end
+
+    expect(response).to redirect_to(pipeline_run_path(run))
+    codex_session = run.codex_sessions.last
+    expect(codex_session).to have_attributes(runtime: "mock", model: "codex-mock", status: "ready")
+    expect(codex_session.objective).to include("pipeline run ##{run.id}")
+    expect(codex_session.codex_session_messages.last).to have_attributes(
+      content: "Summarize the next implementation step.",
+      status: "completed"
+    )
+    expect(codex_session.codex_session_messages.last.response).to include("Codex mock session accepted")
+
+    get pipeline_run_path(run)
+
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include("Message the CLI agent")
+    expect(response.body).to include("Send to CLI")
+    expect(response.body).to include("Summarize the next implementation step.")
+    expect(response.body).to include("Codex mock session accepted")
+  ensure
+    clear_enqueued_jobs
+    clear_performed_jobs
+    ActiveJob::Base.queue_adapter = original_adapter
+  end
+
+  it "blocks regular members from sending run-scoped Codex CLI messages" do
+    user = User.create!(name: "Member", email: "member-run-codex@example.com", password: "password123")
+    workspace = Workspace.create!(name: "Spec")
+    team = workspace.teams.create!(name: "Engineering", key: "eng")
+    workspace.memberships.create!(user: user, team: team, role: "member")
+    run = workspace.pipeline_runs.create!(trigger: "manual")
+
+    post login_path, params: { email: user.email, password: "password123" }
+    post pipeline_run_codex_messages_path(run), params: { content: "Try to run Codex." }
+
+    expect(response).to redirect_to(app_path)
+    expect(run.codex_sessions).to be_empty
   end
 end

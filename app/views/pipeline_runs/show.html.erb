@@ -289,6 +289,8 @@ end %>
         </article>
       <% end %>
 
+      <%= render "codex_session_thread", codex_sessions: @codex_sessions %>
+
       <% if @pending_approval && @pending_run_message.blank? %>
         <article class="codex-chat-bubble is-assistant is-pending">
           <div class="codex-chat-bubble-head">
@@ -307,7 +309,7 @@ end %>
             <% end %>
           </div>
         </article>
-      <% elsif @run_messages.blank? && @pending_approval.blank? && @steps.blank? %>
+      <% elsif @run_messages.blank? && @pending_approval.blank? && @steps.blank? && @codex_sessions.blank? %>
         <article class="codex-chat-bubble is-assistant">
           <div class="codex-chat-bubble-head">
             <span>xmode</span>
@@ -320,22 +322,30 @@ end %>
     </section>
 
     <footer class="codex-chat-composer">
-      <%= form_with url: pipeline_run_run_messages_path(@run), class: "codex-chat-composer-form" do |form| %>
-        <div class="codex-chat-composer-box">
-          <%= form.text_area :content,
-                rows: 1,
-                class: "app-textarea codex-chat-input",
-                placeholder: "Message the run...",
-                data: {
-                  run_chat_target: "input",
-                  action: "input->run-chat#autosize keydown->run-chat#submitOnEnter"
-                } %>
-          <div class="codex-chat-composer-tools">
-            <span>Shift + Enter for newline</span>
-            <%= form.button class: "app-btn app-btn-primary", title: "Send message", aria: { label: "Send message" } do %>
-              <%= lucide_icon("send", class_name: "app-icon") %>
-              <span>Send</span>
-            <% end %>
+      <% if permitted?(:manage_workspace) %>
+        <%= form_with url: pipeline_run_codex_messages_path(@run), class: "codex-chat-composer-form" do |form| %>
+          <div class="codex-chat-composer-box">
+            <%= form.text_area :content,
+                  rows: 1,
+                  class: "app-textarea codex-chat-input",
+                  placeholder: "Message the CLI agent...",
+                  data: {
+                    run_chat_target: "input",
+                    action: "input->run-chat#autosize keydown->run-chat#submitOnEnter"
+                  } %>
+            <div class="codex-chat-composer-tools">
+              <span>Shift + Enter for newline</span>
+              <%= form.button class: "app-btn app-btn-primary", title: "Send to CLI agent", aria: { label: "Send to CLI agent" } do %>
+                <%= lucide_icon("terminal", class_name: "app-icon") %>
+                <span>Send to CLI</span>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+      <% else %>
+        <div class="codex-chat-composer-form">
+          <div class="codex-chat-composer-box">
+            <p class="text-sm text-muted-foreground">Codex CLI messaging requires workspace admin access.</p>
           </div>
         </div>
       <% end %>

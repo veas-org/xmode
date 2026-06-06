@@ -27,6 +27,7 @@ class PipelineRunsController < AuthenticatedController
     @pending_run_message = @run_messages.find(&:pending?)
     @sandbox_sessions = @run.sandbox_sessions.includes(:action_run_step, :execution_environment, :sandbox_commands).order(:created_at)
     @sandbox_files_by_session_id = @sandbox_sessions.index_with { |sandbox| Sandboxes::FileInventory.call(sandbox) }.transform_keys(&:id)
+    @codex_sessions = @run.codex_sessions.includes(:user, codex_session_messages: :user).recent
     @messages_by_step_id = @run_messages.group_by(&:action_run_step_id)
     @logs_by_step_id = @logs.group_by(&:action_run_step_id)
     @artifacts_by_step_id = @artifacts.group_by(&:action_run_step_id)

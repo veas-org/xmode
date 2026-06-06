@@ -77,6 +77,7 @@ Rails.application.routes.draw do
   resources :pipeline_runs, only: %i[index show] do
     post "run_messages", to: "run_messages#thread", as: :run_messages
     post "run_messages/:id", to: "run_messages#create", as: :run_message
+    post "codex_messages", to: "pipeline_codex_messages#create", as: :codex_messages
     post "sandbox_sessions/:sandbox_session_id/commands", to: "sandbox_commands#create", as: :sandbox_session_commands
     member do
       post :approve
