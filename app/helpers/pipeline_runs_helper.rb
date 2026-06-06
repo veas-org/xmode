@@ -77,6 +77,67 @@ module PipelineRunsHelper
     items.compact_blank.map { |item| item.to_s.squish }.uniq.first(6)
   end
 
+  def run_changed_file_entries(steps, change_request)
+    entries = steps.flat_map { |step| Array(step.output_json.to_h["changed_files"]) }
+    entries = Array(change_request&.checks.to_h["changed_files"]) if entries.blank?
+
+    entries.filter_map do |entry|
+      path = entry.is_a?(Hash) ? entry["path"].presence || entry["name"].presence : entry.to_s.presence
+      next if path.blank?
+
+      {
+        path: path,
+        status: changed_file_status_label(entry.is_a?(Hash) ? entry["status"] : nil)
+      }
+    end.uniq { |entry| entry[:path] }
+  end
+
+  def run_visual_artifacts(artifacts)
+    artifacts.select do |artifact|
+      artifact.content_type.to_s.start_with?("image/") ||
+        artifact.name.to_s.match?(/screenshot|visual|preview|browser|png|jpe?g|webp/i)
+    end
+  end
+
+  def run_stage_for_step(step)
+    key = step.action_definition&.key.to_s
+    name = step.name.to_s
+    text = "#{key} #{name}".downcase
+
+    if text.match?(/plan|goal|clarify/)
+      :plan
+    elsif text.match?(/code|sandbox|dependenc|implement|fix/)
+      :work
+    elsif text.match?(/test|scan|present|review/)
+      :review
+    elsif text.match?(/change.request|release/)
+      :release
+    else
+      :work
+    end
+  end
+
+  def run_stage_status(steps, stage, change_request: nil)
+    return :done if stage == :release && change_request.present?
+
+    stage_steps = steps.select { |step| run_stage_for_step(step) == stage }
+    return :pending if stage_steps.blank?
+    return :failed if stage_steps.any? { |step| step.status.in?(%w[failed canceled]) }
+    return :current if stage_steps.any? { |step| step.status.in?(%w[running waiting_for_approval waiting_for_input queued]) }
+    return :done if stage_steps.all? { |step| step.status == "completed" }
+
+    :pending
+  end
+
+  def run_stage_icon(status)
+    case status.to_sym
+    when :done then "check"
+    when :current then "circle-dot"
+    when :failed then "x"
+    else "circle"
+    end
+  end
+
   def token_like_payload?(payload)
     extract_agent_usage(payload.to_h).present?
   end
@@ -92,6 +153,15 @@ module PipelineRunsHelper
   end
 
   private
+
+  def changed_file_status_label(status)
+    case status.to_s
+    when "??", "A" then "added"
+    when "M" then "modified"
+    when "D" then "deleted"
+    else "changed"
+    end
+  end
 
   def extract_agent_usage(payload)
     return if payload.blank?

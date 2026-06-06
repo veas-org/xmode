@@ -331,7 +331,28 @@ module Catalog
         },
         action_node.call("cloud-rails-code", "cloud-rails-code", 780),
         action_node.call("present-result", "present-sandbox-result", 1_000),
-        action_node.call("open-change-request", "open-change-request", 1_220)
+        {
+          id: "review-changes",
+          type: "decision",
+          label: "Review Changes",
+          question: "Review the code and visual evidence before opening the Change Request.",
+          choices: [
+            { key: "approve", label: "Open Change Request", next: "open-change-request", action: "approve" },
+            { key: "revise", label: "Ask for revision", next: "revise-result", action: "follow_up" },
+            { key: "reject", label: "Stop run", action: "reject" }
+          ],
+          x: 1_220,
+          y: 160
+        },
+        {
+          id: "revise-result",
+          type: "follow_up",
+          label: "Revise Changes",
+          prompt: "Tell Codex what to change after reviewing the code or visual evidence. The sandbox coding step will run again.",
+          x: 1_440,
+          y: 260
+        },
+        action_node.call("open-change-request", "open-change-request", 1_660)
       ]
 
       edges = [
@@ -340,7 +361,10 @@ module Catalog
         { id: "review-plan-revise-plan", from: "review-plan", to: "revise-plan", condition: "choice:revise" },
         { id: "revise-plan-draft-plan", from: "revise-plan", to: "draft-plan", condition: "answered" },
         { id: "cloud-rails-code-present-result", from: "cloud-rails-code", to: "present-result", condition: "success" },
-        { id: "present-result-open-change-request", from: "present-result", to: "open-change-request", condition: "success" }
+        { id: "present-result-review-changes", from: "present-result", to: "review-changes", condition: "success" },
+        { id: "review-changes-open-change-request", from: "review-changes", to: "open-change-request", condition: "choice:approve" },
+        { id: "review-changes-revise-result", from: "review-changes", to: "revise-result", condition: "choice:revise" },
+        { id: "revise-result-cloud-rails-code", from: "revise-result", to: "cloud-rails-code", condition: "answered" }
       ]
 
       { nodes: nodes, edges: edges }

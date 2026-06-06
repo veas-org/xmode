@@ -121,7 +121,7 @@ RSpec.describe "Ruby Rails sandbox fixture" do
     expect(run.run_logs.pluck(:message).join("\n")).to include("Repository cloned into sandbox", "Hello World from Rails sandbox")
   end
 
-  it "runs the Qwen-guided cloud Rails implementation loop through revise, approval, sandbox code, result, and Change Request" do
+  it "runs the Codex-guided cloud Rails implementation loop through revise, approval, sandbox code, result review, and Change Request" do
     fixture_path = Rails.root.join("..", "hello-world-rails").expand_path
     skip "hello-world-rails fixture repository is not available" unless fixture_path.join(".git").directory?
 
@@ -139,11 +139,27 @@ RSpec.describe "Ruby Rails sandbox fixture" do
         usage: {}
       )
     )
+    allow(Providers::Registry).to receive(:call).and_call_original
+    allow(Providers::Registry).to receive(:call).with("codex", an_instance_of(ActionRunStep)) do |_provider, step|
+      {
+        "summary" => "Codex prepared the cloud Rails plan.",
+        "status" => "planned",
+        "provider" => "codex",
+        "model" => "gpt-spec",
+        "objective" => step.input_json["objective"],
+        "plan" => "Clone hello-world-rails in the cloud worker, run the fixture script, capture diff and tests, then present the result.",
+        "next_steps" => [ "Review the plan", "Approve before sandbox coding" ],
+        "acceptance_checks" => [ "Sandbox diff is attached", "Change Request package is recorded" ],
+        "changed_files_count" => 0
+      }
+    end
 
     seed = Demo::PlanetExpressSeeder.call
     workspace = seed.workspace
     project = workspace.projects.find_by!(key: "rails-sandbox-verification")
     issue = workspace.issues.find_by!(identifier: "OPS-7")
+    cloud_action = workspace.action_definitions.find_by!(key: "cloud-rails-code")
+    cloud_action.update!(runtime_config: cloud_action.runtime_config.except("agent_command_template"))
     pipeline = workspace.pipeline_definitions.find_by!(key: "cloud-rails-implement-issue")
     run = workspace.pipeline_runs.create!(
       pipeline_definition: pipeline,
@@ -151,45 +167,49 @@ RSpec.describe "Ruby Rails sandbox fixture" do
       issue: issue,
       trigger: "manual",
       input_context: {
-        "objective" => "Use Qwen to plan, revise, code, and present the Rails Hello World change from a cloud sandbox."
+        "objective" => "Use Codex to plan, revise, code, and present the Rails Hello World change from a cloud sandbox."
       }
     )
+    cloud_action.update!(defaults: { "command" => "ruby scripts/xmode_hello_world.rb \"Review gate evidence for run #{run.id}\"" })
 
     Pipelines::Runner.call(run)
 
     expect(run.reload.status).to eq("waiting_for_input")
     expect(run.run_messages.pending.last).to have_attributes(kind: "choice_question")
-    expect(run.run_messages.pending.last.content).to include("Review Qwen's implementation plan")
+    expect(run.run_messages.pending.last.content).to include("Review Codex's implementation plan")
 
     answer_pending_message(run, { "kind" => "choice", "choice" => "revise", "label" => "Revise plan", "next" => "revise-plan", "action" => "follow_up" }, resume_node_id: "revise-plan")
     Pipelines::Runner.call(run)
 
     expect(run.reload.status).to eq("waiting_for_input")
     expect(run.run_messages.pending.last).to have_attributes(kind: "open_question")
-    expect(run.run_messages.pending.last.content).to include("Tell Qwen what to change")
+    expect(run.run_messages.pending.last.content).to include("Tell Codex what to change")
 
     answer_pending_message(run, { "kind" => "text", "content" => "Make the plan explicit that all code changes happen in the cloud sandbox." }, resume_node_id: "draft-plan")
     Pipelines::Runner.call(run)
 
     expect(run.reload.status).to eq("waiting_for_input")
     expect(run.run_messages.pending.last).to have_attributes(kind: "choice_question")
-    expect(run.action_run_steps.find_by(position: 0).output_json.fetch("summary")).to include("Qwen prepared")
+    expect(run.action_run_steps.find_by(position: 0).output_json.fetch("summary")).to include("Codex prepared")
 
     answer_pending_message(run, { "kind" => "choice", "choice" => "approve", "label" => "Approve plan", "next" => "cloud-rails-code", "action" => "approve" }, resume_node_id: "cloud-rails-code")
     Pipelines::Runner.call(run)
 
     cloud_step = run.action_run_steps.find_by!(name: "Cloud Rails Code")
     result_step = run.action_run_steps.find_by!(name: "Present Sandbox Result")
+    review_step = run.action_run_steps.find_by!(name: "Review Changes")
     sandbox = run.sandbox_sessions.find_by!(action_run_step: cloud_step)
     sandbox_path = Pathname.new(sandbox.worktree_path)
     instruction = sandbox_path.join(".xmode", "plan.md").read
     changed_paths = cloud_step.output_json.fetch("changed_files").map { |entry| entry.fetch("path") }
 
-    expect(run.reload.status).to eq("completed")
-    expect(Providers::CodeModelClient).to have_received(:call).at_least(3).times
-    expect(Providers::CodeModelClient).to have_received(:call).with(hash_including(provider: "ollama", model: "qwen2.5-coder:1.5b")).at_least(3).times
-    expect(cloud_step.output_json).to include("status" => "completed", "changed_files_count" => 3)
-    expect(changed_paths).to contain_exactly("README.md", "app/services/hello_world_printer.rb", "test/services/hello_world_printer_test.rb")
+    expect(run.reload.status).to eq("waiting_for_input")
+    expect(review_step).to have_attributes(status: "waiting_for_input")
+    expect(run.run_messages.pending.last.content).to include("Review the code and visual evidence")
+    expect(Providers::CodeModelClient).to have_received(:call).with(hash_including(provider: "ollama", model: "qwen2.5-coder:1.5b")).at_least(:once)
+    expect(cloud_step.output_json).to include("status" => "completed")
+    expect(cloud_step.output_json.fetch("changed_files_count")).to be >= 1
+    expect(changed_paths).to include("README.md")
     expect(result_step.output_json.fetch("summary")).to include("Qwen prepared")
     expect(sandbox).to have_attributes(kind: "cloud_vm", status: "ready")
     expect(sandbox.execution_environment).to have_attributes(runner_mode: "cloud_worker", language: "ruby", framework: "rails")
@@ -200,11 +220,17 @@ RSpec.describe "Ruby Rails sandbox fixture" do
       "agent_model" => "qwen2.5-coder:1.5b",
       "agent_instruction_artifact" => "agent-instruction.md"
     )
-    expect(instruction).to include("Qwen prepared the cloud Rails plan.", "Make the plan explicit that all code changes happen in the cloud sandbox.")
-    expect(sandbox_path.join("README.md").read).to include("Hello World Feature Flow")
+    expect(instruction).to include("Codex prepared the cloud Rails plan.", "Make the plan explicit that all code changes happen in the cloud sandbox.")
+    expect(sandbox_path.join("README.md").read).to include("Hello World Feature Flow", "Review gate evidence for run #{run.id}")
     expect(run.run_artifacts.where(action_run_step: cloud_step).pluck(:name)).to include("agent-instruction.md")
+
+    answer_pending_message(run, { "kind" => "choice", "choice" => "approve", "label" => "Open Change Request", "next" => "open-change-request", "action" => "approve" }, resume_node_id: "open-change-request")
+    Pipelines::Runner.call(run)
+
+    expect(run.reload.status).to eq("completed")
     expect(run.change_request).to have_attributes(issue: issue, provider: "local", branch_name: "xmode/ops-7-#{run.id}", status: "draft")
-    expect(run.change_request.checks).to include("branch_status" => "created", "sandbox_session_id" => sandbox.id)
+    expect(run.change_request.checks).to include("branch_status" => "created")
+    expect(run.sandbox_sessions.exists?(id: run.change_request.checks.fetch("sandbox_session_id"))).to be(true)
     expect(run.run_logs.pluck(:message).join("\n")).to include("Cloud sandbox prepared", "Cloud worker executing inside the hosted xmode worker container")
   end
 

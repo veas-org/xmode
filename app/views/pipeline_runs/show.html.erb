@@ -23,54 +23,52 @@ end %>
 <% plan_next_steps = Array(generated_plan_output&.dig("next_steps")).select(&:present?) %>
 <% current_step = @steps.find { |step| step.status.in?(%w[running waiting_for_approval waiting_for_input]) } || @steps.last %>
 <% completed_steps = @steps.count { |step| step.status == "completed" } %>
-<% failed_steps = @steps.count { |step| step.status.in?(%w[failed canceled]) } %>
-<% command_count = @sandbox_sessions.sum { |sandbox| sandbox.sandbox_commands.size } %>
 <% evidence_total = @artifacts.size + @logs.size + @sandbox_sessions.size + @approvals.size + @run_messages.size %>
 <% progress_percent = @steps.any? ? ((completed_steps.to_f / @steps.size) * 100).round : 0 %>
-<% next_label = if @pending_run_message
-  "Answer required"
-elsif @pending_approval
-  "Approval required"
-elsif @run.status == "completed"
-  "Ready for review"
-else
-  @run.display_status
-end %>
-<% run_summary = if @run.error_message.present?
-  @run.error_message
-elsif current_step&.output_json.to_h["summary"].present?
-  current_step.output_json["summary"]
-elsif @run.status == "completed"
-  "Run completed with #{pluralize(completed_steps, "completed step")} and #{pluralize(evidence_total, "evidence item")}."
-elsif current_step
-  "#{current_step.name} is the current focus."
-else
-  "Run is waiting for its first step."
-end %>
+<% changed_files = run_changed_file_entries(@steps, @change_request) %>
+<% visual_artifacts = run_visual_artifacts(@artifacts) %>
 <% active_codex_session = @codex_sessions.first %>
 <% codex_chat_runtime = active_codex_session&.runtime || CodexSession.default_runtime %>
 <% codex_chat_model = active_codex_session&.model || CodexSession.default_model(codex_chat_runtime) %>
-<% focus_anchor = if @pending_run_message
-  "run-message-#{@pending_run_message.id}"
-elsif current_step
-  step_anchor(current_step)
-end %>
-<% focus_action_label = if @pending_run_message
-  "Reply"
+<% decision_label = if @pending_run_message
+  "Answer required"
 elsif @pending_approval
-  "Decide"
-elsif current_step
-  "Open"
+  "Approval required"
+elsif @run.status == "completed" && @change_request
+  "Review and release"
+elsif @run.status == "completed"
+  "Review complete"
+else
+  @run.display_status
 end %>
-<% focus_agent_label = [ "Codex", CodexSession.runtime_label(codex_chat_runtime), codex_chat_model ].compact.join(" · ") %>
-<% focus_agent_short_label = [ "Codex", CodexSession.runtime_label(codex_chat_runtime) ].compact.join(" · ") %>
+<% decision_summary = if @pending_run_message
+  @pending_run_message.content.presence || "The run is paused until you answer."
+elsif @pending_approval
+  "#{current_step&.name || "Manual approval"} is paused until you approve, revise, or stop."
+elsif @run.error_message.present?
+  @run.error_message
+elsif @change_request
+  "A branch-backed Change Request is ready for code review."
+elsif current_step&.output_json.to_h["summary"].present?
+  current_step.output_json["summary"]
+elsif @run.status == "completed"
+  "The run finished with #{pluralize(evidence_total, "evidence item")}."
+else
+  current_step ? "#{current_step.name} is the current focus." : "Run is waiting for its first step."
+end %>
+<% stage_rows = [
+  [ :plan, "Plan", "Approve scope before coding" ],
+  [ :work, "Sandbox", "Code runs in isolation" ],
+  [ :review, "Review", "Inspect code and visual evidence" ],
+  [ :release, "Release", "Open or merge through CR" ]
+] %>
 <% @codex_sessions.map(&:stream_key).uniq.each do |stream_key| %>
   <%= turbo_stream_from stream_key %>
 <% end %>
 
-<div class="codex-run-shell" data-controller="run-chat">
-  <aside class="codex-session-sidebar">
-    <header class="codex-session-sidebar-head">
+<div class="run-review-shell" data-controller="run-chat">
+  <aside class="run-review-sidebar">
+    <header class="run-review-sidebar-head">
       <div>
         <p class="app-eyebrow">Sessions</p>
         <h2>Pipeline runs</h2>
@@ -80,423 +78,386 @@ end %>
       <% end %>
     </header>
 
-    <div class="codex-session-list">
+    <div class="run-review-session-list">
       <% @session_runs.each do |run| %>
         <% session_active = run.id == @run.id %>
         <% session_name = run.pipeline_definition&.name || "Pipeline run" %>
         <% session_target = run.issue&.identifier || run.project&.key || run.project&.title || "workspace" %>
-        <%= link_to pipeline_run_path(run), class: "codex-session-row #{session_active ? "is-active" : ""}" do %>
-          <span class="codex-session-row-top">
+        <%= link_to pipeline_run_path(run), class: "run-review-session-row #{session_active ? "is-active" : ""}" do %>
+          <span>
             <strong>Run #<%= run.id %></strong>
             <%= status_icon_pill(run.status, title: run.display_status) %>
           </span>
-          <span class="codex-session-row-title"><%= session_name %></span>
-          <span class="codex-session-row-meta">
-            <%= session_target %> · <%= time_ago_in_words(run.updated_at) %> ago
-          </span>
+          <em><%= session_name %></em>
+          <small><%= session_target %> · <%= time_ago_in_words(run.updated_at) %> ago</small>
         <% end %>
       <% end %>
     </div>
   </aside>
 
-  <main class="codex-chat-pane">
-    <header class="codex-chat-header">
-      <div class="min-w-0">
-        <div class="codex-chat-kicker">
-          <span>Run #<%= @run.id %></span>
-          <span><%= target_label %></span>
-          <span><%= @run.display_trigger %></span>
-        </div>
-        <h1><%= run_name %></h1>
-        <p><%= objective_text %></p>
+  <main class="run-review-main">
+    <header class="run-review-hero">
+      <div class="run-review-kicker">
+        <span>Run #<%= @run.id %></span>
+        <span><%= target_label %></span>
+        <span><%= @run.display_trigger %></span>
       </div>
-      <div class="codex-chat-header-actions">
-        <%= status_icon_pill(@run.status, title: @run.display_status) %>
-        <% if current_step %>
-          <%= link_to "##{step_anchor(current_step)}", class: "app-btn app-btn-muted", data: { action: "run-chat#jumpToStep" } do %>
-            <%= lucide_icon("target", class_name: "app-icon") %>
-            <span>Jump to now</span>
+      <div class="run-review-hero-row">
+        <div class="min-w-0">
+          <h1><%= run_name %></h1>
+          <p><%= objective_text %></p>
+        </div>
+        <div class="run-review-hero-actions">
+          <%= status_icon_pill(@run.status, title: @run.display_status) %>
+          <% if @run.issue %>
+            <%= link_to issue_path(@run.issue), class: "app-btn app-btn-muted" do %>
+              <%= lucide_icon("circle-dot", class_name: "app-icon") %>
+              <span><%= @run.issue.identifier %></span>
+            <% end %>
           <% end %>
-        <% end %>
-        <% if @run.issue %>
-          <%= link_to issue_path(@run.issue), class: "app-btn app-btn-muted" do %>
-            <%= lucide_icon("circle-dot", class_name: "app-icon") %>
-            <span><%= @run.issue.identifier %></span>
+          <% if @change_request %>
+            <%= link_to change_request_path(@change_request), class: "app-btn app-btn-primary" do %>
+              <%= lucide_icon("git-pull-request", class_name: "app-icon") %>
+              <span>Review changes</span>
+            <% end %>
           <% end %>
-        <% end %>
-        <% if @change_request %>
-          <%= link_to change_request_path(@change_request), class: "app-btn app-btn-primary" do %>
-            <%= lucide_icon("git-pull-request", class_name: "app-icon") %>
-            <span>Change Request</span>
-          <% end %>
-        <% end %>
+        </div>
       </div>
     </header>
 
-    <section class="codex-run-focus" aria-label="Run focus">
-      <div class="codex-run-focus-main">
-        <p class="app-eyebrow">Now</p>
-        <h2><%= next_label %></h2>
-        <p><%= run_summary %></p>
+    <section class="run-review-decision <%= "is-blocked" if @pending_run_message || @pending_approval %>" aria-label="Current decision">
+      <div class="run-review-decision-copy">
+        <p class="app-eyebrow"><%= @pending_run_message || @pending_approval ? "Stopped for you" : "Current state" %></p>
+        <h2><%= decision_label %></h2>
+        <p><%= decision_summary %></p>
       </div>
-      <div class="codex-run-focus-grid">
-        <div>
-          <span>Progress</span>
-          <strong><%= completed_steps %>/<%= @steps.size %></strong>
-          <small><%= progress_percent %>%</small>
-        </div>
-        <div>
-          <span>Evidence</span>
-          <strong><%= evidence_total %></strong>
-          <small><%= pluralize(@sandbox_sessions.size, "sandbox") %></small>
-        </div>
-        <div>
-          <span>Agent</span>
-          <strong>Codex</strong>
-          <small title="<%= focus_agent_label %>"><%= focus_agent_short_label %></small>
-        </div>
-      </div>
-      <% if focus_anchor.present? && focus_action_label.present? %>
-        <div class="codex-run-focus-actions">
-          <%= link_to "##{focus_anchor}", class: "app-btn app-btn-primary", data: { action: "run-chat#jumpToStep" } do %>
-            <%= lucide_icon("arrow-down", class_name: "app-icon") %>
-            <span><%= focus_action_label %></span>
+      <div class="run-review-decision-actions">
+        <% if @pending_run_message %>
+          <% if @pending_run_message.choices.any? %>
+            <% @pending_run_message.choices.each do |choice| %>
+              <% choice_key = choice["key"].to_s %>
+              <% choice_button_class = if choice_key.match?(/approve|accept|continue|yes/)
+                "app-btn app-btn-primary"
+              elsif choice_key.match?(/reject|cancel|stop|no/)
+                "app-btn app-btn-danger"
+              else
+                "app-btn app-btn-muted"
+              end %>
+              <%= button_to pipeline_run_run_message_path(@run, @pending_run_message),
+                    method: :post,
+                    params: { choice: choice["key"] },
+                    class: choice_button_class do %>
+                <span><%= choice["label"].presence || choice["key"].to_s.humanize %></span>
+              <% end %>
+            <% end %>
+          <% else %>
+            <%= form_with url: pipeline_run_run_message_path(@run, @pending_run_message), class: "run-review-answer-form" do |form| %>
+              <%= form.text_area :content,
+                    rows: 3,
+                    class: "app-textarea",
+                    placeholder: @pending_run_message.kind == "goal_check" ? "Add goal-check notes..." : "Reply with context...",
+                    data: {
+                      run_chat_target: "input",
+                      action: "input->run-chat#autosize keydown->run-chat#submitOnEnter"
+                    } %>
+              <%= form.submit "Send", class: "app-btn app-btn-primary" %>
+            <% end %>
           <% end %>
+        <% elsif @pending_approval %>
+          <%= button_to approve_pipeline_run_path(@run), method: :post, class: "app-btn app-btn-primary" do %>
+            <%= lucide_icon("check", class_name: "app-icon") %>
+            <span>Approve</span>
+          <% end %>
+          <%= button_to reject_pipeline_run_path(@run), method: :post, class: "app-btn app-btn-danger" do %>
+            <%= lucide_icon("x", class_name: "app-icon") %>
+            <span>Stop</span>
+          <% end %>
+        <% elsif @change_request %>
+          <%= link_to change_request_path(@change_request), class: "app-btn app-btn-primary" do %>
+            <%= lucide_icon("git-pull-request", class_name: "app-icon") %>
+            <span>Review package</span>
+          <% end %>
+        <% elsif @can_resume %>
+          <%= button_to resume_pipeline_run_path(@run), method: :post, class: "app-btn app-btn-muted" do %>
+            <%= lucide_icon("rotate-cw", class_name: "app-icon") %>
+            <span>Resume</span>
+          <% end %>
+        <% else %>
+          <span class="linear-count"><%= completed_steps %>/<%= @steps.size %> steps</span>
+        <% end %>
+      </div>
+    </section>
+
+    <section class="run-review-stages" aria-label="Run stages">
+      <% stage_rows.each do |stage, label, description| %>
+        <% stage_status = run_stage_status(@steps, stage, change_request: @change_request) %>
+        <div class="run-review-stage is-<%= stage_status %>">
+          <%= lucide_icon(run_stage_icon(stage_status), class_name: "app-icon") %>
+          <span>
+            <strong><%= label %></strong>
+            <small><%= description %></small>
+          </span>
         </div>
       <% end %>
     </section>
 
-    <section class="codex-chat-stream" aria-label="Run chat" data-run-chat-target="stream">
-      <div class="codex-chat-thread">
-      <article class="codex-chat-bubble is-user">
-        <div class="codex-chat-bubble-head">
-          <span>Operator</span>
-          <span>Objective</span>
+    <section class="run-review-panels" aria-label="Run review workspace">
+      <article class="run-review-panel is-primary">
+        <header>
+          <div>
+            <p class="app-eyebrow">Plan</p>
+            <h2>Generated plan</h2>
+          </div>
+          <span class="linear-count"><%= plan_source_label %></span>
+        </header>
+        <div class="rich-markdown run-review-markdown">
+          <%= render_markdown(plan_text, empty: "Plan will be captured before execution continues.") %>
         </div>
-        <p><%= objective_text %></p>
+        <% if plan_next_steps.any? || plan_acceptance_checks.any? %>
+          <div class="run-review-support-grid">
+            <% if plan_next_steps.any? %>
+              <section>
+                <h3>Next</h3>
+                <ul>
+                  <% plan_next_steps.each do |item| %>
+                    <li><%= item %></li>
+                  <% end %>
+                </ul>
+              </section>
+            <% end %>
+            <% if plan_acceptance_checks.any? %>
+              <section>
+                <h3>Acceptance</h3>
+                <ul>
+                  <% plan_acceptance_checks.each do |check| %>
+                    <li><%= check %></li>
+                  <% end %>
+                </ul>
+              </section>
+            <% end %>
+          </div>
+        <% end %>
       </article>
 
-      <% @steps.each do |step| %>
-        <% input = step.input_json || {} %>
-        <% output = step.output_json || {} %>
-        <% step_messages = @messages_by_step_id.fetch(step.id, []) %>
-        <% step_logs = @logs_by_step_id.fetch(step.id, []) %>
-        <% step_artifacts = @artifacts_by_step_id.fetch(step.id, []) %>
-        <% provider = (step.action_definition&.provider || step.action_snapshot.to_h["provider"] || "provider").to_s.tr("_", " ").titleize %>
-        <% duration = if step.started_at.present? && step.finished_at.present?
-          distance_of_time_in_words(step.started_at, step.finished_at)
-        elsif step.started_at.present?
-          "#{time_ago_in_words(step.started_at)} running"
-        else
-          "not started"
-        end %>
-        <% step_summary = output["summary"].presence || step.error_message.presence || input["objective"].presence || step.action_definition&.execution_guidance.presence || step.action_definition&.name.presence || "Step recorded." %>
-
-        <% if step == generated_plan_step && generated_plan_text.present? %>
-          <article id="<%= step_anchor(step) %>" class="codex-chat-bubble is-assistant is-plan">
-            <div class="codex-chat-bubble-head">
-              <span>Codex</span>
-              <span><%= plan_source_label %></span>
-            </div>
-            <div class="codex-chat-plan-title">
-              <span>Generated plan</span>
-              <% if generated_plan_output&.dig("provider_mode").present? || generated_plan_output&.dig("provider").present? %>
-                <small><%= [ generated_plan_output["provider"], generated_plan_output["provider_mode"] ].compact.join(" · ") %></small>
-              <% end %>
-            </div>
-            <div class="rich-markdown codex-chat-markdown">
-              <%= render_markdown(plan_text, empty: "Plan will be captured before execution continues.") %>
-            </div>
-            <% if plan_acceptance_checks.any? || plan_next_steps.any? %>
-              <div class="codex-chat-support">
-                <% if plan_next_steps.any? %>
-                  <section>
-                    <span>Next</span>
-                    <ul>
-                      <% plan_next_steps.each do |item| %>
-                        <li><%= item %></li>
-                      <% end %>
-                    </ul>
-                  </section>
-                <% end %>
-                <% if plan_acceptance_checks.any? %>
-                  <section>
-                    <span>Acceptance</span>
-                    <ul>
-                      <% plan_acceptance_checks.each do |check| %>
-                        <li><%= check %></li>
-                      <% end %>
-                    </ul>
-                  </section>
-                <% end %>
-              </div>
-            <% end %>
-            <% if agent_trace_available?(step, messages: step_messages, logs: step_logs, artifacts: step_artifacts) %>
-              <%= render "agent_trace", step: step, messages: step_messages, logs: step_logs, artifacts: step_artifacts %>
-            <% end %>
-          </article>
-        <% else %>
-          <article id="<%= step_anchor(step) %>" class="codex-chat-bubble is-system <%= "is-danger" if step.error_message.present? %>">
-            <div class="codex-chat-bubble-head">
-              <span><%= step.name %></span>
-              <span><%= provider %> · <%= duration %></span>
-            </div>
-            <div class="codex-chat-step-line">
-              <%= status_icon_pill(step.status, title: step.display_status) %>
-              <p><%= step_summary %></p>
-            </div>
-            <% if output["status"].present? || output.key?("changed_files_count") || output["branch_name"].present? %>
-              <div class="codex-chat-chips">
-                <% if output["status"].present? %>
-                  <span><%= output["status"].to_s.tr("_", " ").titleize %></span>
-                <% end %>
-                <% if output.key?("changed_files_count") %>
-                  <span><%= pluralize(output["changed_files_count"], "changed file") %></span>
-                <% end %>
-                <% if output["branch_name"].present? %>
-                  <span title="<%= output["branch_name"] %>"><%= output["branch_name"] %></span>
-                <% end %>
-              </div>
-            <% end %>
-            <% if agent_trace_available?(step, messages: step_messages, logs: step_logs, artifacts: step_artifacts) %>
-              <%= render "agent_trace", step: step, messages: step_messages, logs: step_logs, artifacts: step_artifacts %>
-            <% end %>
-          </article>
-        <% end %>
-      <% end %>
-
-      <% @run_messages.each do |message| %>
-        <article id="run-message-<%= message.id %>" class="codex-chat-bubble is-<%= message.role %> <%= "is-pending" if message.pending? %>">
-          <div class="codex-chat-bubble-head">
-            <span><%= message.role == "user" ? (message.user&.display_name || "You") : "xmode" %></span>
-            <span><%= message.pending? ? next_label : message.kind.to_s.tr("_", " ") %></span>
+      <article class="run-review-panel">
+        <header>
+          <div>
+            <p class="app-eyebrow">Review</p>
+            <h2>Code and visual evidence</h2>
           </div>
-          <% if message.content.present? %>
-            <p><%= message.content %></p>
+          <span class="linear-count"><%= pluralize(changed_files.size, "file") %></span>
+        </header>
+        <% if changed_files.any? %>
+          <div class="run-review-file-list">
+            <% changed_files.first(8).each do |file| %>
+              <div>
+                <span><%= file[:status] %></span>
+                <strong title="<%= file[:path] %>"><%= file[:path] %></strong>
+              </div>
+            <% end %>
+          </div>
+          <% if @change_request %>
+            <%= link_to change_request_path(@change_request), class: "app-btn app-btn-muted mt-3" do %>
+              <%= lucide_icon("code", class_name: "app-icon") %>
+              <span>Open code review</span>
+            <% end %>
           <% end %>
+        <% else %>
+          <p class="run-review-empty">No changed files have been captured yet.</p>
+        <% end %>
 
-          <% if message.kind == "goal_check" && message.payload["checks"].present? %>
-            <ul class="codex-chat-checks">
-              <% message.payload["checks"].each do |check| %>
-                <li><%= check %></li>
-              <% end %>
-            </ul>
+        <div class="run-review-visuals">
+          <h3>Visual review</h3>
+          <% if visual_artifacts.any? %>
+            <% visual_artifacts.first(4).each do |artifact| %>
+              <div>
+                <%= lucide_icon("image", class_name: "app-icon") %>
+                <span><%= artifact.name %></span>
+              </div>
+            <% end %>
+          <% else %>
+            <p>No visual artifact captured yet. Ask Codex for a screenshot or browser check when UI changes are involved.</p>
           <% end %>
+        </div>
+      </article>
 
-          <% message_usage = run_message_usage_items(message) %>
-          <% if message_usage.any? || message.payload["summary"].present? || message.payload["plan"].present? %>
-            <div class="codex-message-payload">
-              <% if message.payload["summary"].present? %>
-                <p><strong>Summary</strong><span><%= message.payload["summary"] %></span></p>
-              <% end %>
-              <% if message.payload["plan"].present? %>
-                <details>
-                  <summary>Plan</summary>
-                  <div class="rich-markdown codex-agent-markdown mt-2">
-                    <%= render_markdown(message.payload["plan"]) %>
-                  </div>
-                </details>
-              <% end %>
-              <% if message_usage.any? %>
-                <div class="codex-agent-usage" aria-label="Message token usage">
-                  <% message_usage.each do |label, value| %>
-                    <span><strong><%= value %></strong> <%= label %></span>
+      <details class="run-review-panel run-review-activity">
+        <summary>
+          <span>
+            <small class="app-eyebrow">Activity</small>
+            <strong>Step evidence and logs</strong>
+          </span>
+          <em><%= completed_steps %>/<%= @steps.size %></em>
+        </summary>
+        <div class="run-review-progress" aria-label="Run progress">
+          <span style="width: <%= progress_percent %>%"></span>
+        </div>
+        <div class="run-review-step-list">
+          <% @steps.each do |step| %>
+            <% input = step.input_json || {} %>
+            <% output = step.output_json || {} %>
+            <% step_messages = @messages_by_step_id.fetch(step.id, []) %>
+            <% step_logs = @logs_by_step_id.fetch(step.id, []) %>
+            <% step_artifacts = @artifacts_by_step_id.fetch(step.id, []) %>
+            <% provider = (step.action_definition&.provider || step.action_snapshot.to_h["provider"] || "provider").to_s.tr("_", " ").titleize %>
+            <% step_summary = output["summary"].presence || step.error_message.presence || input["objective"].presence || step.action_definition&.execution_guidance.presence || step.action_definition&.name.presence || "Step recorded." %>
+            <article id="<%= step_anchor(step) %>" class="<%= "is-current" if step == current_step %>">
+              <div class="run-review-step-head">
+                <%= status_icon_pill(step.status, title: step.display_status) %>
+                <span>
+                  <strong><%= step.name %></strong>
+                  <small><%= provider %> · <%= step.display_status %></small>
+                </span>
+              </div>
+              <p><%= step_summary %></p>
+              <% if output.key?("changed_files_count") || output["branch_name"].present? %>
+                <div class="run-review-mini-chips">
+                  <% if output.key?("changed_files_count") %>
+                    <span><%= pluralize(output["changed_files_count"], "changed file") %></span>
+                  <% end %>
+                  <% if output["branch_name"].present? %>
+                    <span title="<%= output["branch_name"] %>"><%= output["branch_name"] %></span>
                   <% end %>
                 </div>
               <% end %>
+              <% if agent_trace_available?(step, messages: step_messages, logs: step_logs, artifacts: step_artifacts) %>
+                <%= render "agent_trace", step: step, messages: step_messages, logs: step_logs, artifacts: step_artifacts %>
+              <% end %>
+            </article>
+          <% end %>
+        </div>
+      </details>
+
+      <article class="run-review-panel run-review-conversation">
+        <header>
+          <div>
+            <p class="app-eyebrow">Conversation</p>
+            <h2>Ask Codex or leave context</h2>
+          </div>
+          <span class="linear-count"><%= CodexSession.runtime_label(codex_chat_runtime) %></span>
+        </header>
+
+        <div class="run-review-thread" data-run-chat-target="stream">
+          <article class="codex-chat-bubble is-user">
+            <div class="codex-chat-bubble-head">
+              <span>Operator</span>
+              <span>Objective</span>
             </div>
+            <p><%= objective_text %></p>
+          </article>
+
+          <% @run_messages.each do |message| %>
+            <article id="run-message-<%= message.id %>" class="codex-chat-bubble is-<%= message.role %> <%= "is-pending" if message.pending? %>">
+              <div class="codex-chat-bubble-head">
+                <span><%= message.role == "user" ? (message.user&.display_name || "You") : "xmode" %></span>
+                <span><%= message.pending? ? decision_label : message.kind.to_s.tr("_", " ") %></span>
+              </div>
+              <% if message.content.present? %>
+                <p><%= message.content %></p>
+              <% end %>
+              <% if message.kind == "goal_check" && message.payload["checks"].present? %>
+                <ul class="codex-chat-checks">
+                  <% message.payload["checks"].each do |check| %>
+                    <li><%= check %></li>
+                  <% end %>
+                </ul>
+              <% end %>
+              <% message_usage = run_message_usage_items(message) %>
+              <% if message_usage.any? || message.payload["summary"].present? || message.payload["plan"].present? %>
+                <div class="codex-message-payload">
+                  <% if message.payload["summary"].present? %>
+                    <p><strong>Summary</strong><span><%= message.payload["summary"] %></span></p>
+                  <% end %>
+                  <% if message.payload["plan"].present? %>
+                    <details>
+                      <summary>Plan</summary>
+                      <div class="rich-markdown codex-agent-markdown mt-2">
+                        <%= render_markdown(message.payload["plan"]) %>
+                      </div>
+                    </details>
+                  <% end %>
+                  <% if message_usage.any? %>
+                    <div class="codex-agent-usage" aria-label="Message token usage">
+                      <% message_usage.each do |label, value| %>
+                        <span><strong><%= value %></strong> <%= label %></span>
+                      <% end %>
+                    </div>
+                  <% end %>
+                </div>
+              <% end %>
+            </article>
           <% end %>
 
-          <% if message == @pending_run_message %>
-            <% if message.choices.any? %>
-              <div class="codex-chat-actions">
-                <% message.choices.each do |choice| %>
-                  <% choice_key = choice["key"].to_s %>
-                  <% choice_button_class = if choice_key.match?(/approve|accept|continue|yes/)
-                    "app-btn app-btn-primary"
-                  elsif choice_key.match?(/reject|cancel|stop|no/)
-                    "app-btn app-btn-danger"
-                  else
-                    "app-btn app-btn-muted"
-                  end %>
-                  <%= button_to pipeline_run_run_message_path(@run, message),
-                        method: :post,
-                        params: { choice: choice["key"] },
-                        class: choice_button_class do %>
-                    <span><%= choice["label"].presence || choice["key"].to_s.humanize %></span>
-                  <% end %>
-                <% end %>
+          <%= render "codex_session_thread", codex_sessions: @codex_sessions %>
+
+          <% if @run_messages.blank? && @codex_sessions.blank? %>
+            <article class="codex-chat-bubble is-assistant">
+              <div class="codex-chat-bubble-head">
+                <span>xmode</span>
+                <span><%= @run.display_status %></span>
               </div>
-            <% else %>
-              <%= form_with url: pipeline_run_run_message_path(@run, message), class: "codex-chat-reply-form" do |form| %>
+              <p>No conversation has been added yet.</p>
+            </article>
+          <% end %>
+        </div>
+
+        <footer class="run-review-composer">
+          <% if permitted?("run_code_actions") %>
+            <%= form_with url: pipeline_run_codex_messages_path(@run),
+                  class: "codex-chat-composer-form",
+                  data: { action: "turbo:submit-start->run-chat#composerSubmitStart turbo:submit-end->run-chat#composerSubmitEnd" } do |form| %>
+              <div class="codex-chat-composer-box">
                 <%= form.text_area :content,
-                      rows: 3,
-                      class: "app-textarea",
-                      placeholder: message.kind == "goal_check" ? "Add goal-check notes..." : "Reply with context...",
+                      rows: 1,
+                      class: "app-textarea codex-chat-input",
+                      placeholder: "Ask Codex to inspect, revise, screenshot, explain, or continue...",
                       data: {
                         run_chat_target: "input",
                         action: "input->run-chat#autosize keydown->run-chat#submitOnEnter"
                       } %>
-                <%= form.submit "Send", class: "app-btn app-btn-primary" %>
-              <% end %>
+                <div class="codex-chat-composer-tools">
+                  <span>Codex · <%= CodexSession.runtime_label(codex_chat_runtime) %> · <%= codex_chat_model %></span>
+                  <%= form.button class: "app-btn app-btn-primary", title: "Ask Codex", aria: { label: "Ask Codex" } do %>
+                    <%= lucide_icon("message-square", class_name: "app-icon") %>
+                    <span>Ask Codex</span>
+                  <% end %>
+                </div>
+              </div>
             <% end %>
-          <% end %>
-        </article>
-      <% end %>
-
-      <%= render "codex_session_thread", codex_sessions: @codex_sessions %>
-
-      <% if @pending_approval && @pending_run_message.blank? %>
-        <article class="codex-chat-bubble is-assistant is-pending">
-          <div class="codex-chat-bubble-head">
-            <span>xmode</span>
-            <span>Approval required</span>
-          </div>
-          <p><%= current_step&.name || "Manual approval" %> needs a decision before the run can continue.</p>
-          <div class="codex-chat-actions">
-            <%= button_to approve_pipeline_run_path(@run), method: :post, class: "app-btn app-btn-primary" do %>
-              <%= lucide_icon("check", class_name: "app-icon") %>
-              <span>Approve</span>
-            <% end %>
-            <%= button_to reject_pipeline_run_path(@run), method: :post, class: "app-btn app-btn-danger" do %>
-              <%= lucide_icon("x", class_name: "app-icon") %>
-              <span>Reject</span>
-            <% end %>
-          </div>
-        </article>
-      <% elsif @run_messages.blank? && @pending_approval.blank? && @steps.blank? && @codex_sessions.blank? %>
-        <article class="codex-chat-bubble is-assistant">
-          <div class="codex-chat-bubble-head">
-            <span>xmode</span>
-            <span><%= @run.display_status %></span>
-          </div>
-          <p>No manual response is required right now.</p>
-        </article>
-      <% end %>
-      </div>
-    </section>
-
-    <footer class="codex-chat-composer">
-      <% if permitted?("run_code_actions") %>
-        <%= form_with url: pipeline_run_codex_messages_path(@run),
-              class: "codex-chat-composer-form",
-              data: { action: "turbo:submit-start->run-chat#composerSubmitStart turbo:submit-end->run-chat#composerSubmitEnd" } do |form| %>
-          <div class="codex-chat-composer-box">
-            <%= form.text_area :content,
-                  rows: 1,
-                  class: "app-textarea codex-chat-input",
-                  placeholder: "Ask Codex to inspect, develop, explain, or continue this run...",
-                  data: {
-                    run_chat_target: "input",
-                    action: "input->run-chat#autosize keydown->run-chat#submitOnEnter"
-                  } %>
-            <div class="codex-chat-composer-tools">
-              <span>Codex · <%= CodexSession.runtime_label(codex_chat_runtime) %> · <%= codex_chat_model %></span>
-              <%= form.button class: "app-btn app-btn-primary", title: "Ask Codex", aria: { label: "Ask Codex" } do %>
-                <%= lucide_icon("message-square", class_name: "app-icon") %>
-                <span>Ask Codex</span>
-              <% end %>
-            </div>
-          </div>
-        <% end %>
-      <% else %>
-        <div class="codex-chat-composer-form">
-          <div class="codex-chat-composer-box">
-            <p class="text-sm text-muted-foreground">Codex chat requires code action access.</p>
-          </div>
-        </div>
-      <% end %>
-      <% if @can_resume || @can_cancel %>
-        <div class="codex-chat-composer-actions">
-          <% if @can_resume %>
-            <%= button_to resume_pipeline_run_path(@run), method: :post, class: "app-btn app-btn-muted" do %>
-              <%= lucide_icon("rotate-cw", class_name: "app-icon") %>
-              <span>Resume</span>
-            <% end %>
+          <% else %>
+            <p class="run-review-empty">Codex chat requires code action access.</p>
           <% end %>
           <% if @can_cancel %>
             <%= button_to cancel_pipeline_run_path(@run), method: :post, class: "app-btn app-btn-danger" do %>
               <%= lucide_icon("ban", class_name: "app-icon") %>
-              <span>Cancel</span>
+              <span>Cancel run</span>
             <% end %>
           <% end %>
-        </div>
-      <% end %>
-    </footer>
+        </footer>
+      </article>
+    </section>
   </main>
 
-  <aside class="codex-run-inspector">
-    <section class="codex-run-outline">
-      <div class="codex-inspector-head">
-        <p class="app-eyebrow">Execution</p>
-        <h3>Run outline</h3>
-        <span class="linear-count"><%= completed_steps %>/<%= @steps.size %></span>
-      </div>
-      <div class="codex-run-progress" aria-label="Run progress">
-        <span style="width: <%= progress_percent %>%"></span>
-      </div>
-      <ol class="codex-step-outline">
-        <% @steps.each do |step| %>
-          <% step_messages = @messages_by_step_id.fetch(step.id, []) %>
-          <% step_logs = @logs_by_step_id.fetch(step.id, []) %>
-          <% step_artifacts = @artifacts_by_step_id.fetch(step.id, []) %>
-          <% step_sandboxes = @sandboxes_by_step_id.fetch(step.id, []) %>
-          <% substeps = step_outline_substeps(step, messages: step_messages, logs: step_logs, artifacts: step_artifacts, sandboxes: step_sandboxes) %>
-          <% step_active = step == current_step %>
-          <li>
-            <%= link_to "##{step_anchor(step)}", class: "codex-step-outline-link #{step_active ? "is-current" : ""}", data: { action: "run-chat#jumpToStep" } do %>
-              <%= status_icon_pill(step.status, title: step.display_status) %>
-              <span>
-                <strong><%= step.name %></strong>
-                <small><%= step.display_status %></small>
-              </span>
-            <% end %>
-            <% if substeps.any? %>
-              <ol class="codex-step-substeps">
-                <% substeps.each do |substep| %>
-                  <li>
-                    <span class="codex-step-substep-dot" aria-hidden="true"></span>
-                    <span><%= substep %></span>
-                  </li>
-                <% end %>
-              </ol>
-            <% end %>
-          </li>
+  <aside class="run-review-rail">
+    <section>
+      <p class="app-eyebrow">Decision</p>
+      <h3><%= decision_label %></h3>
+      <p><%= decision_summary %></p>
+      <% if @change_request %>
+        <%= link_to change_request_path(@change_request), class: "run-review-rail-link" do %>
+          <%= status_icon_pill(@change_request.status, title: @change_request.status.to_s.titleize) %>
+          <span>
+            <strong><%= @change_request.title %></strong>
+            <small title="<%= @change_request.branch_name %>"><%= @change_request.branch_name %></small>
+          </span>
         <% end %>
-      </ol>
+      <% end %>
     </section>
 
     <section>
-      <div class="codex-inspector-head">
-        <p class="app-eyebrow">Inspector</p>
-        <h3>Run details</h3>
-      </div>
-      <div class="codex-inspector-grid">
-        <div>
-          <span>Status</span>
-          <strong><%= @run.display_status %></strong>
-        </div>
-        <div>
-          <span>Project</span>
-          <strong title="<%= @run.project&.title %>"><%= @run.project&.title || "-" %></strong>
-        </div>
-        <div>
-          <span>Issue</span>
-          <strong><%= @run.issue&.identifier || "-" %></strong>
-        </div>
-        <div>
-          <span>Evidence</span>
-          <strong><%= pluralize(evidence_total, "item") %></strong>
-        </div>
-      </div>
-    </section>
-
-    <section>
-      <div class="codex-inspector-head">
-        <p class="app-eyebrow">Artifacts</p>
-        <h3>Evidence</h3>
-      </div>
-      <div class="codex-inspector-evidence">
+      <p class="app-eyebrow">Evidence</p>
+      <h3>Review signals</h3>
+      <div class="run-review-signal-grid">
         <div><strong><%= @approvals.size %></strong><span>approvals</span></div>
         <div><strong><%= @sandbox_sessions.size %></strong><span>sandboxes</span></div>
         <div><strong><%= @artifacts.size %></strong><span>artifacts</span></div>
@@ -506,85 +467,67 @@ end %>
 
     <% if @sandbox_sessions.any? %>
       <section>
-        <div class="codex-inspector-head">
-          <p class="app-eyebrow">Sandboxes</p>
-          <h3>Workspace sessions</h3>
-          <% if command_count.positive? %>
-            <span class="linear-count"><%= pluralize(command_count, "command") %></span>
-          <% end %>
-        </div>
-        <div class="codex-inspector-raw-list">
+        <p class="app-eyebrow">Sandboxes</p>
+        <h3>Open workspaces</h3>
+        <div class="run-review-rail-list">
           <% @sandbox_sessions.each do |sandbox| %>
             <% sandbox_files = @sandbox_files_by_session_id.fetch(sandbox.id, []) %>
             <% sandbox_name = sandbox.execution_environment&.name.presence || "Workspace sandbox" %>
-            <article>
+            <%= link_to sandbox_session_path(sandbox) do %>
               <%= status_icon_pill(sandbox.status, title: sandbox.status.to_s.titleize) %>
               <span>
-                <strong><%= link_to sandbox_name, sandbox_session_path(sandbox), class: "app-link" %></strong>
-                <small>
-                  <%= sandbox.kind.to_s.tr("_", " ").titleize %>
-                  <% if sandbox_files.any? %>
-                    · <%= pluralize(sandbox_files.size, "file") %>
-                  <% end %>
-                </small>
+                <strong><%= sandbox_name %></strong>
+                <small><%= sandbox.kind.to_s.tr("_", " ").titleize %><% if sandbox_files.any? %> · <%= pluralize(sandbox_files.size, "file") %><% end %></small>
               </span>
-            </article>
-
-            <% sandbox_files.first(6).each do |file| %>
-              <article>
-                <%= lucide_icon(file.fetch(:type) == "directory" ? "folder" : "file", class_name: "app-icon text-muted-foreground") %>
-                <span>
-                  <strong><%= file.fetch(:path) %></strong>
-                  <% if file.fetch(:type) == "file" && file[:byte_size].present? %>
-                    <small><%= number_to_human_size(file[:byte_size]) %></small>
-                  <% else %>
-                    <small><%= file.fetch(:type).to_s.titleize %></small>
-                  <% end %>
-                </span>
-              </article>
             <% end %>
-
-            <% if sandbox.sandbox_commands.any? %>
-              <div class="codex-inspector-terminal">
-                <h4>Terminal</h4>
-                <% sandbox.sandbox_commands.order(created_at: :desc).first(4).each do |command| %>
-                  <article>
-                    <%= status_icon_pill(command.status, title: command.status.to_s.titleize) %>
-                    <span>
-                      <strong>$ <%= command.command %></strong>
-                      <small><%= command.stdout.presence || command.stderr.presence || command.status.to_s.titleize %></small>
-                    </span>
-                  </article>
+            <% if sandbox_files.any? || sandbox.sandbox_commands.any? %>
+              <details class="run-review-sandbox-details">
+                <summary>Files and terminal</summary>
+                <% if sandbox_files.any? %>
+                  <div class="sandbox-file-list">
+                    <% sandbox_files.first(5).each do |file| %>
+                      <div class="sandbox-file-row">
+                        <%= lucide_icon(file.fetch(:type) == "directory" ? "folder" : "file", class_name: "app-icon") %>
+                        <span class="sandbox-file-name"><%= file.fetch(:path) %></span>
+                        <span class="sandbox-file-meta"><%= file.fetch(:type).to_s.titleize %></span>
+                      </div>
+                    <% end %>
+                  </div>
                 <% end %>
-              </div>
+                <% if sandbox.sandbox_commands.any? %>
+                  <div class="sandbox-terminal">
+                    <div class="sandbox-terminal-head">
+                      <span>Terminal</span>
+                      <span><%= pluralize(sandbox.sandbox_commands.size, "command") %></span>
+                    </div>
+                    <% sandbox.sandbox_commands.order(created_at: :desc).first(3).each do |command| %>
+                      <div class="sandbox-command-row">
+                        <div class="sandbox-command-line">
+                          <code>$ <%= command.command %></code>
+                          <%= status_icon_pill(command.status, title: command.status.to_s.titleize) %>
+                        </div>
+                        <% if command.stdout.present? %>
+                          <pre><%= command.stdout %></pre>
+                        <% elsif command.stderr.present? %>
+                          <pre class="is-error"><%= command.stderr %></pre>
+                        <% end %>
+                      </div>
+                    <% end %>
+                  </div>
+                <% end %>
+              </details>
             <% end %>
           <% end %>
         </div>
       </section>
     <% end %>
 
-    <% if @change_request %>
-      <section>
-        <div class="codex-inspector-head">
-          <p class="app-eyebrow">Review</p>
-          <h3>Change Request</h3>
-        </div>
-        <%= link_to change_request_path(@change_request), class: "codex-inspector-link" do %>
-          <%= status_icon_pill(@change_request.status, title: @change_request.status.to_s.titleize) %>
-          <span>
-            <strong><%= @change_request.title %></strong>
-            <small title="<%= @change_request.branch_name %>"><%= @change_request.branch_name %></small>
-          </span>
-        <% end %>
-      </section>
-    <% end %>
-
-    <details class="codex-inspector-appendix">
+    <details class="run-review-raw">
       <summary>
         <span>Raw evidence</span>
         <small><%= pluralize(@artifacts.size, "artifact") %>, <%= pluralize(@logs.size, "log") %></small>
       </summary>
-      <div class="codex-inspector-raw-list">
+      <div class="run-review-raw-list">
         <% @artifacts.each do |artifact| %>
           <% preview = artifact_text_preview(artifact) %>
           <details>
