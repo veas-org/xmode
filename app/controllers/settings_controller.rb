@@ -207,6 +207,11 @@ class SettingsController < AuthenticatedController
     @codex_cloud_model = ENV.fetch("CODEX_CLOUD_MODEL", "codex-cloud")
     @codex_session_count = current_workspace.codex_sessions.count
     @recent_codex_sessions = current_workspace.codex_sessions.recent.limit(4)
+    codex_cli_label = if @codex_runtime.in?(%w[local_cli docker_cli])
+      "#{CodexSession.runtime_label(@codex_runtime)} default"
+    else
+      CodexSession.runtime_label(@codex_runtime)
+    end
     @local_model_rows = [
       [ "Default profile", @default_code_model_profile.name ],
       [ "Provider", @default_code_model_profile.display_provider ],
@@ -215,7 +220,7 @@ class SettingsController < AuthenticatedController
       [ "Credential mode", @default_code_model_profile.credential_label ],
       [ "Default mode", @local_model_enabled ? "Live for code-model actions" : "Action opt-in" ],
       [ "Timeout", "#{@local_model_timeout} seconds" ],
-      [ "Codex CLI", @codex_runtime == "local_cli" ? "Oracle CLI default" : @codex_runtime.tr("_", " ").titleize ],
+      [ "Codex CLI", codex_cli_label ],
       [ "Codex Cloud", codex_cloud_configured? ? "Optional env configured" : "Optional" ]
     ]
   end

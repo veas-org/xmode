@@ -1,6 +1,6 @@
 class CodexSession < ApplicationRecord
   STATUSES = %w[queued running ready failed closed].freeze
-  RUNTIMES = %w[cloud_subscription local_cli mock].freeze
+  RUNTIMES = %w[cloud_subscription docker_cli local_cli mock].freeze
   SANDBOX_MODES = %w[read-only workspace-write danger-full-access].freeze
   APPROVAL_POLICIES = %w[never on-failure on-request untrusted].freeze
   DEFAULT_CLI_MODEL = "gpt-5.5"
@@ -47,6 +47,10 @@ class CodexSession < ApplicationRecord
     runtime == "local_cli"
   end
 
+  def docker_cli?
+    runtime == "docker_cli"
+  end
+
   def mock?
     runtime == "mock"
   end
@@ -72,10 +76,15 @@ class CodexSession < ApplicationRecord
   end
 
   def runtime_label
-    case runtime
+    self.class.runtime_label(runtime)
+  end
+
+  def self.runtime_label(runtime)
+    case runtime.to_s
     when "cloud_subscription" then "Codex Cloud"
+    when "docker_cli" then "Docker CLI"
     when "local_cli" then "Local CLI"
-    else runtime.titleize
+    else runtime.to_s.titleize
     end
   end
 
@@ -102,7 +111,7 @@ class CodexSession < ApplicationRecord
     self.model = model.presence || self.class.default_model(runtime)
     self.title = objective.to_s.first(80) if title.blank? && objective.present?
     self.cloud_environment_id = cloud_environment_id.presence || ENV["CODEX_CLOUD_ENV_ID"].presence
-    self.working_directory = working_directory.presence || self.class.default_working_directory if local_cli?
+    self.working_directory = working_directory.presence || self.class.default_working_directory if local_cli? || docker_cli?
     self.branch = branch.presence || ENV["CODEX_CLOUD_BRANCH"].presence
     self.sandbox_mode = sandbox_mode.presence || "workspace-write"
     self.approval_policy = approval_policy.presence || "never"

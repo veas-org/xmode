@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+export CODEX_HOME="${CODEX_HOME:-/tmp/codex-home}"
+mkdir -p "${CODEX_HOME}"
+
+if [ -d /codex-auth ]; then
+  shopt -s dotglob nullglob
+  auth_files=(/codex-auth/*)
+  if [ "${#auth_files[@]}" -gt 0 ]; then
+    cp -R /codex-auth/. "${CODEX_HOME}/"
+  fi
+fi
+
+exec "$@"

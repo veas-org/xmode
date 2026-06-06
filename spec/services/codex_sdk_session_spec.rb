@@ -107,6 +107,97 @@ RSpec.describe "Codex SDK sessions" do
     )
   end
 
+  it "runs Docker CLI sessions through a bounded worker container" do
+    without_env(
+      "CODEX_DOCKER_IMAGE",
+      "CODEX_DOCKER_STORAGE_VOLUME",
+      "CODEX_DOCKER_AUTH_VOLUME",
+      "CODEX_DOCKER_NETWORK",
+      "CODEX_DOCKER_CPUS",
+      "CODEX_DOCKER_MEMORY",
+      "CODEX_DOCKER_PIDS_LIMIT",
+      "CODEX_DOCKER_TMPFS_SIZE"
+    ) do
+      workspace = Workspace.create!(name: "Spec")
+      working_directory = Rails.root.join("storage", "codex-docker-spec").to_s
+      codex_session = workspace.codex_sessions.create!(
+        runtime: "docker_cli",
+        model: "gpt-5.5",
+        title: "Docker CLI task",
+        objective: "Implement a reviewable Docker task.",
+        working_directory: working_directory,
+        sandbox_mode: "workspace-write",
+        approval_policy: "never"
+      )
+      message = codex_session.codex_session_messages.create!(content: "Continue implementation.")
+      status = instance_double(Process::Status, success?: true)
+      jsonl = JSON.generate(
+        type: "item.completed",
+        item: { id: "item_0", type: "agent_message", text: "Done." }
+      )
+
+      allow(Open3).to receive(:capture3).and_return([ "#{jsonl}\n", "", status ])
+
+      response = CodexSdk::Runner.call(message)
+
+      expect(response.content).to eq("#{jsonl}\n")
+      expect(response.metadata["runtime"]).to eq("docker_cli")
+      expect(File.directory?(working_directory)).to be(true)
+      expect(Open3).to have_received(:capture3).with(
+        "docker",
+        "run",
+        "--rm",
+        "--name",
+        "xmode-codex-#{message.id}",
+        "--network",
+        "bridge",
+        "--cpus",
+        "2",
+        "--memory",
+        "4g",
+        "--pids-limit",
+        "512",
+        "--tmpfs",
+        "/tmp:rw,exec,nosuid,size=1g",
+        "--volume",
+        "xmode_storage:/rails/storage",
+        "--volume",
+        "xmode_codex:/codex-auth:ro",
+        "--env",
+        "CODEX_HOME=/tmp/codex-home",
+        "ghcr.io/veas-org/xmode:latest",
+        "bash",
+        "/rails/bin/codex-docker-runner",
+        "codex",
+        "exec",
+        "--json",
+        "--model",
+        "gpt-5.5",
+        "--dangerously-bypass-approvals-and-sandbox",
+        "--skip-git-repo-check",
+        "--ephemeral",
+        "-C",
+        working_directory,
+        "-",
+        stdin_data: include("Continue implementation."),
+        chdir: working_directory
+      )
+    end
+  end
+
+  it "defaults Docker CLI sessions to the configured CLI workspace" do
+    workspace = Workspace.create!(name: "Spec")
+    codex_session = workspace.codex_sessions.create!(
+      runtime: "docker_cli",
+      model: "gpt-5.5",
+      title: "Docker CLI defaults",
+      objective: "Use Docker runtime defaults."
+    )
+
+    expect(codex_session.working_directory).to eq(CodexSession.default_working_directory)
+    expect(codex_session.runtime_label).to eq("Docker CLI")
+  end
+
   it "preserves local CLI JSON event streams for interactive rendering" do
     workspace = Workspace.create!(name: "Spec")
     working_directory = Rails.root.join("tmp", "codex-cli-jsonl-spec").to_s
@@ -131,5 +222,15 @@ RSpec.describe "Codex SDK sessions" do
     response = CodexSdk::Runner.call(message)
 
     expect(response.content).to eq(jsonl)
+  end
+
+  def without_env(*keys)
+    previous = keys.index_with { |key| ENV[key] }
+    keys.each { |key| ENV.delete(key) }
+    yield
+  ensure
+    previous.each do |key, value|
+      value.nil? ? ENV.delete(key) : ENV[key] = value
+    end
   end
 end

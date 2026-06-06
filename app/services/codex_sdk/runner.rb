@@ -6,6 +6,7 @@ require "pathname"
 module CodexSdk
   class Runner
     Response = Struct.new(:content, :cloud_task_id, :metadata, :duration_ms, keyword_init: true)
+    DEFAULT_DOCKER_IMAGE = "ghcr.io/veas-org/xmode:latest"
 
     class Error < StandardError; end
 
@@ -24,6 +25,7 @@ module CodexSdk
       started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
       response = case @session.runtime
       when "cloud_subscription" then cloud_subscription_response
+      when "docker_cli" then docker_cli_response
       when "local_cli" then local_cli_response
       when "mock" then mock_response
       else raise Error, "Unsupported Codex runtime: #{@session.runtime}"
@@ -70,18 +72,7 @@ module CodexSdk
     end
 
     def local_cli_response
-      command = [
-        "codex",
-        "exec",
-        "--json",
-        "--model",
-        @session.model,
-        "--sandbox",
-        @session.sandbox_mode,
-        "--skip-git-repo-check"
-      ]
-      command += [ "-C", @session.working_directory ] if @session.working_directory.present?
-      command << "-"
+      command = codex_exec_command
 
       stdout, stderr, status = if @progress
         stream_command(command, stdin_data: prompt)
@@ -90,10 +81,82 @@ module CodexSdk
       end
       raise Error, command_error("Codex CLI session failed", stderr, stdout) unless status.success?
 
+      cli_response(command, stdout, stderr, "local_cli")
+    end
+
+    def docker_cli_response
+      container_name = docker_container_name
+      command = docker_cli_command(container_name)
+      completed = false
+
+      stdout, stderr, status = if @progress
+        stream_command(command, stdin_data: prompt)
+      else
+        capture_command(command, stdin_data: prompt)
+      end
+      completed = true
+      raise Error, command_error("Codex Docker CLI session failed", stderr, stdout) unless status.success?
+
+      cli_response(command, stdout, stderr, "docker_cli")
+    ensure
+      cleanup_docker_container(container_name) if container_name.present? && !completed
+    end
+
+    def codex_exec_command(docker_sandbox: false)
+      command = [
+        "codex",
+        "exec",
+        "--json",
+        "--model",
+        @session.model
+      ]
+      command += if docker_sandbox
+        [ "--dangerously-bypass-approvals-and-sandbox" ]
+      else
+        [ "--sandbox", @session.sandbox_mode ]
+      end
+      command << "--skip-git-repo-check"
+      command << "--ephemeral" if docker_sandbox
+      command += [ "-C", @session.working_directory ] if @session.working_directory.present?
+      command << "-"
+      command
+    end
+
+    def docker_cli_command(container_name)
+      [
+        "docker",
+        "run",
+        "--rm",
+        "--name",
+        container_name,
+        "--network",
+        ENV.fetch("CODEX_DOCKER_NETWORK", "bridge"),
+        "--cpus",
+        ENV.fetch("CODEX_DOCKER_CPUS", "2"),
+        "--memory",
+        ENV.fetch("CODEX_DOCKER_MEMORY", "4g"),
+        "--pids-limit",
+        ENV.fetch("CODEX_DOCKER_PIDS_LIMIT", "512"),
+        "--tmpfs",
+        "/tmp:rw,exec,nosuid,size=#{ENV.fetch("CODEX_DOCKER_TMPFS_SIZE", "1g")}",
+        "--volume",
+        "#{ENV.fetch("CODEX_DOCKER_STORAGE_VOLUME", "xmode_storage")}:/rails/storage",
+        "--volume",
+        "#{ENV.fetch("CODEX_DOCKER_AUTH_VOLUME", "xmode_codex")}:/codex-auth:ro",
+        "--env",
+        "CODEX_HOME=/tmp/codex-home",
+        docker_runtime_image,
+        "bash",
+        "/rails/bin/codex-docker-runner",
+        *codex_exec_command(docker_sandbox: true)
+      ]
+    end
+
+    def cli_response(command, stdout, stderr, runtime)
       Response.new(
         content: local_cli_content(stdout, stderr),
         metadata: {
-          "runtime" => "local_cli",
+          "runtime" => runtime,
           "command" => command_without_prompt(command),
           "stdout" => stdout,
           "stderr" => stderr
@@ -125,7 +188,7 @@ module CodexSdk
         end
       end
     rescue Errno::ENOENT
-      raise Error, "Codex CLI is not installed or is not available on PATH"
+      raise Error, missing_command_message(command)
     rescue SystemCallError => e
       raise Error, "Codex command failed to start: #{e.message}"
     rescue Timeout::Error
@@ -157,7 +220,7 @@ module CodexSdk
         end
       end
     rescue Errno::ENOENT
-      raise Error, "Codex CLI is not installed or is not available on PATH"
+      raise Error, missing_command_message(command)
     rescue SystemCallError => e
       raise Error, "Codex command failed to start: #{e.message}"
     rescue Timeout::Error
@@ -198,7 +261,7 @@ module CodexSdk
         Response.new(
           content: stdout.dup,
           metadata: {
-            "runtime" => "local_cli",
+            "runtime" => @session.runtime,
             "command" => command_without_prompt(command),
             "stdout" => stdout.dup,
             "stderr" => stderr.presence
@@ -214,11 +277,15 @@ module CodexSdk
     end
 
     def default_command_directory
-      @session.local_cli? ? CodexSession.default_working_directory : Rails.root.to_s
+      cli_runtime? ? CodexSession.default_working_directory : Rails.root.to_s
     end
 
     def safe_storage_directory?(directory)
-      @session.local_cli? && Pathname.new(directory).cleanpath.to_s.start_with?("#{Rails.root.join("storage").cleanpath}/")
+      cli_runtime? && Pathname.new(directory).cleanpath.to_s.start_with?("#{Rails.root.join("storage").cleanpath}/")
+    end
+
+    def cli_runtime?
+      @session.local_cli? || @session.docker_cli?
     end
 
     def prompt
@@ -300,6 +367,28 @@ module CodexSdk
 
     def command_without_prompt(command)
       command[0...-1]
+    end
+
+    def docker_container_name
+      "xmode-codex-#{@message.id}"
+    end
+
+    def docker_runtime_image
+      ENV.fetch("CODEX_DOCKER_IMAGE", DEFAULT_DOCKER_IMAGE)
+    end
+
+    def cleanup_docker_container(container_name)
+      Open3.capture3("docker", "rm", "-f", container_name, chdir: Rails.root.to_s)
+    rescue StandardError
+      nil
+    end
+
+    def missing_command_message(command)
+      if command.first == "docker"
+        "Docker CLI is not installed or is not available on PATH"
+      else
+        "Codex CLI is not installed or is not available on PATH"
+      end
     end
 
     def command_error(prefix, stderr, stdout)

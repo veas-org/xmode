@@ -33,7 +33,7 @@
             <div><%= form.label :title, class: "app-label" %><%= form.text_field :title, class: "app-input", placeholder: "Implement issue in sandbox" %></div>
             <div>
               <%= form.label :runtime, class: "app-label" %>
-              <%= form.select :runtime, CodexSession::RUNTIMES.map { |runtime| [ runtime.tr("_", " ").titleize, runtime ] }, {}, class: "app-input" %>
+              <%= form.select :runtime, CodexSession::RUNTIMES.map { |runtime| [ CodexSession.runtime_label(runtime), runtime ] }, {}, class: "app-input" %>
             </div>
             <div><%= form.label :model, class: "app-label" %><%= form.text_field :model, class: "app-input", placeholder: CodexSession.default_model("local_cli") %></div>
             <div><%= form.label :cloud_environment_id, "Cloud environment", class: "app-label" %><%= form.text_field :cloud_environment_id, class: "app-input", placeholder: "Only for Codex Cloud mode" %></div>
@@ -55,7 +55,7 @@
           </div>
 
           <div class="flex flex-wrap items-center justify-between gap-3">
-            <p class="record-point-meta">Local CLI mode runs in the server workspace and stores the transcript. Codex Cloud mode is available when a cloud environment id is supplied.</p>
+            <p class="record-point-meta">Docker CLI mode runs Codex inside an isolated worker container and stores the transcript. Codex Cloud mode is available when a cloud environment id is supplied.</p>
             <%= form.submit "Open Codex session", class: "app-btn app-btn-primary" %>
           </div>
         <% end %>

@@ -42,7 +42,8 @@ class PipelineCodexMessagesController < AuthenticatedController
       metadata: {
         "source" => "pipeline_run",
         "pipeline_run_id" => @run.id,
-        "codex_cli" => runtime == "local_cli",
+        "codex_cli" => runtime.in?(%w[local_cli docker_cli]),
+        "docker_cli" => runtime == "docker_cli",
         "cloud_cli" => runtime == "cloud_subscription"
       }.compact
     )

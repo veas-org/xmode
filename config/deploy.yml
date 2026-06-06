@@ -12,6 +12,11 @@ servers:
     hosts:
       - 129.153.38.146
     cmd: bin/jobs
+    options:
+      volume:
+        - "/var/run/docker.sock:/var/run/docker.sock"
+      group-add:
+        - "989"
 
 proxy:
   ssl: true
@@ -53,11 +58,17 @@ env:
     LOCAL_MODEL_FAST_NAME: "qwen2.5-coder:1.5b"
     LOCAL_MODEL_TIMEOUT_SECONDS: "3600"
     CODEX_HOME: "/home/rails/.codex"
-    CODEX_SDK_RUNTIME: "local_cli"
+    CODEX_SDK_RUNTIME: "docker_cli"
     CODEX_CLI_MODEL: "gpt-5.5"
     CODEX_CLOUD_MODEL: "codex-cloud"
     CODEX_WORKING_DIRECTORY: "/rails/storage/codex_sessions"
     CODEX_SDK_TIMEOUT_SECONDS: "1800"
+    CODEX_DOCKER_IMAGE: "ghcr.io/veas-org/xmode:latest"
+    CODEX_DOCKER_STORAGE_VOLUME: "xmode_storage"
+    CODEX_DOCKER_AUTH_VOLUME: "xmode_codex"
+    CODEX_DOCKER_CPUS: "2"
+    CODEX_DOCKER_MEMORY: "4g"
+    CODEX_DOCKER_PIDS_LIMIT: "512"
   secret:
     - RAILS_MASTER_KEY
     - POSTGRES_PASSWORD
